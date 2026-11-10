@@ -1,16 +1,16 @@
 import { Bell, Search } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 
-const pageTitles = {
-  '/dashboard':  'Dashboard',
-  '/clients':    'Clients',
-  '/campaigns':  'Campaigns',
-  '/prospects':  'Prospects',
-  '/pipeline':   'Pipeline',
-  '/templates':  'Email Templates',
-  '/tasks':      'Tasks',
-  '/links':      'Won Links',
-  '/reports':    'Reports',
+const pageTitles: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/clients':   'Clients',
+  '/campaigns': 'Campaigns',
+  '/prospects': 'Prospects',
+  '/pipeline':  'Pipeline',
+  '/templates': 'Email Templates',
+  '/tasks':     'Tasks',
+  '/links':     'Won Links',
+  '/reports':   'Reports',
 }
 
 export default function Topbar() {
@@ -35,4 +35,3 @@ export default function Topbar() {
     </header>
   )
 }
-

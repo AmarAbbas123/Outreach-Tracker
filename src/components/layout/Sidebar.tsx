@@ -9,18 +9,25 @@ import {
   CheckSquare,
   Link2,
   BarChart3,
+  type LucideIcon,
 } from 'lucide-react'
 
-const navItems = [
+interface NavItem {
+  to: string
+  label: string
+  icon: LucideIcon
+}
+
+const navItems: NavItem[] = [
   { to: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
-  { to: '/clients',   label: 'Clients',     icon: Users },
-  { to: '/campaigns', label: 'Campaigns',   icon: Target },
-  { to: '/prospects', label: 'Prospects',   icon: Globe },
-  { to: '/pipeline',  label: 'Pipeline',    icon: KanbanSquare },
-  { to: '/templates', label: 'Templates',   icon: Mail },
-  { to: '/tasks',     label: 'Tasks',       icon: CheckSquare },
-  { to: '/links',     label: 'Won Links',   icon: Link2 },
-  { to: '/reports',   label: 'Reports',     icon: BarChart3 },
+  { to: '/clients',    label: 'Clients',    icon: Users },
+  { to: '/campaigns',  label: 'Campaigns',  icon: Target },
+  { to: '/prospects',  label: 'Prospects',  icon: Globe },
+  { to: '/pipeline',   label: 'Pipeline',   icon: KanbanSquare },
+  { to: '/templates',  label: 'Templates',  icon: Mail },
+  { to: '/tasks',      label: 'Tasks',      icon: CheckSquare },
+  { to: '/links',      label: 'Won Links',  icon: Link2 },
+  { to: '/reports',    label: 'Reports',    icon: BarChart3 },
 ]
 
 export default function Sidebar() {
@@ -62,4 +69,3 @@ export default function Sidebar() {
     </aside>
   )
 }
-
