@@ -1,0 +1,18 @@
+# Auto-detect text files and normalise line endings to LF in the repo
+* text=auto eol=lf
+
+# Explicitly declare text files
+*.tsx  text eol=lf
+*.ts   text eol=lf
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+
+# Binaries — do not modify
+*.png  binary
+*.jpg  binary
+*.svg  binary
+*.ico  binary
