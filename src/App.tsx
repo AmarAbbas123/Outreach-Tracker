@@ -10,12 +10,14 @@ import Tasks from './pages/Tasks'
 import Links from './pages/Links'
 import Reports from './pages/Reports'
 import Login from './pages/Login'
+import SignUp from './pages/SignUp'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
