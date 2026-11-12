@@ -1,38 +1,56 @@
-import { Bell, Search } from 'lucide-react'
+import { Bell, Search, ChevronDown } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 
 const pageTitles: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/clients':   'Clients',
-  '/campaigns': 'Campaigns',
-  '/prospects': 'Prospects',
-  '/pipeline':  'Pipeline',
-  '/templates': 'Email Templates',
-  '/tasks':     'Tasks',
-  '/links':     'Won Links',
-  '/reports':   'Reports',
+  '/app/dashboard': 'Dashboard',
+  '/app/clients':   'Clients',
+  '/app/campaigns': 'Campaigns',
+  '/app/prospects': 'Prospects',
+  '/app/pipeline':  'Pipeline',
+  '/app/templates': 'Email Templates',
+  '/app/tasks':     'Tasks',
+  '/app/links':     'Won Links',
+  '/app/reports':   'Reports',
+  '/app/settings':  'Settings',
 }
 
 export default function Topbar() {
   const { pathname } = useLocation()
-  const title = pageTitles[pathname] ?? 'Outreach Tracker'
+  const title = pageTitles[pathname] ?? 'OutreachTracker'
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0">
-      <h1 className="text-lg font-semibold text-gray-800">{title}</h1>
-      <div className="flex items-center gap-4">
-        <button className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
-          <Search size={18} />
-        </button>
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 gap-4">
+      <h1 className="text-base font-semibold text-gray-800 shrink-0">{title}</h1>
+
+      {/* Search */}
+      <div className="flex-1 max-w-sm hidden md:block">
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search prospects, campaigns…"
+            className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
+          />
+        </div>
+      </div>
+
+      {/* Right side */}
+      <div className="flex items-center gap-2">
+        {/* Notifications */}
         <button className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors relative">
           <Bell size={18} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
         </button>
-        <div className="w-8 h-8 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">
-          U
-        </div>
+
+        {/* Profile */}
+        <button className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+          <div className="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">
+            U
+          </div>
+          <span className="text-sm font-medium text-gray-700 hidden md:block">My Account</span>
+          <ChevronDown size={14} className="text-gray-400 hidden md:block" />
+        </button>
       </div>
     </header>
   )
 }
-
