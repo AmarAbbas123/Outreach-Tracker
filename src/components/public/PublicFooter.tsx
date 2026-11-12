@@ -1,22 +1,40 @@
+import { Link } from 'react-router-dom'
 import { Link2 } from 'lucide-react'
+
+interface FooterLink {
+  label: string
+  href: string
+  external?: boolean
+}
 
 interface FooterColumn {
   heading: string
-  links: { label: string }[]
+  links: FooterLink[]
 }
 
 const columns: FooterColumn[] = [
   {
     heading: 'Product',
-    links: [{ label: 'Features' }, { label: 'Pricing' }, { label: 'Changelog' }],
+    links: [
+      { label: 'Features', href: '/features' },
+      { label: 'Pricing', href: '/pricing' },
+      { label: 'Changelog', href: '#' },
+    ],
   },
   {
     heading: 'Company',
-    links: [{ label: 'About' }, { label: 'Blog' }, { label: 'Contact' }],
+    links: [
+      { label: 'About', href: '#' },
+      { label: 'Blog', href: '#' },
+      { label: 'Contact', href: 'mailto:hello@outreachtracker.io', external: true },
+    ],
   },
   {
     heading: 'Legal',
-    links: [{ label: 'Privacy' }, { label: 'Terms' }],
+    links: [
+      { label: 'Privacy Policy', href: '#' },
+      { label: 'Terms of Service', href: '#' },
+    ],
   },
 ]
 
@@ -27,13 +45,21 @@ export default function PublicFooter() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand */}
           <div className="md:col-span-1">
-            <div className="flex items-center gap-2 text-indigo-600 font-bold text-lg mb-3">
-              <Link2 className="w-5 h-5" />
+            <Link to="/" className="flex items-center gap-2 font-bold text-lg mb-3">
+              <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
+                <Link2 className="w-4 h-4" />
+              </div>
               <span className="text-gray-900">OutreachTracker</span>
-            </div>
-            <p className="text-gray-500 text-sm leading-relaxed">
-              Run smarter outreach, win more links.
+            </Link>
+            <p className="text-gray-500 text-sm leading-relaxed mb-4">
+              Run smarter outreach, win more links. Built for link-building teams.
             </p>
+            <Link
+              to="/signup"
+              className="inline-block bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+            >
+              Start free →
+            </Link>
           </div>
 
           {/* Link columns */}
@@ -43,12 +69,21 @@ export default function PublicFooter() {
               <ul className="space-y-3">
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <a
-                      href="#"
-                      className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-                    >
-                      {link.label}
-                    </a>
+                    {link.external ? (
+                      <a
+                        href={link.href}
+                        className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        to={link.href}
+                        className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -57,9 +92,12 @@ export default function PublicFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 pt-8 border-t border-gray-200">
-          <p className="text-sm text-gray-400 text-center">
-            © 2026 OutreachTracker. All rights reserved.
+        <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-gray-400">
+            © {new Date().getFullYear()} OutreachTracker. All rights reserved.
+          </p>
+          <p className="text-sm text-gray-400">
+            Built for link builders, by link builders.
           </p>
         </div>
       </div>

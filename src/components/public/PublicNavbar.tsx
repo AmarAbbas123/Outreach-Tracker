@@ -11,12 +11,14 @@ export default function PublicNavbar() {
       : 'text-gray-600 hover:text-gray-900 transition-colors font-medium'
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
       <div className="container mx-auto px-6 max-w-6xl">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 text-indigo-600 font-bold text-lg">
-            <Link2 className="w-5 h-5" />
+          <Link to="/" className="flex items-center gap-2 font-bold text-lg">
+            <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
+              <Link2 className="w-4 h-4" />
+            </div>
             <span className="text-gray-900">OutreachTracker</span>
           </Link>
 
@@ -30,15 +32,15 @@ export default function PublicNavbar() {
           <div className="hidden md:flex items-center gap-4">
             <Link
               to="/login"
-              className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              className="text-gray-600 hover:text-gray-900 font-medium transition-colors text-sm"
             >
               Sign in
             </Link>
             <Link
               to="/signup"
-              className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+              className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors text-sm"
             >
-              Get Started
+              Get Started →
             </Link>
           </div>
 
@@ -80,10 +82,10 @@ export default function PublicNavbar() {
           </Link>
           <Link
             to="/signup"
-            className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors text-center"
+            className="bg-indigo-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors text-center"
             onClick={() => setMobileOpen(false)}
           >
-            Get Started
+            Get Started →
           </Link>
         </div>
       )}
