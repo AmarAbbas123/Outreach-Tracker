@@ -1,6 +1,8 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Link2, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import api from '../api/client'
+import { useAuth } from '../context/AuthContext'
 
 interface LoginForm {
   email: string
@@ -10,6 +12,7 @@ interface LoginForm {
 interface FieldError {
   email?: string
   password?: string
+  general?: string
 }
 
 function validate(form: LoginForm): FieldError {
@@ -20,43 +23,70 @@ function validate(form: LoginForm): FieldError {
 }
 
 export default function Login() {
+  const navigate = useNavigate()
+  const { login } = useAuth()
   const [form, setForm] = useState<LoginForm>({ email: '', password: '' })
   const [errors, setErrors] = useState<FieldError>({})
   const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
-    if (errors[name as keyof FieldError]) {
-      setErrors((prev) => ({ ...prev, [name]: undefined }))
+    if (errors[name as keyof FieldError] || errors.general) {
+      setErrors((prev) => ({ ...prev, [name]: undefined, general: undefined }))
     }
   }
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fieldErrors = validate(form)
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors)
       return
     }
-    // TODO: wire up auth API
+
+    setLoading(true)
+    try {
+      const res = await api.post('/auth/login', {
+        email: form.email,
+        password: form.password,
+      })
+
+      if (res.data.success && res.data.data) {
+        login(res.data.data.token, res.data.data.user)
+        navigate('/app/dashboard')
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Login failed. Please check your credentials.'
+      setErrors({ general: msg })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm w-full max-w-sm p-8">
         {/* Logo */}
-        <div className="flex items-center gap-2 mb-8">
+        <Link to="/" className="inline-flex items-center gap-2 mb-8">
           <div className="bg-indigo-600 text-white p-2 rounded-lg">
             <Link2 size={20} />
           </div>
           <span className="font-bold text-gray-900 text-lg">OutreachTracker</span>
-        </div>
+        </Link>
 
         <h2 className="text-xl font-semibold text-gray-900 mb-1">Sign in</h2>
         <p className="text-sm text-gray-500 mb-6">
           Welcome back. Enter your details to continue.
         </p>
+
+        {errors.general && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm flex items-center gap-2">
+            <AlertCircle size={16} className="shrink-0" />
+            <span>{errors.general}</span>
+          </div>
+        )}
 
         <form className="space-y-4" onSubmit={handleSubmit} noValidate>
           {/* Email */}
@@ -122,9 +152,10 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+            disabled={loading}
+            className="w-full bg-indigo-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
           >
-            Sign in
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 

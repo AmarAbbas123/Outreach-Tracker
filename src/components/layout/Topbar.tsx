@@ -1,5 +1,7 @@
-import { Bell, Search, ChevronDown } from 'lucide-react'
-import { useLocation } from 'react-router-dom'
+import { Bell, Search, ChevronDown, LogOut } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
 
 const pageTitles: Record<string, string> = {
   '/app/dashboard': 'Dashboard',
@@ -16,7 +18,17 @@ const pageTitles: Record<string, string> = {
 
 export default function Topbar() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const title = pageTitles[pathname] ?? 'OutreachTracker'
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+  }
+
+  const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'U'
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 gap-4">
@@ -42,14 +54,37 @@ export default function Topbar() {
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
         </button>
 
-        {/* Profile */}
-        <button className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-          <div className="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">
-            U
-          </div>
-          <span className="text-sm font-medium text-gray-700 hidden md:block">My Account</span>
-          <ChevronDown size={14} className="text-gray-400 hidden md:block" />
-        </button>
+        {/* Profile menu */}
+        <div className="relative">
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <div className="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">
+              {initial}
+            </div>
+            <span className="text-sm font-medium text-gray-700 hidden md:block">
+              {user?.name || 'My Account'}
+            </span>
+            <ChevronDown size={14} className="text-gray-400 hidden md:block" />
+          </button>
+
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50">
+              <div className="px-4 py-2 border-b border-gray-100">
+                <p className="text-xs font-semibold text-gray-900 truncate">{user?.name}</p>
+                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut size={14} />
+                <span>Sign out</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )
