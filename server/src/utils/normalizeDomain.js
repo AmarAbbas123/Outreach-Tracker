@@ -10,3 +10,6 @@ export const normalizeDomain = (input) => {
   }
 };
 
+export default normalizeDomain;
+
+
