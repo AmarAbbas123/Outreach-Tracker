@@ -2,7 +2,6 @@ import { useState, type FormEvent, type ChangeEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Link2, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import api from '../api/client'
-import { useAuth } from '../context/AuthContext'
 
 interface SignUpForm {
   fullName: string
@@ -60,7 +59,6 @@ function validate(form: SignUpForm): FieldError {
 
 export default function SignUp() {
   const navigate = useNavigate()
-  const { login } = useAuth()
   const [form, setForm] = useState<SignUpForm>({
     fullName: '',
     email: '',
@@ -98,9 +96,8 @@ export default function SignUp() {
         password: form.password,
       })
 
-      if (res.data.success && res.data.data) {
-        login(res.data.data.token, res.data.data.user)
-        navigate('/app/dashboard')
+      if (res.data.success) {
+        navigate('/login', { state: { registered: true } })
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || 'Registration failed. Please try again.'

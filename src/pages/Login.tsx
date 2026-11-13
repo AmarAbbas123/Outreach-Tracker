@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ChangeEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Link2, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link2, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
 
@@ -24,11 +24,14 @@ function validate(form: LoginForm): FieldError {
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
   const [form, setForm] = useState<LoginForm>({ email: '', password: '' })
   const [errors, setErrors] = useState<FieldError>({})
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const justRegistered = (location.state as any)?.registered === true
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -80,6 +83,13 @@ export default function Login() {
         <p className="text-sm text-gray-500 mb-6">
           Welcome back. Enter your details to continue.
         </p>
+
+        {justRegistered && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex items-center gap-2">
+            <CheckCircle2 size={16} className="shrink-0" />
+            <span>Account created! Sign in to get started.</span>
+          </div>
+        )}
 
         {errors.general && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm flex items-center gap-2">
