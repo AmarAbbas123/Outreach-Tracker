@@ -38,3 +38,4 @@ const clientSchema = new mongoose.Schema(
 clientSchema.index({ workspace: 1, name: 1 });
 
 export default mongoose.model('Client', clientSchema);
+

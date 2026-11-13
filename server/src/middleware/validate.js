@@ -15,3 +15,4 @@ export const validate = (schema) => async (req, res, next) => {
     });
   }
 };
+

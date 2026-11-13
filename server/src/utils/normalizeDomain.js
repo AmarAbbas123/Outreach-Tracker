@@ -9,3 +9,4 @@ export const normalizeDomain = (input) => {
     return value.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
   }
 };
+

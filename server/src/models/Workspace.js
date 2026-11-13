@@ -17,3 +17,4 @@ const workspaceSchema = new mongoose.Schema(
 );
 
 export default mongoose.model('Workspace', workspaceSchema);
+

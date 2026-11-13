@@ -30,3 +30,4 @@ router.get('/me', requireAuth, getMe);
 router.put('/me', requireAuth, validate(updateProfileSchema), updateMe);
 
 export default router;
+

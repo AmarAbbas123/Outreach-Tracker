@@ -5,3 +5,4 @@ export const renderTemplate = (text, vars) => {
   }
   return { output, hasMissing: output.includes('{{') };
 };
+

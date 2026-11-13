@@ -18,3 +18,4 @@ export const updateProfileSchema = z.object({
   followUpDays: z.number().int().min(1).max(30).optional(),
   password: z.string().min(8).optional(),
 });
+

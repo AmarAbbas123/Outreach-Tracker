@@ -11,3 +11,4 @@ connectDB().then(() => {
     console.log(`🚀 Outreach Tracker API server running on port ${PORT}`);
   });
 });
+
