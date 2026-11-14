@@ -1,5 +1,6 @@
 import { aiOperationsResponse, aiValueMapResponse } from '../schemas/aiClean.js';
 import normalizeDomain from '../utils/normalizeDomain.js';
+import { planOperationsWithGemini, standardizeWithGemini } from '../services/gemini.service.js';
 
 // POST /api/v1/ai/clean/detect-columns
 export const detectColumns = async (req, res, next) => {
@@ -156,6 +157,19 @@ export const parseCommand = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Command is required.' });
     }
 
+    // 1. Try Gemini Live LLM first
+    const geminiPlan = await planOperationsWithGemini({
+      command: command.trim(),
+      columns,
+      workspaceId: req.workspaceId,
+      userId: req.user?._id,
+    });
+
+    if (geminiPlan && geminiPlan.operations && geminiPlan.operations.length > 0) {
+      return res.json({ success: true, data: geminiPlan, source: 'gemini' });
+    }
+
+    // 2. Fallback to smart natural language pattern engine
     const cmd = command.toLowerCase();
     const operations = [];
 
@@ -321,6 +335,20 @@ export const parseCommand = async (req, res, next) => {
 export const standardizeValues = async (req, res, next) => {
   try {
     const { values = [], instruction = 'Standardize values' } = req.body;
+
+    // 1. Try Gemini Live LLM first
+    const geminiMappings = await standardizeWithGemini({
+      values,
+      instruction,
+      workspaceId: req.workspaceId,
+      userId: req.user?._id,
+    });
+
+    if (geminiMappings && geminiMappings.mappings) {
+      return res.json({ success: true, data: geminiMappings, source: 'gemini' });
+    }
+
+    // 2. Fallback to smart standardizations
     const mappings = [];
 
     values.forEach((v) => {
