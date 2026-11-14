@@ -387,7 +387,7 @@ export const exportDataset = async (req, res, next) => {
     const sheetData = rows.map((r) => {
       const rowObj = {};
       activeColumns.forEach((c) => {
-        rowObj[c.name] = r.cells[c.id] ?? '';
+        rowObj[c.name] = r.cells?.[c.id] ?? r.cells?.[c.name] ?? '';
       });
       return rowObj;
     });

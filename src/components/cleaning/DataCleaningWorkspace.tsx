@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ChangeEvent, type FormEvent } from 'react'
+import { useState, useRef, useEffect, useMemo, type ChangeEvent, type FormEvent } from 'react'
 import {
   Upload,
   Plus,
@@ -256,6 +256,40 @@ function DatasetGrid({
   const [commandInput, setCommandInput] = useState('')
   const [commandLoading, setCommandLoading] = useState(false)
   const [commandPreview, setCommandPreview] = useState<any | null>(null)
+  const [aiStatusMessage, setAiStatusMessage] = useState<string | null>(null)
+  const [editingCell, setEditingCell] = useState<{ rowId: string; colId: string; val: string } | null>(null)
+
+  // Helper: safely get cell value regardless of column ID casing or naming
+  const getCellValue = (r: DatasetRowData, colId: string, colName?: string): string => {
+    if (!r || !r.cells) return ''
+    if (r.cells[colId] !== undefined) return String(r.cells[colId] ?? '')
+    if (colName && r.cells[colName] !== undefined) return String(r.cells[colName] ?? '')
+    const targetCol = columns.find((c) => c.id === colId)
+    const nameToMatch = colName || targetCol?.name
+    const lowerColId = colId.toLowerCase()
+    for (const [k, v] of Object.entries(r.cells)) {
+      if (k.toLowerCase() === lowerColId || (nameToMatch && k.toLowerCase() === nameToMatch.toLowerCase())) {
+        return String(v ?? '')
+      }
+    }
+    return ''
+  }
+
+  // Resolve any column identifier (col.id, col.name, or case-insensitive) to actual col.id
+  const resolveColId = (idOrName?: string): string => {
+    if (!idOrName) return selectedColumnId || columns[0]?.id || ''
+    const clean = String(idOrName).trim()
+    const exact = columns.find((c) => c.id === clean)
+    if (exact) return exact.id
+    const byName = columns.find((c) => c.name.toLowerCase() === clean.toLowerCase())
+    if (byName) return byName.id
+    const partial = columns.find(
+      (c) =>
+        c.name.toLowerCase().includes(clean.toLowerCase()) ||
+        c.id.toLowerCase().includes(clean.toLowerCase())
+    )
+    return partial ? partial.id : clean
+  }
 
   // Undo / Redo history stack (up to 50 states)
   const [history, setHistory] = useState<DatasetRowData[][]>([])
@@ -292,7 +326,7 @@ function DatasetGrid({
     }
   }, [dataset._id])
 
-  // Save changes helper with undo tracking
+  // Save changes helper with undo tracking and deletedRowIds support
   const applyRowChanges = async (newRows: DatasetRowData[], stepLabel: string) => {
     // Push current to history (max 50)
     setHistory((prev) => [...prev.slice(-49), rows])
@@ -301,9 +335,14 @@ function DatasetGrid({
 
     // Save batch to server in background
     try {
+      const currentIds = new Set(rows.map((r) => r._id))
+      const newIds = new Set(newRows.map((r) => r._id))
+      const deletedRowIds = Array.from(currentIds).filter((id) => !newIds.has(id))
       const updatedRows = newRows.map((r) => ({ _id: r._id, cells: r.cells }))
+
       await api.patch(`/datasets/${dataset._id}/rows`, {
         updatedRows,
+        deletedRowIds,
         stepLabel,
       })
       queryClient.invalidateQueries({ queryKey: ['datasets-list'] })
@@ -346,9 +385,8 @@ function DatasetGrid({
     const updated = rows.map((r) => {
       const newCells = { ...r.cells }
       columns.forEach((c) => {
-        if (newCells[c.id]) {
-          newCells[c.id] = String(newCells[c.id]).trim().replace(/\s+/g, ' ')
-        }
+        const val = getCellValue(r, c.id, c.name)
+        newCells[c.id] = val.trim().replace(/\s+/g, ' ')
       })
       return { ...r, cells: newCells }
     })
@@ -357,9 +395,10 @@ function DatasetGrid({
 
   const handleChangeCase = (mode: 'lower' | 'upper' | 'title') => {
     if (!selectedColumnId) return
-    const colName = columns.find((c) => c.id === selectedColumnId)?.name || 'column'
+    const col = columns.find((c) => c.id === selectedColumnId)
+    const colName = col?.name || 'column'
     const updated = rows.map((r) => {
-      const val = r.cells[selectedColumnId] || ''
+      const val = getCellValue(r, selectedColumnId, col?.name)
       let res = val
       if (mode === 'lower') res = val.toLowerCase()
       if (mode === 'upper') res = val.toUpperCase()
@@ -373,10 +412,11 @@ function DatasetGrid({
 
   const handleExtractDomain = () => {
     if (!selectedColumnId) return
-    const colName = columns.find((c) => c.id === selectedColumnId)?.name || 'column'
+    const col = columns.find((c) => c.id === selectedColumnId)
+    const colName = col?.name || 'column'
     let count = 0
     const updated = rows.map((r) => {
-      const val = r.cells[selectedColumnId] || ''
+      const val = getCellValue(r, selectedColumnId, col?.name)
       const domain = normalizeDomain(val)
       if (domain && domain !== val) count++
       return { ...r, cells: { ...r.cells, [selectedColumnId]: domain || val } }
@@ -386,13 +426,14 @@ function DatasetGrid({
 
   const handleRemoveDuplicates = () => {
     if (!selectedColumnId) return
-    const colName = columns.find((c) => c.id === selectedColumnId)?.name || 'column'
+    const col = columns.find((c) => c.id === selectedColumnId)
+    const colName = col?.name || 'column'
     const seen = new Set<string>()
     const remaining: DatasetRowData[] = []
     let removed = 0
 
     rows.forEach((r) => {
-      const val = (r.cells[selectedColumnId] || '').trim().toLowerCase()
+      const val = getCellValue(r, selectedColumnId, col?.name).trim().toLowerCase()
       if (!val) {
         remaining.push(r)
       } else if (!seen.has(val)) {
@@ -408,14 +449,16 @@ function DatasetGrid({
 
   const handleDeleteEmptyRows = () => {
     if (!selectedColumnId) return
-    const colName = columns.find((c) => c.id === selectedColumnId)?.name || 'column'
-    const remaining = rows.filter((r) => (r.cells[selectedColumnId] || '').trim().length > 0)
+    const col = columns.find((c) => c.id === selectedColumnId)
+    const colName = col?.name || 'column'
+    const remaining = rows.filter((r) => getCellValue(r, selectedColumnId, col?.name).trim().length > 0)
     const count = rows.length - remaining.length
     applyRowChanges(remaining, `Deleted ${count} rows where "${colName}" was empty`)
   }
 
   const handleFixEmailTypos = () => {
     if (!selectedColumnId) return
+    const col = columns.find((c) => c.id === selectedColumnId)
     const typos: Record<string, string> = {
       '@gmial.com': '@gmail.com',
       '@gmai.com': '@gmail.com',
@@ -425,7 +468,7 @@ function DatasetGrid({
     }
     let fixed = 0
     const updated = rows.map((r) => {
-      let val = (r.cells[selectedColumnId] || '').toLowerCase().trim()
+      let val = getCellValue(r, selectedColumnId, col?.name).toLowerCase().trim()
       for (const [bad, good] of Object.entries(typos)) {
         if (val.includes(bad)) {
           val = val.replace(bad, good)
@@ -457,17 +500,21 @@ function DatasetGrid({
   const handleFindReplaceSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!findText) return
+    const col = columns.find((c) => c.id === selectedColumnId)
+    const colName = col?.name || 'column'
     let count = 0
     const updated = rows.map((r) => {
-      const newCells = { ...r.cells }
-      const targetCol = selectedColumnId || columns[0]?.id
-      if (newCells[targetCol] && newCells[targetCol].includes(findText)) {
-        newCells[targetCol] = newCells[targetCol].replaceAll(findText, replaceText)
+      const val = getCellValue(r, selectedColumnId, col?.name)
+      if (val.includes(findText)) {
         count++
+        return {
+          ...r,
+          cells: { ...r.cells, [selectedColumnId]: val.replaceAll(findText, replaceText) },
+        }
       }
-      return { ...r, cells: newCells }
+      return r
     })
-    applyRowChanges(updated, `Replaced "${findText}" with "${replaceText}" in ${count} cells`)
+    applyRowChanges(updated, `Replaced "${findText}" with "${replaceText}" in "${colName}" (${count} cells)`)
     setShowFindReplace(false)
     setFindText('')
     setReplaceText('')
@@ -503,7 +550,7 @@ function DatasetGrid({
       const sheetData = rows.map((r) => {
         const rowObj: Record<string, string> = {}
         activeColumns.forEach((c) => {
-          rowObj[c.name] = r.cells[c.id] ?? ''
+          rowObj[c.name] = getCellValue(r, c.id, c.name)
         })
         return rowObj
       })
@@ -551,20 +598,21 @@ function DatasetGrid({
     try {
       for (const op of ops) {
         if (op.type === 'trim') {
+          const targetCols = (op.columns?.length ? op.columns : columns.map((c) => c.id)).map(resolveColId)
           currentRows = currentRows.map((r) => {
             const cells = { ...r.cells }
-            const targetCols = op.columns?.length ? op.columns : columns.map((c) => c.id)
             targetCols.forEach((cId: string) => {
-              if (cells[cId]) cells[cId] = String(cells[cId]).trim().replace(/\s+/g, ' ')
+              const val = getCellValue(r, cId)
+              cells[cId] = val.trim().replace(/\s+/g, ' ')
             })
             return { ...r, cells }
           })
         } else if (op.type === 'change_case') {
+          const targetCols = (op.columns?.length ? op.columns : columns.map((c) => c.id)).map(resolveColId)
           currentRows = currentRows.map((r) => {
             const cells = { ...r.cells }
-            const targetCols = op.columns?.length ? op.columns : columns.map((c) => c.id)
             targetCols.forEach((cId: string) => {
-              const val = cells[cId] || ''
+              const val = getCellValue(r, cId)
               cells[cId] =
                 op.mode === 'lower'
                   ? val.toLowerCase()
@@ -577,58 +625,99 @@ function DatasetGrid({
         } else if (op.type === 'delete_rows') {
           currentRows = currentRows.filter((r) => {
             let keep = true
-            op.where.forEach((cond: any) => {
-              const val = (r.cells[cond.column] || '').trim().toLowerCase()
+            ;(op.where || []).forEach((cond: any) => {
+              const condColId = resolveColId(cond.column)
+              const val = getCellValue(r, condColId).trim().toLowerCase()
+              const condVal = String(cond.value || '').trim().toLowerCase()
               if (cond.op === 'is_empty' && val.length === 0) keep = false
               if (cond.op === 'not_empty' && val.length > 0) keep = false
-              if (cond.op === 'equals' && val === String(cond.value || '').trim().toLowerCase()) keep = false
-              if (cond.op === 'contains' && val.includes(String(cond.value || '').trim().toLowerCase())) keep = false
+              if (cond.op === 'equals' && val === condVal) keep = false
+              if (cond.op === 'not_equals' && val !== condVal) keep = false
+              if (cond.op === 'contains' && val.includes(condVal)) keep = false
+              if (cond.op === 'starts_with' && val.startsWith(condVal)) keep = false
+              if (cond.op === 'ends_with' && val.endsWith(condVal)) keep = false
             })
             return keep
           })
+        } else if (op.type === 'remove_duplicates') {
+          const targetCols = (op.columns?.length ? op.columns : [selectedColumnId || columns[0]?.id]).map(resolveColId)
+          const seen = new Set<string>()
+          const remaining: DatasetRowData[] = []
+          for (const r of currentRows) {
+            const key = targetCols.map((cId) => getCellValue(r, cId).trim().toLowerCase()).join('|||')
+            if (!key || !seen.has(key)) {
+              if (key) seen.add(key)
+              remaining.push(r)
+            }
+          }
+          currentRows = remaining
         } else if (op.type === 'extract_domain') {
-          const colId = op.column || selectedColumnId || columns[0]?.id
+          const colId = resolveColId(op.column || selectedColumnId || columns[0]?.id)
+          const targetColId = resolveColId(op.target || colId)
           currentRows = currentRows.map((r) => {
-            const val = r.cells[colId] || ''
+            const val = getCellValue(r, colId)
             const d = normalizeDomain(val)
-            return { ...r, cells: { ...r.cells, [op.target || colId]: d || val } }
+            return { ...r, cells: { ...r.cells, [targetColId]: d || val } }
           })
         } else if (op.type === 'replace_values') {
-          const colId = op.column || selectedColumnId || columns[0]?.id
+          const colId = resolveColId(op.column || selectedColumnId || columns[0]?.id)
+          const from = String(op.from || '')
+          const to = String(op.to || '')
           currentRows = currentRows.map((r) => {
-            const val = r.cells[colId] || ''
-            if (val.includes(op.from)) {
-              return { ...r, cells: { ...r.cells, [colId]: val.replaceAll(op.from, op.to) } }
+            const val = getCellValue(r, colId)
+            if (op.match === 'whole_cell') {
+              if (op.matchCase ? val === from : val.toLowerCase() === from.toLowerCase()) {
+                return { ...r, cells: { ...r.cells, [colId]: to } }
+              }
+            } else {
+              if (op.matchCase ? val.includes(from) : val.toLowerCase().includes(from.toLowerCase())) {
+                const regex = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), op.matchCase ? 'g' : 'gi')
+                return { ...r, cells: { ...r.cells, [colId]: val.replace(regex, to) } }
+              }
+            }
+            return r
+          })
+        } else if (op.type === 'fill_empty') {
+          const colId = resolveColId(op.column || selectedColumnId || columns[0]?.id)
+          const fillVal = String(op.value ?? '')
+          currentRows = currentRows.map((r) => {
+            const val = getCellValue(r, colId).trim()
+            if (val.length === 0) {
+              return { ...r, cells: { ...r.cells, [colId]: fillVal } }
             }
             return r
           })
         } else if (op.type === 'ai_rewrite') {
-          const targetCols = op.columns?.length ? op.columns : [selectedColumnId || columns[0]?.id]
+          const targetCols = (op.columns?.length ? op.columns : [selectedColumnId || columns[0]?.id]).map(resolveColId)
           for (const cId of targetCols) {
             const uniqueVals = Array.from(
-              new Set(currentRows.map((r) => String(r.cells[cId] || '').trim()).filter(Boolean))
+              new Set(currentRows.map((r) => getCellValue(r, cId).trim()).filter(Boolean))
             ).slice(0, 100)
-            const res = await api.post('/ai/clean/standardize', {
-              values: uniqueVals,
-              instruction: op.instruction,
-            })
-            if (res.data.success && res.data.data.mappings) {
-              const map = new Map<string, string>(
-                res.data.data.mappings.map((m: any) => [m.from.toLowerCase(), m.to])
-              )
-              currentRows = currentRows.map((r) => {
-                const val = String(r.cells[cId] || '').trim()
-                if (map.has(val.toLowerCase())) {
-                  return { ...r, cells: { ...r.cells, [cId]: map.get(val.toLowerCase())! } }
-                }
-                return r
+            if (uniqueVals.length > 0) {
+              const res = await api.post('/ai/clean/standardize', {
+                values: uniqueVals,
+                instruction: op.instruction,
               })
+              if (res.data.success && res.data.data.mappings) {
+                const map = new Map<string, string>(
+                  res.data.data.mappings.map((m: any) => [String(m.from).toLowerCase(), String(m.to)])
+                )
+                currentRows = currentRows.map((r) => {
+                  const val = getCellValue(r, cId).trim()
+                  if (map.has(val.toLowerCase())) {
+                    return { ...r, cells: { ...r.cells, [cId]: map.get(val.toLowerCase())! } }
+                  }
+                  return r
+                })
+              }
             }
           }
         }
       }
 
       applyRowChanges(currentRows, `AI: ${commandPreview.command}`)
+      setAiStatusMessage(`Successfully applied: "${commandPreview.command}" (${currentRows.length} rows remaining)`)
+      setTimeout(() => setAiStatusMessage(null), 5000)
       setCommandPreview(null)
       setCommandInput('')
     } catch (err: any) {
@@ -638,61 +727,63 @@ function DatasetGrid({
     }
   }
 
-  // Filter & Search Logic
+  // Filter & Search Logic (Memoized & Robust)
   const isFilterActive =
     search.trim().length > 0 ||
     filterVal.trim().length > 0 ||
     filterOp === 'is_empty' ||
     filterOp === 'not_empty'
 
-  const visibleRows = rows.filter((r) => {
-    // 1. Quick search across all columns
-    if (search.trim()) {
-      const q = search.toLowerCase().trim()
-      const match = Object.values(r.cells).some((val) => String(val || '').toLowerCase().includes(q))
-      if (!match) return false
-    }
+  const visibleRows = useMemo(() => {
+    return rows.filter((r) => {
+      // 1. Quick search across all columns
+      if (search.trim()) {
+        const q = search.toLowerCase().trim()
+        const match = columns.some((col) => getCellValue(r, col.id, col.name).toLowerCase().includes(q))
+        if (!match) return false
+      }
 
-    // 2. Filter operators
-    if (filterOp === 'is_empty') {
-      if (filterColumnId === 'all') {
-        const hasEmpty = Object.values(r.cells).some((val) => !val || String(val).trim().length === 0)
-        if (!hasEmpty) return false
-      } else {
-        const cellVal = String(r.cells[filterColumnId] || '').trim()
-        if (cellVal.length > 0) return false
+      // 2. Filter operators
+      if (filterOp === 'is_empty') {
+        if (filterColumnId === 'all') {
+          const hasEmpty = columns.some((col) => getCellValue(r, col.id, col.name).trim().length === 0)
+          if (!hasEmpty) return false
+        } else {
+          const cellVal = getCellValue(r, filterColumnId).trim()
+          if (cellVal.length > 0) return false
+        }
+      } else if (filterOp === 'not_empty') {
+        if (filterColumnId === 'all') {
+          const allNonEmpty = columns.every((col) => getCellValue(r, col.id, col.name).trim().length > 0)
+          if (!allNonEmpty) return false
+        } else {
+          const cellVal = getCellValue(r, filterColumnId).trim()
+          if (cellVal.length === 0) return false
+        }
+      } else if (filterVal.trim()) {
+        const target = filterVal.toLowerCase().trim()
+        if (filterColumnId === 'all') {
+          const cellVals = columns.map((col) => getCellValue(r, col.id, col.name).toLowerCase())
+          if (filterOp === 'contains' && !cellVals.some((v) => v.includes(target))) return false
+          if (filterOp === 'does_not_contain' && cellVals.some((v) => v.includes(target))) return false
+          if (filterOp === 'equals' && !cellVals.some((v) => v === target)) return false
+          if (filterOp === 'not_equals' && cellVals.some((v) => v === target)) return false
+          if (filterOp === 'starts_with' && !cellVals.some((v) => v.startsWith(target))) return false
+          if (filterOp === 'ends_with' && !cellVals.some((v) => v.endsWith(target))) return false
+        } else {
+          const cellVal = getCellValue(r, filterColumnId).toLowerCase()
+          if (filterOp === 'contains' && !cellVal.includes(target)) return false
+          if (filterOp === 'does_not_contain' && cellVal.includes(target)) return false
+          if (filterOp === 'equals' && cellVal !== target) return false
+          if (filterOp === 'not_equals' && cellVal === target) return false
+          if (filterOp === 'starts_with' && !cellVal.startsWith(target)) return false
+          if (filterOp === 'ends_with' && !cellVal.endsWith(target)) return false
+        }
       }
-    } else if (filterOp === 'not_empty') {
-      if (filterColumnId === 'all') {
-        const allNonEmpty = Object.values(r.cells).every((val) => val && String(val).trim().length > 0)
-        if (!allNonEmpty) return false
-      } else {
-        const cellVal = String(r.cells[filterColumnId] || '').trim()
-        if (cellVal.length === 0) return false
-      }
-    } else if (filterVal.trim()) {
-      const target = filterVal.toLowerCase().trim()
-      if (filterColumnId === 'all') {
-        const cellVals = Object.values(r.cells).map((v) => String(v || '').toLowerCase())
-        if (filterOp === 'contains' && !cellVals.some((v) => v.includes(target))) return false
-        if (filterOp === 'does_not_contain' && cellVals.some((v) => v.includes(target))) return false
-        if (filterOp === 'equals' && !cellVals.some((v) => v === target)) return false
-        if (filterOp === 'not_equals' && cellVals.some((v) => v === target)) return false
-        if (filterOp === 'starts_with' && !cellVals.some((v) => v.startsWith(target))) return false
-        if (filterOp === 'ends_with' && !cellVals.some((v) => v.endsWith(target))) return false
-      } else {
-        const cellVal = String(r.cells[filterColumnId] || '').toLowerCase()
-        if (filterOp === 'contains' && !cellVal.includes(target)) return false
-        if (filterOp === 'does_not_contain' && cellVal.includes(target)) return false
-        if (filterOp === 'equals' && cellVal !== target) return false
-        if (filterOp === 'not_equals' && cellVal === target) return false
-        if (filterOp === 'starts_with' && !cellVal.startsWith(target)) return false
-        if (filterOp === 'ends_with' && !cellVal.endsWith(target)) return false
-      }
-    }
 
-    return true
-  })
+      return true
+    })
+  }, [rows, columns, search, filterColumnId, filterOp, filterVal])
 
   // Filter-then-act: Delete visible filtered rows
   const handleDeleteFilteredRows = () => {
@@ -817,6 +908,22 @@ function DatasetGrid({
                 Cancel
               </button>
             </div>
+          </div>
+        )}
+
+        {/* AI Success Message Banner */}
+        {aiStatusMessage && (
+          <div className="mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 flex items-center justify-between animate-in fade-in">
+            <span className="flex items-center gap-1.5 font-medium">
+              <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+              {aiStatusMessage}
+            </span>
+            <button
+              onClick={() => setAiStatusMessage(null)}
+              className="text-emerald-600 hover:text-emerald-800 cursor-pointer"
+            >
+              <X size={14} />
+            </button>
           </div>
         )}
       </div>
@@ -1085,10 +1192,32 @@ function DatasetGrid({
                     >
                       <input
                         type="text"
-                        defaultValue={row.cells[col.id] ?? ''}
-                        onBlur={(e) => {
-                          if (e.target.value !== (row.cells[col.id] ?? '')) {
-                            handleCellChange(row._id, col.id, e.target.value)
+                        value={
+                          editingCell && editingCell.rowId === row._id && editingCell.colId === col.id
+                            ? editingCell.val
+                            : getCellValue(row, col.id, col.name)
+                        }
+                        onFocus={() =>
+                          setEditingCell({
+                            rowId: row._id,
+                            colId: col.id,
+                            val: getCellValue(row, col.id, col.name),
+                          })
+                        }
+                        onChange={(e) =>
+                          setEditingCell((prev) => (prev ? { ...prev, val: e.target.value } : null))
+                        }
+                        onBlur={() => {
+                          if (editingCell && editingCell.rowId === row._id && editingCell.colId === col.id) {
+                            if (editingCell.val !== getCellValue(row, col.id, col.name)) {
+                              handleCellChange(row._id, col.id, editingCell.val)
+                            }
+                            setEditingCell(null)
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            ;(e.target as HTMLInputElement).blur()
                           }
                         }}
                         className="w-full px-2.5 py-1.5 text-xs text-gray-900 bg-transparent border-0 focus:outline-none truncate"
