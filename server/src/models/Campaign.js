@@ -60,3 +60,4 @@ campaignSchema.index({ workspace: 1, client: 1 });
 campaignSchema.index({ workspace: 1, status: 1 });
 
 export default mongoose.model('Campaign', campaignSchema);
+

@@ -50,3 +50,4 @@ router.patch('/:id/status', validate(updateStatusSchema), updateStatus);
 router.delete('/:id', deleteProspect);
 
 export default router;
+

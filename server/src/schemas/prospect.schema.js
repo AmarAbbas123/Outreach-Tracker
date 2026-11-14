@@ -41,3 +41,4 @@ export const bulkActionSchema = z.object({
   status: z.enum(PROSPECT_STATUSES).optional(),
   tag: z.string().trim().optional(),
 });
+

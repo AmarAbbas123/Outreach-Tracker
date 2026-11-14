@@ -124,3 +124,4 @@ prospectSchema.index({ workspace: 1, status: 1 });
 prospectSchema.index({ workspace: 1, domain: 1 });
 
 export default mongoose.model('Prospect', prospectSchema);
+

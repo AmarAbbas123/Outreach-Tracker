@@ -26,3 +26,4 @@ const blacklistSchema = new mongoose.Schema(
 blacklistSchema.index({ workspace: 1, domain: 1 }, { unique: true });
 
 export default mongoose.model('Blacklist', blacklistSchema);
+
