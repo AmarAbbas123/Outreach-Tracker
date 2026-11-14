@@ -255,6 +255,7 @@ function DatasetGrid({
   const [filterVal, setFilterVal] = useState<string>('')
   const [commandInput, setCommandInput] = useState('')
   const [commandLoading, setCommandLoading] = useState(false)
+  const [applyingAI, setApplyingAI] = useState(false)
   const [commandPreview, setCommandPreview] = useState<any | null>(null)
   const [aiStatusMessage, setAiStatusMessage] = useState<string | null>(null)
   const [editingCell, setEditingCell] = useState<{ rowId: string; colId: string; val: string } | null>(null)
@@ -591,7 +592,7 @@ function DatasetGrid({
 
   const applyAIOperations = async () => {
     if (!commandPreview) return
-    setCommandLoading(true)
+    setApplyingAI(true)
     let currentRows = [...rows]
     const ops = commandPreview.operations
 
@@ -723,7 +724,7 @@ function DatasetGrid({
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to apply AI changes.')
     } finally {
-      setCommandLoading(false)
+      setApplyingAI(false)
     }
   }
 
@@ -896,9 +897,17 @@ function DatasetGrid({
               <button
                 type="button"
                 onClick={applyAIOperations}
-                className="px-3 py-1 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 cursor-pointer"
+                disabled={applyingAI}
+                className="px-3 py-1 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
-                Approve & Apply Changes
+                {applyingAI ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    Applying…
+                  </>
+                ) : (
+                  'Approve & Apply Changes'
+                )}
               </button>
               <button
                 type="button"

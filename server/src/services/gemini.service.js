@@ -54,13 +54,19 @@ Return JSON matching this exact structure:
 }`;
 
   try {
-    const response = await client.models.generateContent({
-      model: 'gemini-3.8-flash',
+    const callPromise = client.models.generateContent({
+      model: 'gemini-3.5-flash-lite',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
       },
     });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Gemini request timed out after 3500ms')), 3500)
+    );
+
+    const response = await Promise.race([callPromise, timeoutPromise]);
 
     const parsedJson = JSON.parse(response.text || '{}');
     const validated = aiOperationsResponse.parse(parsedJson);
@@ -71,7 +77,7 @@ Return JSON matching this exact structure:
         workspace: workspaceId,
         user: userId,
         feature: 'data_clean_command',
-        model: 'gemini-3.8-flash',
+        model: 'gemini-3.5-flash-lite',
         inputTokens: response.usageMetadata.promptTokenCount || 0,
         outputTokens: response.usageMetadata.candidatesTokenCount || 0,
       }).catch(() => {});
@@ -113,13 +119,19 @@ Return JSON matching:
 }`;
 
   try {
-    const response = await client.models.generateContent({
-      model: 'gemini-3.8-flash',
+    const callPromise = client.models.generateContent({
+      model: 'gemini-3.5-flash-lite',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
       },
     });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Gemini request timed out after 3500ms')), 3500)
+    );
+
+    const response = await Promise.race([callPromise, timeoutPromise]);
 
     const parsedJson = JSON.parse(response.text || '{}');
     const validated = aiValueMapResponse.parse(parsedJson);
@@ -130,7 +142,7 @@ Return JSON matching:
         workspace: workspaceId,
         user: userId,
         feature: 'data_clean_standardize',
-        model: 'gemini-3.8-flash',
+        model: 'gemini-3.5-flash-lite',
         inputTokens: response.usageMetadata.promptTokenCount || 0,
         outputTokens: response.usageMetadata.candidatesTokenCount || 0,
       }).catch(() => {});
