@@ -67,3 +67,4 @@ export const aiOperationsResponse = z.object({
 export const aiValueMapResponse = z.object({
   mappings: z.array(z.object({ from: z.string(), to: z.string() })).max(200),
 });
+

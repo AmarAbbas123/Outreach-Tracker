@@ -17,3 +17,4 @@ router.post('/command', parseCommand);
 router.post('/standardize', standardizeValues);
 
 export default router;
+

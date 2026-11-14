@@ -159,56 +159,95 @@ export const parseCommand = async (req, res, next) => {
     const cmd = command.toLowerCase();
     const operations = [];
 
-    // Helper: find column ID by name or role
-    const findCol = (regex) => columns.find((c) => regex.test(c.name))?.id || columns[0]?.id;
+    // Helper: find column ID by regex or name
+    const findCol = (regex) => {
+      const match = columns.find((c) => regex.test(c.name));
+      return match ? match.id : null;
+    };
 
-    // 1. Lowercase / Case commands
+    // Check if a specific column is explicitly mentioned in the command text
+    let explicitColId = null;
+    columns.forEach((c) => {
+      if (cmd.includes(c.name.toLowerCase())) {
+        explicitColId = c.id;
+      }
+    });
+
+    // 1. Lowercase / Uppercase / Titlecase commands
     if (cmd.includes('lowercase') || cmd.includes('lower case')) {
-      let targetCols = columns.map((c) => c.id);
-      if (cmd.includes('domain') || cmd.includes('website')) {
-        const dCol = findCol(/domain|website|url/i);
-        if (dCol) targetCols = [dCol];
-      } else if (cmd.includes('email')) {
+      let targetCols = [];
+      if (cmd.includes('domain') || cmd.includes('website') || cmd.includes('url')) {
+        const dCol = findCol(/domain|website|url|site/i);
+        if (dCol) targetCols.push(dCol);
+      }
+      if (cmd.includes('email') || cmd.includes('mail')) {
         const eCol = findCol(/email|mail/i);
-        if (eCol) targetCols = [eCol];
+        if (eCol) targetCols.push(eCol);
+      }
+      if (targetCols.length === 0) {
+        targetCols = explicitColId ? [explicitColId] : columns.map((c) => c.id);
       }
       operations.push({
         type: 'change_case',
         columns: targetCols,
         mode: 'lower',
       });
-    }
-
-    // 2. Remove rows where email is empty
-    if ((cmd.includes('remove') || cmd.includes('delete')) && cmd.includes('email') && (cmd.includes('empty') || cmd.includes('no email'))) {
-      const eCol = findCol(/email|mail/i);
+    } else if (cmd.includes('uppercase') || cmd.includes('upper case')) {
+      const targetCols = explicitColId ? [explicitColId] : [columns[0]?.id || ''];
       operations.push({
-        type: 'delete_rows',
-        where: [{ column: eCol, op: 'is_empty' }],
+        type: 'change_case',
+        columns: targetCols.filter(Boolean),
+        mode: 'upper',
+      });
+    } else if (cmd.includes('titlecase') || cmd.includes('title case')) {
+      const targetCols = explicitColId ? [explicitColId] : [columns[0]?.id || ''];
+      operations.push({
+        type: 'change_case',
+        columns: targetCols.filter(Boolean),
+        mode: 'title',
       });
     }
 
-    // 3. Remove duplicates
+    // 2. Remove rows where email is empty / missing
+    if (
+      (cmd.includes('remove') || cmd.includes('delete')) &&
+      (cmd.includes('email') || cmd.includes('mail')) &&
+      (cmd.includes('empty') || cmd.includes('no email') || cmd.includes('missing') || cmd.includes('blank'))
+    ) {
+      const eCol = findCol(/email|mail/i) || explicitColId || columns[0]?.id;
+      if (eCol) {
+        operations.push({
+          type: 'delete_rows',
+          where: [{ column: eCol, op: 'is_empty' }],
+        });
+      }
+    }
+
+    // 3. Remove duplicates / deduplicate
     if (cmd.includes('duplicate') || cmd.includes('dedup')) {
-      const dCol = findCol(/domain|website|url/i);
-      operations.push({
-        type: 'remove_duplicates',
-        columns: [dCol],
-        keep: 'first',
-      });
+      const dCol = explicitColId || findCol(/domain|website|url|site/i) || columns[0]?.id;
+      if (dCol) {
+        operations.push({
+          type: 'remove_duplicates',
+          columns: [dCol],
+          keep: 'first',
+        });
+      }
     }
 
-    // 4. Extract domain
-    if (cmd.includes('extract domain') || cmd.includes('clean domain') || cmd.includes('clean url')) {
-      const dCol = findCol(/domain|website|url/i);
-      operations.push({
-        type: 'extract_domain',
-        column: dCol,
-        target: dCol,
-      });
+    // 4. Extract domain / clean url
+    if (cmd.includes('extract domain') || cmd.includes('clean domain') || cmd.includes('clean url') || cmd.includes('normalize domain')) {
+      const dCol = explicitColId || findCol(/domain|website|url|site/i) || columns[0]?.id;
+      if (dCol) {
+        operations.push({
+          type: 'extract_domain',
+          column: dCol,
+          target: dCol,
+        });
+      }
     }
 
-    // 5. Trim
+    // 5. Trim whitespace
     if (cmd.includes('trim') || cmd.includes('spaces')) {
       operations.push({
         type: 'trim',
@@ -216,28 +255,56 @@ export const parseCommand = async (req, res, next) => {
       });
     }
 
-    // 6. Replace values (e.g. "change X to Y" or "replace X with Y")
-    const replaceMatch = command.match(/(?:change|replace)\s+(?:all\s+)?["']?([^"']+)["']?\s+(?:to|with)\s+["']?([^"']+)["']?/i);
+    // 6. Replace values (e.g. "change all Managing Director to MD" or "replace X with Y")
+    const replaceMatch = command.match(/(?:change|replace|convert)\s+(?:all\s+)?["']?([^"']+)["']?\s+(?:to|with|into)\s+["']?([^"']+)["']?/i);
     if (replaceMatch) {
       const from = replaceMatch[1].trim();
       const to = replaceMatch[2].trim();
-      const targetCol = columns[0]?.id;
-      operations.push({
-        type: 'replace_values',
-        column: targetCol,
-        from,
-        to,
-        match: 'contains',
-        matchCase: false,
-        scope: 'sheet',
-      });
+      // Try to find the most relevant column for this replacement (e.g. title/role/name or explicit column)
+      let targetCol = explicitColId;
+      if (!targetCol) {
+        if (/director|founder|ceo|md|manager|executive|officer/i.test(from)) {
+          targetCol = findCol(/title|role|position|job/i);
+        } else if (/ltd|inc|llc|corp/i.test(from)) {
+          targetCol = findCol(/company|org|business/i);
+        }
+      }
+      if (!targetCol) {
+        targetCol = columns[0]?.id;
+      }
+
+      if (targetCol) {
+        operations.push({
+          type: 'replace_values',
+          column: targetCol,
+          from,
+          to,
+          match: 'contains',
+          matchCase: false,
+          scope: 'sheet',
+        });
+      }
     }
 
-    // Fallback: If no direct rule matched, generate an intelligent ai_rewrite
+    // 7. Shorten job titles
+    if (cmd.includes('shorten') && (cmd.includes('title') || cmd.includes('job'))) {
+      const titleCol = findCol(/title|role|position|job/i) || columns[0]?.id;
+      if (titleCol) {
+        operations.push({
+          type: 'ai_rewrite',
+          columns: [titleCol],
+          instruction: 'Shorten job titles to standard acronyms (Chief Executive Officer to CEO, Managing Director to MD, Vice President to VP)',
+          scope: 'sheet',
+        });
+      }
+    }
+
+    // Fallback: If no direct rule matched, generate a general ai_rewrite
     if (operations.length === 0) {
+      const targetCol = explicitColId || columns[0]?.id;
       operations.push({
         type: 'ai_rewrite',
-        columns: [columns[0]?.id],
+        columns: targetCol ? [targetCol] : [],
         instruction: command,
         scope: 'sheet',
       });
@@ -283,3 +350,4 @@ export const standardizeValues = async (req, res, next) => {
     next(err);
   }
 };
+

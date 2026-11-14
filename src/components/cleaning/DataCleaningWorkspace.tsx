@@ -473,6 +473,49 @@ function DatasetGrid({
     setReplaceText('')
   }
 
+  // Export state
+  const [exporting, setExporting] = useState(false)
+
+  // Direct, reliable authenticated export with instant XLSX/CSV fallback
+  const handleExport = async (format: 'xlsx' | 'csv') => {
+    setExporting(true)
+    try {
+      const res = await api.get(`/datasets/${dataset._id}/export?format=${format}`, {
+        responseType: 'blob',
+      })
+      const blob = new Blob([res.data], {
+        type:
+          format === 'xlsx'
+            ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            : 'text/csv',
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${dataset.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.${format}`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      // Direct client-side export fallback using SheetJS
+      const activeColumns = columns.filter((c) => !c.hidden)
+      const sheetData = rows.map((r) => {
+        const rowObj: Record<string, string> = {}
+        activeColumns.forEach((c) => {
+          rowObj[c.name] = r.cells[c.id] ?? ''
+        })
+        return rowObj
+      })
+      const ws = XLSX.utils.json_to_sheet(sheetData)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'CleanedData')
+      XLSX.writeFile(wb, `${dataset.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.${format}`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   // ── AI Plain-Language Command ──
 
   const handleAICommandSubmit = async (e: FormEvent) => {
@@ -499,81 +542,170 @@ function DatasetGrid({
     }
   }
 
-  const applyAIOperations = () => {
+  const applyAIOperations = async () => {
     if (!commandPreview) return
+    setCommandLoading(true)
     let currentRows = [...rows]
     const ops = commandPreview.operations
 
-    ops.forEach((op: any) => {
-      if (op.type === 'trim') {
-        currentRows = currentRows.map((r) => {
-          const cells = { ...r.cells }
-          op.columns.forEach((cId: string) => {
-            if (cells[cId]) cells[cId] = String(cells[cId]).trim().replace(/\s+/g, ' ')
+    try {
+      for (const op of ops) {
+        if (op.type === 'trim') {
+          currentRows = currentRows.map((r) => {
+            const cells = { ...r.cells }
+            const targetCols = op.columns?.length ? op.columns : columns.map((c) => c.id)
+            targetCols.forEach((cId: string) => {
+              if (cells[cId]) cells[cId] = String(cells[cId]).trim().replace(/\s+/g, ' ')
+            })
+            return { ...r, cells }
           })
-          return { ...r, cells }
-        })
-      } else if (op.type === 'change_case') {
-        currentRows = currentRows.map((r) => {
-          const cells = { ...r.cells }
-          op.columns.forEach((cId: string) => {
-            const val = cells[cId] || ''
-            cells[cId] = op.mode === 'lower' ? val.toLowerCase() : op.mode === 'upper' ? val.toUpperCase() : val
+        } else if (op.type === 'change_case') {
+          currentRows = currentRows.map((r) => {
+            const cells = { ...r.cells }
+            const targetCols = op.columns?.length ? op.columns : columns.map((c) => c.id)
+            targetCols.forEach((cId: string) => {
+              const val = cells[cId] || ''
+              cells[cId] =
+                op.mode === 'lower'
+                  ? val.toLowerCase()
+                  : op.mode === 'upper'
+                  ? val.toUpperCase()
+                  : val.replace(/\w\S*/g, (w: string) => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase())
+            })
+            return { ...r, cells }
           })
-          return { ...r, cells }
-        })
-      } else if (op.type === 'delete_rows') {
-        currentRows = currentRows.filter((r) => {
-          let keep = true
-          op.where.forEach((cond: any) => {
-            const val = r.cells[cond.column] || ''
-            if (cond.op === 'is_empty' && (!val || val.trim().length === 0)) keep = false
+        } else if (op.type === 'delete_rows') {
+          currentRows = currentRows.filter((r) => {
+            let keep = true
+            op.where.forEach((cond: any) => {
+              const val = (r.cells[cond.column] || '').trim().toLowerCase()
+              if (cond.op === 'is_empty' && val.length === 0) keep = false
+              if (cond.op === 'not_empty' && val.length > 0) keep = false
+              if (cond.op === 'equals' && val === String(cond.value || '').trim().toLowerCase()) keep = false
+              if (cond.op === 'contains' && val.includes(String(cond.value || '').trim().toLowerCase())) keep = false
+            })
+            return keep
           })
-          return keep
-        })
-      } else if (op.type === 'extract_domain') {
-        currentRows = currentRows.map((r) => {
-          const val = r.cells[op.column] || ''
-          const d = normalizeDomain(val)
-          return { ...r, cells: { ...r.cells, [op.target || op.column]: d || val } }
-        })
-      } else if (op.type === 'replace_values') {
-        currentRows = currentRows.map((r) => {
-          const val = r.cells[op.column] || ''
-          if (val.includes(op.from)) {
-            return { ...r, cells: { ...r.cells, [op.column]: val.replaceAll(op.from, op.to) } }
+        } else if (op.type === 'extract_domain') {
+          const colId = op.column || selectedColumnId || columns[0]?.id
+          currentRows = currentRows.map((r) => {
+            const val = r.cells[colId] || ''
+            const d = normalizeDomain(val)
+            return { ...r, cells: { ...r.cells, [op.target || colId]: d || val } }
+          })
+        } else if (op.type === 'replace_values') {
+          const colId = op.column || selectedColumnId || columns[0]?.id
+          currentRows = currentRows.map((r) => {
+            const val = r.cells[colId] || ''
+            if (val.includes(op.from)) {
+              return { ...r, cells: { ...r.cells, [colId]: val.replaceAll(op.from, op.to) } }
+            }
+            return r
+          })
+        } else if (op.type === 'ai_rewrite') {
+          const targetCols = op.columns?.length ? op.columns : [selectedColumnId || columns[0]?.id]
+          for (const cId of targetCols) {
+            const uniqueVals = Array.from(
+              new Set(currentRows.map((r) => String(r.cells[cId] || '').trim()).filter(Boolean))
+            ).slice(0, 100)
+            const res = await api.post('/ai/clean/standardize', {
+              values: uniqueVals,
+              instruction: op.instruction,
+            })
+            if (res.data.success && res.data.data.mappings) {
+              const map = new Map<string, string>(
+                res.data.data.mappings.map((m: any) => [m.from.toLowerCase(), m.to])
+              )
+              currentRows = currentRows.map((r) => {
+                const val = String(r.cells[cId] || '').trim()
+                if (map.has(val.toLowerCase())) {
+                  return { ...r, cells: { ...r.cells, [cId]: map.get(val.toLowerCase())! } }
+                }
+                return r
+              })
+            }
           }
-          return r
-        })
+        }
       }
-    })
 
-    applyRowChanges(currentRows, `AI: ${commandPreview.command}`)
-    setCommandPreview(null)
-    setCommandInput('')
+      applyRowChanges(currentRows, `AI: ${commandPreview.command}`)
+      setCommandPreview(null)
+      setCommandInput('')
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to apply AI changes.')
+    } finally {
+      setCommandLoading(false)
+    }
   }
 
-  // Filter visible rows
+  // Filter & Search Logic
+  const isFilterActive =
+    search.trim().length > 0 ||
+    filterVal.trim().length > 0 ||
+    filterOp === 'is_empty' ||
+    filterOp === 'not_empty'
+
   const visibleRows = rows.filter((r) => {
-    // Quick search
+    // 1. Quick search across all columns
     if (search.trim()) {
-      const q = search.toLowerCase()
-      const match = Object.values(r.cells).some((val) => String(val).toLowerCase().includes(q))
+      const q = search.toLowerCase().trim()
+      const match = Object.values(r.cells).some((val) => String(val || '').toLowerCase().includes(q))
       if (!match) return false
     }
 
-    // Column filter
-    if (filterColumnId !== 'all' && filterVal.trim()) {
-      const cellVal = (r.cells[filterColumnId] || '').toLowerCase()
+    // 2. Filter operators
+    if (filterOp === 'is_empty') {
+      if (filterColumnId === 'all') {
+        const hasEmpty = Object.values(r.cells).some((val) => !val || String(val).trim().length === 0)
+        if (!hasEmpty) return false
+      } else {
+        const cellVal = String(r.cells[filterColumnId] || '').trim()
+        if (cellVal.length > 0) return false
+      }
+    } else if (filterOp === 'not_empty') {
+      if (filterColumnId === 'all') {
+        const allNonEmpty = Object.values(r.cells).every((val) => val && String(val).trim().length > 0)
+        if (!allNonEmpty) return false
+      } else {
+        const cellVal = String(r.cells[filterColumnId] || '').trim()
+        if (cellVal.length === 0) return false
+      }
+    } else if (filterVal.trim()) {
       const target = filterVal.toLowerCase().trim()
-      if (filterOp === 'contains' && !cellVal.includes(target)) return false
-      if (filterOp === 'equals' && cellVal !== target) return false
-      if (filterOp === 'starts_with' && !cellVal.startsWith(target)) return false
-      if (filterOp === 'is_empty' && cellVal.length > 0) return false
+      if (filterColumnId === 'all') {
+        const cellVals = Object.values(r.cells).map((v) => String(v || '').toLowerCase())
+        if (filterOp === 'contains' && !cellVals.some((v) => v.includes(target))) return false
+        if (filterOp === 'does_not_contain' && cellVals.some((v) => v.includes(target))) return false
+        if (filterOp === 'equals' && !cellVals.some((v) => v === target)) return false
+        if (filterOp === 'not_equals' && cellVals.some((v) => v === target)) return false
+        if (filterOp === 'starts_with' && !cellVals.some((v) => v.startsWith(target))) return false
+        if (filterOp === 'ends_with' && !cellVals.some((v) => v.endsWith(target))) return false
+      } else {
+        const cellVal = String(r.cells[filterColumnId] || '').toLowerCase()
+        if (filterOp === 'contains' && !cellVal.includes(target)) return false
+        if (filterOp === 'does_not_contain' && cellVal.includes(target)) return false
+        if (filterOp === 'equals' && cellVal !== target) return false
+        if (filterOp === 'not_equals' && cellVal === target) return false
+        if (filterOp === 'starts_with' && !cellVal.startsWith(target)) return false
+        if (filterOp === 'ends_with' && !cellVal.endsWith(target)) return false
+      }
     }
 
     return true
   })
+
+  // Filter-then-act: Delete visible filtered rows
+  const handleDeleteFilteredRows = () => {
+    const visibleIds = new Set(visibleRows.map((r) => r._id))
+    const count = visibleRows.length
+    if (count === 0) return
+    if (!window.confirm(`Delete all ${count} currently filtered rows?`)) return
+
+    const remaining = rows.filter((r) => !visibleIds.has(r._id))
+    applyRowChanges(remaining, `Deleted ${count} filtered rows`)
+    setFilterVal('')
+    setSearch('')
+  }
 
   return (
     <div className="space-y-3 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[82vh]">
@@ -596,17 +728,26 @@ function DatasetGrid({
           </div>
         </div>
 
-        {/* Send to Outreach CTA */}
+        {/* Export & Send to Outreach CTA */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              window.open(`/api/v1/datasets/${dataset._id}/export?format=xlsx`, '_blank')
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-sm cursor-pointer"
-            title="Download cleaned file"
-          >
-            <Download size={13} /> Export Cleaned
-          </button>
+          <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden shadow-2xs">
+            <button
+              onClick={() => handleExport('xlsx')}
+              disabled={exporting}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-gray-700 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer"
+              title="Download as Excel (.xlsx)"
+            >
+              <Download size={13} /> {exporting ? 'Exporting…' : 'Export Excel'}
+            </button>
+            <button
+              onClick={() => handleExport('csv')}
+              disabled={exporting}
+              className="px-2.5 py-1.5 text-gray-700 text-xs font-medium hover:bg-gray-50 border-l border-gray-200 transition-colors cursor-pointer"
+              title="Download as CSV"
+            >
+              CSV
+            </button>
+          </div>
           <button
             onClick={() => setShowSendModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer"
@@ -688,7 +829,7 @@ function DatasetGrid({
             <button
               onClick={handleUndo}
               disabled={history.length === 0}
-              className="p-1.5 hover:bg-gray-100 disabled:opacity-40 transition-colors"
+              className="p-1.5 hover:bg-gray-100 disabled:opacity-40 transition-colors cursor-pointer"
               title="Undo (Ctrl+Z)"
             >
               <Undo2 size={13} />
@@ -696,11 +837,23 @@ function DatasetGrid({
             <button
               onClick={handleRedo}
               disabled={future.length === 0}
-              className="p-1.5 hover:bg-gray-100 disabled:opacity-40 transition-colors border-l border-gray-200"
+              className="p-1.5 hover:bg-gray-100 disabled:opacity-40 transition-colors border-l border-gray-200 cursor-pointer"
               title="Redo (Ctrl+Y)"
             >
               <Redo2 size={13} />
             </button>
+          </div>
+
+          {/* Quick Search */}
+          <div className="relative">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search sheet…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-7 pr-3 py-1.5 border border-gray-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 w-36"
+            />
           </div>
 
           {/* Target Column Selector for Tools */}
@@ -822,15 +975,15 @@ function DatasetGrid({
       )}
 
       {/* ── Filter Bar ── */}
-      <div className="px-3 py-1.5 bg-gray-50/40 border-b border-gray-200 flex items-center gap-2 text-xs">
-        <Filter size={13} className="text-gray-400" />
-        <span className="text-gray-500 font-medium">Filter:</span>
+      <div className="px-3 py-1.5 bg-gray-50/70 border-b border-gray-200 flex items-center gap-2 text-xs flex-wrap">
+        <Filter size={13} className="text-gray-400 shrink-0" />
+        <span className="text-gray-600 font-medium">Filter:</span>
         <select
           value={filterColumnId}
           onChange={(e) => setFilterColumnId(e.target.value)}
-          className="px-2 py-1 bg-white border border-gray-300 rounded text-xs"
+          className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-medium"
         >
-          <option value="all">All Columns</option>
+          <option value="all">Across All Columns</option>
           {columns.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -840,30 +993,51 @@ function DatasetGrid({
         <select
           value={filterOp}
           onChange={(e) => setFilterOp(e.target.value)}
-          className="px-2 py-1 bg-white border border-gray-300 rounded text-xs"
+          className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-medium"
         >
           <option value="contains">contains</option>
+          <option value="does_not_contain">does not contain</option>
           <option value="equals">equals</option>
+          <option value="not_equals">does not equal</option>
           <option value="starts_with">starts with</option>
+          <option value="ends_with">ends with</option>
           <option value="is_empty">is empty</option>
+          <option value="not_empty">is not empty</option>
         </select>
-        <input
-          type="text"
-          placeholder="Value…"
-          value={filterVal}
-          onChange={(e) => setFilterVal(e.target.value)}
-          className="px-2 py-1 bg-white border border-gray-300 rounded text-xs flex-1 max-w-xs"
-        />
-        {(filterVal || filterColumnId !== 'all') && (
-          <button
-            onClick={() => {
-              setFilterVal('')
-              setFilterColumnId('all')
-            }}
-            className="text-gray-400 hover:text-gray-600 text-[11px]"
-          >
-            Clear filter
-          </button>
+        {filterOp !== 'is_empty' && filterOp !== 'not_empty' && (
+          <input
+            type="text"
+            placeholder="Search value…"
+            value={filterVal}
+            onChange={(e) => setFilterVal(e.target.value)}
+            className="px-2 py-1 bg-white border border-gray-300 rounded text-xs flex-1 max-w-xs focus:ring-1 focus:ring-indigo-500"
+          />
+        )}
+        {isFilterActive && (
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-semibold text-[10px]">
+              {visibleRows.length} visible
+            </span>
+            <button
+              type="button"
+              onClick={handleDeleteFilteredRows}
+              className="flex items-center gap-1 px-2.5 py-1 bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 rounded text-[11px] font-semibold transition-colors cursor-pointer"
+              title="Delete all currently matching rows"
+            >
+              <Trash2 size={12} /> Delete {visibleRows.length} Filtered Rows
+            </button>
+            <button
+              onClick={() => {
+                setFilterVal('')
+                setSearch('')
+                setFilterColumnId('all')
+                setFilterOp('contains')
+              }}
+              className="text-gray-400 hover:text-gray-600 text-[11px] underline cursor-pointer"
+            >
+              Clear filter
+            </button>
+          </div>
         )}
       </div>
 
@@ -1389,3 +1563,4 @@ function UploadDatasetModal({
     </div>
   )
 }
+

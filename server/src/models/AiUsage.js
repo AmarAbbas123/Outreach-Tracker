@@ -40,3 +40,4 @@ const aiUsageSchema = new mongoose.Schema(
 aiUsageSchema.index({ workspace: 1, createdAt: -1 });
 
 export default mongoose.model('AiUsage', aiUsageSchema);
+
