@@ -55,7 +55,7 @@ Return JSON matching this exact structure:
 
   try {
     const response = await client.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -71,7 +71,7 @@ Return JSON matching this exact structure:
         workspace: workspaceId,
         user: userId,
         feature: 'data_clean_command',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         inputTokens: response.usageMetadata.promptTokenCount || 0,
         outputTokens: response.usageMetadata.candidatesTokenCount || 0,
       }).catch(() => {});
@@ -114,7 +114,7 @@ Return JSON matching:
 
   try {
     const response = await client.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -130,7 +130,7 @@ Return JSON matching:
         workspace: workspaceId,
         user: userId,
         feature: 'data_clean_standardize',
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         inputTokens: response.usageMetadata.promptTokenCount || 0,
         outputTokens: response.usageMetadata.candidatesTokenCount || 0,
       }).catch(() => {});
