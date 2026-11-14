@@ -15,9 +15,12 @@ import {
   FileText,
   Loader2,
   Download,
+  Sparkles,
+  Database,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
+import DataCleaningWorkspace from '../components/cleaning/DataCleaningWorkspace'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -93,6 +96,9 @@ export const statusLabels: Record<ProspectStatus, string> = {
 export default function Prospects() {
   const queryClient = useQueryClient()
 
+  // Tab State: 'database' vs 'cleaning'
+  const [activeTab, setActiveTab] = useState<'database' | 'cleaning'>('database')
+
   // Filter & Pagination States
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<ProspectStatus | 'all'>('all')
@@ -107,6 +113,20 @@ export default function Prospects() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [bulkTagInput, setBulkTagInput] = useState('')
   const [showBulkTagModal, setShowBulkTagModal] = useState(false)
+
+  const handleDownloadFixedTemplate = () => {
+    const csvContent =
+      'domain,page_url,contact_name,contact_email,niche,country,dr,traffic,tags,notes\n' +
+      'example.com,https://example.com/write-for-us,Sam Lee,sam@example.com,Fitness,United Kingdom,45,12000,guest-post;fitness,Accepts guest posts\n'
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'outreach_prospects_template.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   // 1. Fetch Prospects
   const { data: prospectsData, isLoading, isError, error, refetch } = useQuery({
@@ -213,29 +233,78 @@ export default function Prospects() {
 
   return (
     <div className="space-y-5 pb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      {/* Workspace Tabs Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap border-b border-gray-200 pb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Prospects</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Your link-building outreach database — websites, metrics, and contacts you want links from.
+          <p className="text-xs text-gray-500 mt-0.5">
+            Two workspaces: clean messy raw spreadsheets with AI, and manage your verified link-building outreach list.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 rounded-xl border border-gray-200">
           <button
-            onClick={() => setShowImportModal(true)}
-            className="flex items-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+            onClick={() => setActiveTab('database')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'database'
+                ? 'bg-white text-gray-900 shadow-2xs'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
           >
-            <Upload size={15} /> Import CSV
+            <Database size={13} className={activeTab === 'database' ? 'text-indigo-600' : ''} />
+            Outreach Database
+            <span className="px-1.5 py-0.2 bg-gray-200 text-gray-700 rounded-full text-[10px]">
+              {total}
+            </span>
           </button>
           <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+            onClick={() => setActiveTab('cleaning')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'cleaning'
+                ? 'bg-white text-indigo-700 shadow-2xs'
+                : 'text-gray-600 hover:text-indigo-600'
+            }`}
           >
-            <Plus size={16} /> Add Prospect
+            <Sparkles size={13} className="text-indigo-600" />
+            Data Cleaning
           </button>
         </div>
       </div>
+
+      {activeTab === 'cleaning' ? (
+        <DataCleaningWorkspace onProspectsUpdated={() => refetch()} />
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="text-base font-semibold text-gray-900">Outreach Database</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Strictly validated prospect list used for outreach campaigns, emails, and won links.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleDownloadFixedTemplate}
+                className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
+                title="Download CSV template for strict import"
+              >
+                <Download size={14} /> Download Template
+              </button>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
+              >
+                <Upload size={14} /> Import CSV
+              </button>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-2xs cursor-pointer"
+              >
+                <Plus size={15} /> Add Prospect
+              </button>
+            </div>
+          </div>
 
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -640,6 +709,8 @@ export default function Prospects() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )
