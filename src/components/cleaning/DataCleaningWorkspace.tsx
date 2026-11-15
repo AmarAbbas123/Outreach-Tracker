@@ -369,11 +369,28 @@ function DatasetGrid({
     setRows(next)
   }
 
+  // Helper: safely set a cell value on both col.id and col.name aliases
+  const setRowCell = (cells: Record<string, any>, colId: string, val: string) => {
+    cells[colId] = val
+    const col = columns.find((c) => c.id === colId)
+    if (col?.name) cells[col.name] = val
+  }
+
+  // Helper: safely delete a cell value on both col.id and col.name aliases
+  const deleteRowCell = (cells: Record<string, any>, colId: string) => {
+    delete cells[colId]
+    const col = columns.find((c) => c.id === colId)
+    if (col?.name) delete cells[col.name]
+  }
+
   // Cell editing
   const handleCellChange = (rowId: string, colId: string, value: string) => {
+    const col = columns.find((c) => c.id === colId)
     const updated = rows.map((r) => {
       if (r._id === rowId) {
-        return { ...r, cells: { ...r.cells, [colId]: value } }
+        const newCells = { ...r.cells, [colId]: value }
+        if (col?.name) newCells[col.name] = value
+        return { ...r, cells: newCells }
       }
       return r
     })
@@ -387,17 +404,22 @@ function DatasetGrid({
       const newCells = { ...r.cells }
       columns.forEach((c) => {
         const val = getCellValue(r, c.id, c.name)
-        newCells[c.id] = val.trim().replace(/\s+/g, ' ')
+        const trimmed = val.trim().replace(/\s+/g, ' ')
+        newCells[c.id] = trimmed
+        if (c.name) newCells[c.name] = trimmed
       })
       return { ...r, cells: newCells }
     })
     applyRowChanges(updated, 'Trimmed whitespace across all columns')
+    setAiStatusMessage('Trimmed whitespace across all columns.')
+    setTimeout(() => setAiStatusMessage(null), 4000)
   }
 
   const handleChangeCase = (mode: 'lower' | 'upper' | 'title') => {
     if (!selectedColumnId) return
     const col = columns.find((c) => c.id === selectedColumnId)
     const colName = col?.name || 'column'
+    let count = 0
     const updated = rows.map((r) => {
       const val = getCellValue(r, selectedColumnId, col?.name)
       let res = val
@@ -406,9 +428,14 @@ function DatasetGrid({
       if (mode === 'title') {
         res = val.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase())
       }
-      return { ...r, cells: { ...r.cells, [selectedColumnId]: res } }
+      if (res !== val) count++
+      const newCells = { ...r.cells, [selectedColumnId]: res }
+      if (col?.name) newCells[col.name] = res
+      return { ...r, cells: newCells }
     })
     applyRowChanges(updated, `Changed case of "${colName}" to ${mode}`)
+    setAiStatusMessage(`Changed case of "${colName}" to ${mode} (${count} cells updated).`)
+    setTimeout(() => setAiStatusMessage(null), 4000)
   }
 
   const handleExtractDomain = () => {
@@ -420,9 +447,14 @@ function DatasetGrid({
       const val = getCellValue(r, selectedColumnId, col?.name)
       const domain = normalizeDomain(val)
       if (domain && domain !== val) count++
-      return { ...r, cells: { ...r.cells, [selectedColumnId]: domain || val } }
+      const res = domain || val
+      const newCells = { ...r.cells, [selectedColumnId]: res }
+      if (col?.name) newCells[col.name] = res
+      return { ...r, cells: newCells }
     })
     applyRowChanges(updated, `Extracted domain in "${colName}" (${count} normalized)`)
+    setAiStatusMessage(`Extracted domains in "${colName}" (${count} normalized).`)
+    setTimeout(() => setAiStatusMessage(null), 4000)
   }
 
   const handleRemoveDuplicates = () => {
@@ -445,7 +477,14 @@ function DatasetGrid({
       }
     })
 
+    if (removed === 0) {
+      alert(`No duplicate rows found based on column "${colName}".`)
+      return
+    }
+
     applyRowChanges(remaining, `Removed ${removed} duplicates in "${colName}"`)
+    setAiStatusMessage(`Removed ${removed} duplicates based on "${colName}".`)
+    setTimeout(() => setAiStatusMessage(null), 4000)
   }
 
   const handleDeleteEmptyRows = () => {
@@ -454,12 +493,21 @@ function DatasetGrid({
     const colName = col?.name || 'column'
     const remaining = rows.filter((r) => getCellValue(r, selectedColumnId, col?.name).trim().length > 0)
     const count = rows.length - remaining.length
+
+    if (count === 0) {
+      alert(`No empty rows found in column "${colName}".`)
+      return
+    }
+
     applyRowChanges(remaining, `Deleted ${count} rows where "${colName}" was empty`)
+    setAiStatusMessage(`Deleted ${count} rows where "${colName}" was empty.`)
+    setTimeout(() => setAiStatusMessage(null), 4000)
   }
 
   const handleFixEmailTypos = () => {
     if (!selectedColumnId) return
     const col = columns.find((c) => c.id === selectedColumnId)
+    const colName = col?.name || 'column'
     const typos: Record<string, string> = {
       '@gmial.com': '@gmail.com',
       '@gmai.com': '@gmail.com',
@@ -476,9 +524,17 @@ function DatasetGrid({
           fixed++
         }
       }
-      return { ...r, cells: { ...r.cells, [selectedColumnId]: val } }
+      const newCells = { ...r.cells, [selectedColumnId]: val }
+      if (col?.name) newCells[col.name] = val
+      return { ...r, cells: newCells }
     })
-    applyRowChanges(updated, `Fixed ${fixed} common email typos`)
+    if (fixed === 0) {
+      alert(`No common email typos found in column "${colName}".`)
+      return
+    }
+    applyRowChanges(updated, `Fixed ${fixed} common email typos in "${colName}"`)
+    setAiStatusMessage(`Fixed ${fixed} common email typos in "${colName}".`)
+    setTimeout(() => setAiStatusMessage(null), 4000)
   }
 
   const handleResetToOriginal = async () => {
@@ -508,14 +564,19 @@ function DatasetGrid({
       const val = getCellValue(r, selectedColumnId, col?.name)
       if (val.includes(findText)) {
         count++
+        const replaced = val.replaceAll(findText, replaceText)
+        const newCells = { ...r.cells }
+        setRowCell(newCells, selectedColumnId, replaced)
         return {
           ...r,
-          cells: { ...r.cells, [selectedColumnId]: val.replaceAll(findText, replaceText) },
+          cells: newCells,
         }
       }
       return r
     })
     applyRowChanges(updated, `Replaced "${findText}" with "${replaceText}" in "${colName}" (${count} cells)`)
+    setAiStatusMessage(`Replaced "${findText}" with "${replaceText}" in "${colName}" (${count} cells).`)
+    setTimeout(() => setAiStatusMessage(null), 4000)
     setShowFindReplace(false)
     setFindText('')
     setReplaceText('')
@@ -581,6 +642,7 @@ function DatasetGrid({
         command: commandInput.trim(),
         columns,
         sampleRows,
+        selectedColumnId,
       })
 
       if (res.data.success && res.data.data.operations) {
@@ -614,7 +676,7 @@ function DatasetGrid({
             const cells = { ...r.cells }
             targetCols.forEach((cId: string) => {
               const val = getCellValue(r, cId)
-              cells[cId] = val.trim().replace(/\s+/g, ' ')
+              setRowCell(cells, cId, val.trim().replace(/\s+/g, ' '))
             })
             return { ...r, cells }
           })
@@ -624,12 +686,13 @@ function DatasetGrid({
             const cells = { ...r.cells }
             targetCols.forEach((cId: string) => {
               const val = getCellValue(r, cId)
-              cells[cId] =
+              const res =
                 op.mode === 'lower'
                   ? val.toLowerCase()
                   : op.mode === 'upper'
                   ? val.toUpperCase()
                   : val.replace(/\w\S*/g, (w: string) => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase())
+              setRowCell(cells, cId, res)
             })
             return { ...r, cells }
           })
@@ -710,7 +773,7 @@ function DatasetGrid({
               } else if (op.pattern === 'clean_url') {
                 val = normalizeDomain(val)
               }
-              cells[cId] = val
+              setRowCell(cells, cId, val)
             })
             return { ...r, cells }
           })
@@ -735,9 +798,11 @@ function DatasetGrid({
                   rowScope[c.name] = getCellValue(r, c.id, c.name)
                 })
                 const computed = evalFn(rowScope, targetColId, normalizeDomain)
+                const cells = { ...r.cells }
+                setRowCell(cells, targetColId, computed !== undefined && computed !== null ? String(computed) : '')
                 return {
                   ...r,
-                  cells: { ...r.cells, [targetColId]: computed !== undefined && computed !== null ? String(computed) : '' },
+                  cells,
                 }
               })
             } catch (evalErr) {
@@ -762,7 +827,9 @@ function DatasetGrid({
           currentRows = currentRows.map((r) => {
             const val = getCellValue(r, colId)
             const d = normalizeDomain(val)
-            return { ...r, cells: { ...r.cells, [targetColId]: d || val } }
+            const cells = { ...r.cells }
+            setRowCell(cells, targetColId, d || val)
+            return { ...r, cells }
           })
         } else if (op.type === 'replace_values') {
           const colId = resolveColId(op.column || selectedColumnId || columns[0]?.id)
@@ -770,15 +837,25 @@ function DatasetGrid({
           const to = String(op.to || '')
           currentRows = currentRows.map((r) => {
             const val = getCellValue(r, colId)
+            let replacedVal = val
+            let didReplace = false
+
             if (op.match === 'whole_cell') {
               if (op.matchCase ? val === from : val.toLowerCase() === from.toLowerCase()) {
-                return { ...r, cells: { ...r.cells, [colId]: to } }
+                replacedVal = to
+                didReplace = true
               }
             } else {
               if (op.matchCase ? val.includes(from) : val.toLowerCase().includes(from.toLowerCase())) {
                 const regex = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), op.matchCase ? 'g' : 'gi')
-                return { ...r, cells: { ...r.cells, [colId]: val.replace(regex, to) } }
+                replacedVal = val.replace(regex, to)
+                didReplace = true
               }
+            }
+            if (didReplace) {
+              const cells = { ...r.cells }
+              setRowCell(cells, colId, replacedVal)
+              return { ...r, cells }
             }
             return r
           })
@@ -788,7 +865,9 @@ function DatasetGrid({
           currentRows = currentRows.map((r) => {
             const val = getCellValue(r, colId).trim()
             if (val.length === 0) {
-              return { ...r, cells: { ...r.cells, [colId]: fillVal } }
+              const cells = { ...r.cells }
+              setRowCell(cells, colId, fillVal)
+              return { ...r, cells }
             }
             return r
           })
@@ -797,7 +876,7 @@ function DatasetGrid({
           currentRows = currentRows.map((r) => {
             const cells = { ...r.cells }
             targetCols.forEach((cId: string) => {
-              cells[cId] = ''
+              setRowCell(cells, cId, '')
             })
             return { ...r, cells }
           })
@@ -808,10 +887,13 @@ function DatasetGrid({
           currentRows = currentRows.map((r) => {
             const cells = { ...r.cells }
             targetCols.forEach((cId: string) => {
-              delete cells[cId]
+              deleteRowCell(cells, cId)
             })
             return { ...r, cells }
           })
+          if (targetCols.includes(selectedColumnId)) {
+            setSelectedColumnId(updatedColumns[0]?.id || '')
+          }
           api.patch(`/datasets/${dataset._id}/columns`, { columns: updatedColumns }).catch(console.error)
         } else if (op.type === 'ai_rewrite') {
           const targetCols = (op.columns?.length ? op.columns : [selectedColumnId || columns[0]?.id]).map(resolveColId)
@@ -830,15 +912,25 @@ function DatasetGrid({
                 )
                 currentRows = currentRows.map((r) => {
                   let val = getCellValue(r, cId).trim()
+                  let newVal = val
+                  let didChange = false
                   if (map.has(val.toLowerCase())) {
-                    return { ...r, cells: { ...r.cells, [cId]: map.get(val.toLowerCase())! } }
-                  }
-                  for (const [from, to] of map.entries()) {
-                    if (val.toLowerCase().includes(from.toLowerCase())) {
-                      const regex = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
-                      val = val.replace(regex, to)
-                      return { ...r, cells: { ...r.cells, [cId]: val } }
+                    newVal = map.get(val.toLowerCase())!
+                    didChange = true
+                  } else {
+                    for (const [from, to] of map.entries()) {
+                      if (val.toLowerCase().includes(from.toLowerCase())) {
+                        const regex = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+                        newVal = val.replace(regex, to)
+                        didChange = true
+                        break
+                      }
                     }
+                  }
+                  if (didChange) {
+                    const cells = { ...r.cells }
+                    setRowCell(cells, cId, newVal)
+                    return { ...r, cells }
                   }
                   return r
                 })
@@ -878,7 +970,9 @@ function DatasetGrid({
           currentRows = currentRows.map((r) => {
             const sourceVal = sourceColIds.map((scId) => getCellValue(r, scId).trim()).filter(Boolean).join(' ')
             const computedVal = map.get(sourceVal.toLowerCase()) || ''
-            return { ...r, cells: { ...r.cells, [newColId]: computedVal } }
+            const cells = { ...r.cells }
+            setRowCell(cells, newColId, computedVal)
+            return { ...r, cells }
           })
 
           api.patch(`/datasets/${dataset._id}/columns`, { columns: updatedColumns }).catch(console.error)
@@ -1218,61 +1312,86 @@ function DatasetGrid({
             />
           </div>
 
-          {/* Target Column Selector for Tools */}
-          <select
-            value={selectedColumnId}
-            onChange={(e) => setSelectedColumnId(e.target.value)}
-            className="px-2.5 py-1.5 border border-gray-300 rounded-lg bg-white text-gray-700 font-medium focus:ring-1 focus:ring-indigo-500"
-          >
-            {columns.map((c) => (
-              <option key={c.id} value={c.id}>
-                Column: {c.name}
-              </option>
-            ))}
-          </select>
+          {/* Active Target Column Selector for Tools */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 border border-indigo-200 bg-indigo-50/80 rounded-lg shadow-2xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">Active Col:</span>
+            <select
+              value={selectedColumnId}
+              onChange={(e) => setSelectedColumnId(e.target.value)}
+              className="bg-transparent text-xs font-semibold text-indigo-950 focus:outline-none cursor-pointer max-w-[140px] truncate"
+            >
+              {columns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* One-Click Clean Tools Dropdown */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               onClick={handleExtractDomain}
               className="px-2.5 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium transition-colors cursor-pointer"
-              title="Strip URLs and emails to clean root domains"
+              title="Strip URLs and emails to clean root domains in active column"
             >
               Extract Domain
             </button>
             <button
               onClick={handleTrimWhitespace}
               className="px-2.5 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium transition-colors cursor-pointer"
+              title="Trim spaces and whitespace across all columns"
             >
               Trim Spaces
             </button>
-            <button
-              onClick={() => handleChangeCase('lower')}
-              className="px-2.5 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium transition-colors cursor-pointer"
-            >
-              lowercase
-            </button>
+            <div className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden">
+              <button
+                onClick={() => handleChangeCase('lower')}
+                className="px-2 py-1.5 hover:bg-gray-100 font-medium text-gray-700 transition-colors cursor-pointer text-xs"
+                title="Convert active column to lowercase"
+              >
+                lowercase
+              </button>
+              <button
+                onClick={() => handleChangeCase('upper')}
+                className="px-1.5 py-1.5 hover:bg-gray-100 font-medium text-gray-500 border-l border-gray-200 transition-colors cursor-pointer text-[11px]"
+                title="Convert active column to UPPERCASE"
+              >
+                UPPER
+              </button>
+              <button
+                onClick={() => handleChangeCase('title')}
+                className="px-1.5 py-1.5 hover:bg-gray-100 font-medium text-gray-500 border-l border-gray-200 transition-colors cursor-pointer text-[11px]"
+                title="Convert active column to Title Case"
+              >
+                Title
+              </button>
+            </div>
             <button
               onClick={handleRemoveDuplicates}
               className="px-2.5 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium transition-colors cursor-pointer"
+              title="Remove duplicate rows based on active column"
             >
               Deduplicate
             </button>
             <button
               onClick={handleDeleteEmptyRows}
-              className="px-2.5 py-1.5 bg-white border border-gray-300 text-rose-700 hover:bg-rose-50 rounded-lg font-medium transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg font-medium transition-colors cursor-pointer"
+              title="Delete rows where active column is empty"
             >
               Delete Empty
             </button>
             <button
               onClick={handleFixEmailTypos}
               className="px-2.5 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium transition-colors cursor-pointer"
+              title="Fix common email typos in active column"
             >
               Fix Email Typos
             </button>
             <button
               onClick={() => setShowFindReplace(true)}
               className="px-2.5 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 font-medium transition-colors cursor-pointer"
+              title="Find and replace text in active column"
             >
               <Replace size={13} className="inline mr-1" /> Find & Replace
             </button>
@@ -1420,13 +1539,20 @@ function DatasetGrid({
                 {columns.map((col) => (
                   <th
                     key={col.id}
-                    className={`px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-200 select-none cursor-pointer hover:bg-gray-200 transition-colors ${
-                      selectedColumnId === col.id ? 'bg-indigo-50/80 text-indigo-900 border-b-2 border-b-indigo-600' : ''
+                    className={`px-3 py-2 text-left font-semibold border-r border-gray-200 select-none cursor-pointer transition-colors ${
+                      selectedColumnId === col.id
+                        ? 'bg-indigo-100/90 text-indigo-950 border-b-2 border-b-indigo-600 font-bold'
+                        : 'text-gray-700 hover:bg-gray-200'
                     }`}
                     onClick={() => setSelectedColumnId(col.id)}
                   >
                     <div className="flex items-center justify-between gap-1">
                       <span className="truncate max-w-[160px]">{col.name}</span>
+                      {selectedColumnId === col.id && (
+                        <span className="text-[9px] px-1.5 py-0.5 bg-indigo-600 text-white rounded font-medium">
+                          Active
+                        </span>
+                      )}
                     </div>
                   </th>
                 ))}
@@ -1441,8 +1567,9 @@ function DatasetGrid({
                   {columns.map((col) => (
                     <td
                       key={col.id}
+                      onClick={() => setSelectedColumnId(col.id)}
                       className={`p-0 border-r border-gray-200 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:z-10 ${
-                        selectedColumnId === col.id ? 'bg-indigo-50/10' : ''
+                        selectedColumnId === col.id ? 'bg-indigo-50/20' : ''
                       }`}
                     >
                       <input
@@ -1452,13 +1579,14 @@ function DatasetGrid({
                             ? editingCell.val
                             : getCellValue(row, col.id, col.name)
                         }
-                        onFocus={() =>
+                        onFocus={() => {
+                          setSelectedColumnId(col.id)
                           setEditingCell({
                             rowId: row._id,
                             colId: col.id,
                             val: getCellValue(row, col.id, col.name),
                           })
-                        }
+                        }}
                         onChange={(e) =>
                           setEditingCell((prev) => (prev ? { ...prev, val: e.target.value } : null))
                         }

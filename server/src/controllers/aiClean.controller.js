@@ -150,18 +150,232 @@ export const analyzeData = async (req, res, next) => {
 };
 
 // POST /api/v1/ai/clean/command
+export const parseRuleIntent = (command, columns = [], selectedColumnId = null) => {
+  const cmd = command.toLowerCase().trim();
+
+  // Find if an explicit column is mentioned
+  let explicitColId = null;
+  for (const c of columns) {
+    const rawName = c.name.toLowerCase();
+    const strippedName = rawName.replace(/\s*\(.*?\)\s*/g, '').trim();
+    if (cmd.includes(rawName) || (strippedName.length > 2 && cmd.includes(strippedName)) || cmd.includes(c.id.toLowerCase())) {
+      explicitColId = c.id;
+      break;
+    }
+  }
+
+  const domainCol = columns.find((c) => /domain|website|url|site/i.test(c.name))?.id || columns[0]?.id;
+  const emailCol = columns.find((c) => /email|mail/i.test(c.name))?.id;
+
+  // 1. TRIM SPACES / WHITESPACE
+  if (
+    cmd === 'trim' ||
+    cmd.startsWith('trim ') ||
+    cmd.includes('trim space') ||
+    cmd.includes('trim whitespace') ||
+    cmd.includes('remove whitespace') ||
+    cmd === 'trim all'
+  ) {
+    const targetCols = explicitColId ? [explicitColId] : columns.map((c) => c.id);
+    return {
+      explanation: explicitColId
+        ? `Trim whitespace in column "${columns.find((c) => c.id === explicitColId)?.name}"`
+        : 'Trim whitespace across all columns',
+      operations: [{ type: 'trim', columns: targetCols }],
+    };
+  }
+
+  // 2. CASE CHANGE (lowercase, uppercase, titlecase)
+  // MUST be checked BEFORE replace_values so "change domain to lowercase" or "change to lowercase" isn't treated as string replace
+  if (
+    cmd.includes('lowercase') ||
+    cmd.includes('lower case') ||
+    cmd.includes('uppercase') ||
+    cmd.includes('upper case') ||
+    cmd.includes('titlecase') ||
+    cmd.includes('title case') ||
+    cmd === 'change case' ||
+    cmd === 'change' ||
+    cmd === 'change case to lower' ||
+    cmd === 'change case to upper'
+  ) {
+    const mode =
+      cmd.includes('upper') || cmd.includes('uppercase')
+        ? 'upper'
+        : cmd.includes('title') || cmd.includes('titlecase') || cmd.includes('capitalize')
+        ? 'title'
+        : 'lower';
+    const targetCols = explicitColId
+      ? [explicitColId]
+      : selectedColumnId
+      ? [selectedColumnId]
+      : columns.map((c) => c.id);
+    return {
+      explanation: `Change case to ${mode} on target column(s)`,
+      operations: [{ type: 'change_case', columns: targetCols, mode }],
+    };
+  }
+
+  // 3. REMOVE / DEDUPLICATE
+  if (
+    cmd === 'remove' ||
+    cmd === 'deduplicate' ||
+    cmd === 'dedup' ||
+    cmd === 'remove duplicates' ||
+    cmd === 'remove duplicate' ||
+    cmd === 'remove duplicate rows' ||
+    cmd.includes('dedup') ||
+    (cmd.includes('duplicate') && !cmd.includes('where'))
+  ) {
+    const targetCol = explicitColId || selectedColumnId || domainCol || columns[0]?.id;
+    return {
+      explanation: `Remove duplicate rows based on unique column (${
+        columns.find((c) => c.id === targetCol)?.name || 'Domain'
+      })`,
+      operations: [{ type: 'remove_duplicates', columns: [targetCol], keep: 'first' }],
+    };
+  }
+
+  // 4. REMOVE / DELETE EMPTY ROWS
+  if (
+    cmd === 'remove empty' ||
+    cmd === 'delete empty' ||
+    cmd.includes('empty rows') ||
+    cmd.includes('blank rows') ||
+    cmd === 'delete empty rows' ||
+    cmd === 'remove empty rows' ||
+    cmd.includes('no email') ||
+    cmd.includes('without email') ||
+    ((cmd.includes('remove') || cmd.includes('delete')) && (cmd.includes('empty') || cmd.includes('blank')))
+  ) {
+    if (!cmd.includes('all value') && !cmd.includes('all values')) {
+      const targetCol =
+        explicitColId || (cmd.includes('email') ? emailCol : selectedColumnId) || domainCol || columns[0]?.id;
+      return {
+        explanation: `Remove rows where "${
+          columns.find((c) => c.id === targetCol)?.name || 'active column'
+        }" is empty`,
+        operations: [{ type: 'delete_rows', where: [{ column: targetCol, op: 'is_empty' }] }],
+      };
+    }
+  }
+
+  // 5. CLEAR / EMPTY COLUMN VALUES (e.g. "delete all value from price", "clear price", "empty price column")
+  if (
+    (cmd.includes('delete all value') || cmd.includes('delete all values') || cmd.includes('clear') || cmd.includes('empty')) &&
+    !cmd.includes('row') &&
+    !cmd.includes('rows')
+  ) {
+    const targetCol = explicitColId || selectedColumnId || columns[0]?.id;
+    return {
+      explanation: `Clear all values in column "${columns.find((c) => c.id === targetCol)?.name || ''}"`,
+      operations: [{ type: 'clear_column', columns: [targetCol] }],
+    };
+  }
+
+  // 6. FORMAT PATTERN: REMOVE SYMBOLS / CURRENCY / $ FROM PRICE
+  if (
+    cmd.includes('$') ||
+    cmd.includes('dollar') ||
+    cmd.includes('currency') ||
+    (cmd.includes('symbol') && (cmd.includes('remove') || cmd.includes('clean')))
+  ) {
+    const targetCol =
+      explicitColId ||
+      selectedColumnId ||
+      columns.find((c) => /price|cost|usd/i.test(c.name))?.id ||
+      columns[0]?.id;
+    return {
+      explanation: `Remove currency symbols ($) and format numbers in "${
+        columns.find((c) => c.id === targetCol)?.name || ''
+      }"`,
+      operations: [{ type: 'format_pattern', columns: [targetCol], pattern: 'clean_number' }],
+    };
+  }
+
+  // 7. DELETE COLUMN (e.g. "delete column price", "remove price", "remove column status")
+  if (
+    (cmd.includes('delete column') ||
+      cmd.includes('remove column') ||
+      cmd.includes('drop column') ||
+      (explicitColId && (cmd.startsWith('remove ') || cmd.startsWith('delete ')))) &&
+    !cmd.includes('row') &&
+    !cmd.includes('rows') &&
+    !cmd.includes('from')
+  ) {
+    const targetCol = explicitColId || selectedColumnId || columns[0]?.id;
+    return {
+      explanation: `Delete column "${columns.find((c) => c.id === targetCol)?.name || ''}"`,
+      operations: [{ type: 'delete_column', columns: [targetCol] }],
+    };
+  }
+
+  // 8. EXTRACT DOMAIN
+  if (
+    cmd.includes('extract domain') ||
+    cmd.includes('clean domain') ||
+    cmd.includes('clean url') ||
+    cmd.includes('normalize domain')
+  ) {
+    const targetCol = explicitColId || selectedColumnId || domainCol || columns[0]?.id;
+    return {
+      explanation: `Extract clean domains in "${columns.find((c) => c.id === targetCol)?.name || ''}"`,
+      operations: [{ type: 'extract_domain', column: targetCol, target: targetCol }],
+    };
+  }
+
+  // 9. REPLACE / CHANGE VALUE (e.g. "change MD to Managing Director" or "replace X with Y")
+  const replaceMatch = command.match(
+    /(?:change|replace|convert)\s+(?:all\s+)?["']?([^"']+)["']?\s+(?:to|with|into)\s+["']?([^"']+)["']?/i
+  );
+  if (replaceMatch) {
+    const from = replaceMatch[1].trim();
+    const to = replaceMatch[2].trim();
+    if (!/^(?:lower|lowercase|upper|uppercase|title|titlecase)$/i.test(to)) {
+      const targetCol = explicitColId || selectedColumnId || columns[0]?.id;
+      return {
+        explanation: `Replace "${from}" with "${to}" in "${
+          columns.find((c) => c.id === targetCol)?.name || 'active column'
+        }"`,
+        operations: [
+          {
+            type: 'replace_values',
+            column: targetCol,
+            from,
+            to,
+            match: 'contains',
+            matchCase: false,
+            scope: 'sheet',
+          },
+        ],
+      };
+    }
+  }
+
+  return null;
+};
+
+// POST /api/v1/ai/clean/command
 export const parseCommand = async (req, res, next) => {
   try {
-    const { command, columns = [], sampleRows = [] } = req.body;
+    const { command, columns = [], sampleRows = [], selectedColumnId } = req.body;
     if (!command || !command.trim()) {
       return res.status(400).json({ success: false, message: 'Command is required.' });
     }
 
-    // 1. Try Gemini Live LLM first
+    // 1. High-confidence fast rule intent engine (0ms response, 100% deterministic)
+    const ruleResult = parseRuleIntent(command.trim(), columns, selectedColumnId);
+    if (ruleResult && ruleResult.operations && ruleResult.operations.length > 0) {
+      const validated = aiOperationsResponse.parse(ruleResult);
+      return res.json({ success: true, data: validated, source: 'fast-rule' });
+    }
+
+    // 2. Try Gemini Live LLM for complex / natural language prompts
     const geminiPlan = await planOperationsWithGemini({
       command: command.trim(),
       columns,
       sampleRows,
+      selectedColumnId,
       workspaceId: req.workspaceId,
       userId: req.user?._id,
     });
@@ -170,188 +384,20 @@ export const parseCommand = async (req, res, next) => {
       return res.json({ success: true, data: geminiPlan, source: 'gemini' });
     }
 
-    // 2. Fallback to smart natural language pattern engine
-    const cmd = command.toLowerCase();
-    const operations = [];
-
-    // Helper: find column ID by regex or name
-    const findCol = (regex) => {
-      const match = columns.find((c) => regex.test(c.name));
-      return match ? match.id : null;
-    };
-
-    // Check if a specific column is explicitly mentioned in the command text
-    let explicitColId = null;
-    columns.forEach((c) => {
-      const cleanColName = c.name.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').trim();
-      if (cmd.includes(c.name.toLowerCase()) || (cleanColName && cmd.includes(cleanColName))) {
-        explicitColId = c.id;
-      }
-    });
-
-    // 0. Clear / Empty column values (e.g. "delete all value from price", "clear price column", "empty status values")
-    if (
-      (cmd.includes('delete all value') || cmd.includes('delete all values') || cmd.includes('clear') || cmd.includes('empty')) &&
-      !cmd.includes('delete row') && !cmd.includes('delete rows') && !cmd.includes('remove row') && !cmd.includes('remove rows')
-    ) {
-      if (explicitColId) {
-        operations.push({
-          type: 'clear_column',
-          columns: [explicitColId],
-        });
-      }
-    }
-
-    // 0b. Delete entire column (e.g. "delete column price", "remove price column")
-    if (
-      (cmd.includes('delete column') || cmd.includes('remove column') || cmd.includes('drop column')) &&
-      explicitColId
-    ) {
-      operations.push({
-        type: 'delete_column',
-        columns: [explicitColId],
-      });
-    }
-
-    // 1. Lowercase / Uppercase / Titlecase commands
-    if (cmd.includes('lowercase') || cmd.includes('lower case')) {
-      let targetCols = [];
-      if (cmd.includes('domain') || cmd.includes('website') || cmd.includes('url')) {
-        const dCol = findCol(/domain|website|url|site/i);
-        if (dCol) targetCols.push(dCol);
-      }
-      if (cmd.includes('email') || cmd.includes('mail')) {
-        const eCol = findCol(/email|mail/i);
-        if (eCol) targetCols.push(eCol);
-      }
-      if (targetCols.length === 0) {
-        targetCols = explicitColId ? [explicitColId] : columns.map((c) => c.id);
-      }
-      operations.push({
-        type: 'change_case',
-        columns: targetCols,
-        mode: 'lower',
-      });
-    } else if (cmd.includes('uppercase') || cmd.includes('upper case')) {
-      const targetCols = explicitColId ? [explicitColId] : [columns[0]?.id || ''];
-      operations.push({
-        type: 'change_case',
-        columns: targetCols.filter(Boolean),
-        mode: 'upper',
-      });
-    } else if (cmd.includes('titlecase') || cmd.includes('title case')) {
-      const targetCols = explicitColId ? [explicitColId] : [columns[0]?.id || ''];
-      operations.push({
-        type: 'change_case',
-        columns: targetCols.filter(Boolean),
-        mode: 'title',
-      });
-    }
-
-    // 2. Remove rows where email is empty / missing
-    if (
-      (cmd.includes('remove') || cmd.includes('delete')) &&
-      (cmd.includes('email') || cmd.includes('mail')) &&
-      (cmd.includes('empty') || cmd.includes('no email') || cmd.includes('missing') || cmd.includes('blank'))
-    ) {
-      const eCol = findCol(/email|mail/i) || explicitColId || columns[0]?.id;
-      if (eCol) {
-        operations.push({
-          type: 'delete_rows',
-          where: [{ column: eCol, op: 'is_empty' }],
-        });
-      }
-    }
-
-    // 3. Remove duplicates / deduplicate
-    if (cmd.includes('duplicate') || cmd.includes('dedup')) {
-      const dCol = explicitColId || findCol(/domain|website|url|site/i) || columns[0]?.id;
-      if (dCol) {
-        operations.push({
-          type: 'remove_duplicates',
-          columns: [dCol],
-          keep: 'first',
-        });
-      }
-    }
-
-    // 4. Extract domain / clean url
-    if (cmd.includes('extract domain') || cmd.includes('clean domain') || cmd.includes('clean url') || cmd.includes('normalize domain')) {
-      const dCol = explicitColId || findCol(/domain|website|url|site/i) || columns[0]?.id;
-      if (dCol) {
-        operations.push({
-          type: 'extract_domain',
-          column: dCol,
-          target: dCol,
-        });
-      }
-    }
-
-    // 5. Trim whitespace
-    if (cmd.includes('trim') || cmd.includes('spaces')) {
-      operations.push({
-        type: 'trim',
-        columns: columns.map((c) => c.id),
-      });
-    }
-
-    // 6. Replace values (e.g. "change all Managing Director to MD" or "replace X with Y")
-    const replaceMatch = command.match(/(?:change|replace|convert)\s+(?:all\s+)?["']?([^"']+)["']?\s+(?:to|with|into)\s+["']?([^"']+)["']?/i);
-    if (replaceMatch) {
-      const from = replaceMatch[1].trim();
-      const to = replaceMatch[2].trim();
-      // Try to find the most relevant column for this replacement (e.g. title/role/name or explicit column)
-      let targetCol = explicitColId;
-      if (!targetCol) {
-        if (/director|founder|ceo|md|manager|executive|officer/i.test(from)) {
-          targetCol = findCol(/title|role|position|job/i);
-        } else if (/ltd|inc|llc|corp/i.test(from)) {
-          targetCol = findCol(/company|org|business/i);
-        }
-      }
-      if (!targetCol) {
-        targetCol = columns[0]?.id;
-      }
-
-      if (targetCol) {
-        operations.push({
-          type: 'replace_values',
-          column: targetCol,
-          from,
-          to,
-          match: 'contains',
-          matchCase: false,
-          scope: 'sheet',
-        });
-      }
-    }
-
-    // 7. Shorten job titles
-    if (cmd.includes('shorten') && (cmd.includes('title') || cmd.includes('job'))) {
-      const titleCol = findCol(/title|role|position|job/i) || columns[0]?.id;
-      if (titleCol) {
-        operations.push({
+    // 3. Fallback: If no direct rule or Gemini match, return general semantic rewrite
+    const targetCol = selectedColumnId || columns[0]?.id;
+    const fallbackPlan = aiOperationsResponse.parse({
+      explanation: `Execute AI instruction on sheet`,
+      operations: [
+        {
           type: 'ai_rewrite',
-          columns: [titleCol],
-          instruction: 'Shorten job titles to standard acronyms (Chief Executive Officer to CEO, Managing Director to MD, Vice President to VP)',
+          columns: targetCol ? [targetCol] : [],
+          instruction: command.trim(),
           scope: 'sheet',
-        });
-      }
-    }
-
-    // Fallback: If no direct rule matched, generate a general ai_rewrite
-    if (operations.length === 0) {
-      const targetCol = explicitColId || columns[0]?.id;
-      operations.push({
-        type: 'ai_rewrite',
-        columns: targetCol ? [targetCol] : [],
-        instruction: command,
-        scope: 'sheet',
-      });
-    }
-
-    const validated = aiOperationsResponse.parse({ operations });
-    res.json({ success: true, data: validated });
+        },
+      ],
+    });
+    res.json({ success: true, data: fallbackPlan, source: 'fallback' });
   } catch (err) {
     next(err);
   }
