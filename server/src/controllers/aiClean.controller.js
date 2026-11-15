@@ -149,6 +149,22 @@ export const analyzeData = async (req, res, next) => {
   }
 };
 
+// Helper to resolve column name/part to exact col.id
+export const resolveCol = (nameOrPart, cols) => {
+  if (!nameOrPart) return null;
+  const clean = String(nameOrPart).toLowerCase().trim();
+  let m = cols.find((c) => c.id.toLowerCase() === clean || c.name.toLowerCase() === clean);
+  if (m) return m.id;
+  m = cols.find((c) => c.name.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').trim() === clean);
+  if (m) return m.id;
+  m = cols.find(
+    (c) =>
+      c.name.toLowerCase().includes(clean) ||
+      clean.includes(c.name.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').trim())
+  );
+  return m ? m.id : clean;
+};
+
 // POST /api/v1/ai/clean/command
 export const parseRuleIntent = (command, columns = [], selectedColumnId = null) => {
   const cmd = command.toLowerCase().trim();
@@ -166,6 +182,37 @@ export const parseRuleIntent = (command, columns = [], selectedColumnId = null) 
 
   const domainCol = columns.find((c) => /domain|website|url|site/i.test(c.name))?.id || columns[0]?.id;
   const emailCol = columns.find((c) => /email|mail/i.test(c.name))?.id;
+
+  // 0. COPY COLUMN (e.g. "copy domain to website", "copy price to new_price", "copy category data to column 6")
+  const copyMatch = command.match(
+    /copy\s+(?:data\s+from\s+|column\s+)?([a-zA-Z0-9_ ()]+?)\s+(?:data\s+)?to\s+(?:column\s+)?([a-zA-Z0-9_ ()]+)/i
+  );
+  if (copyMatch && !cmd.includes('this colum')) {
+    const from = resolveCol(copyMatch[1], columns);
+    const to = resolveCol(copyMatch[2], columns);
+    if (from && to) {
+      return {
+        explanation: `Copy data from column "${columns.find((c) => c.id === from)?.name || from}" to "${
+          columns.find((c) => c.id === to)?.name || to
+        }"`,
+        operations: [{ type: 'copy_column', fromColumn: from, toColumn: to, createIfMissing: true }],
+      };
+    }
+  }
+
+  // 0b. SET COLUMN VALUE (e.g. "set price to 0", "set all status to active", "set category to Guest Post")
+  const setMatch = command.match(/^set\s+(?:all\s+)?([a-zA-Z0-9_ ()]+?)\s+(?:values?\s+)?to\s+(.+)$/i);
+  if (setMatch) {
+    const col = resolveCol(setMatch[1], columns);
+    let val = setMatch[2].trim().replace(/^["']|["']$/g, '');
+    if (val.toLowerCase() === 'empty' || val.toLowerCase() === 'blank') val = '';
+    if (col && !/^(?:lower|lowercase|upper|uppercase|title)$/i.test(val)) {
+      return {
+        explanation: `Set all values in column "${columns.find((c) => c.id === col)?.name || col}" to "${val}"`,
+        operations: [{ type: 'set_column_value', column: col, value: val, where: [] }],
+      };
+    }
+  }
 
   // 1. TRIM SPACES / WHITESPACE
   if (
@@ -324,23 +371,81 @@ export const parseRuleIntent = (command, columns = [], selectedColumnId = null) 
     };
   }
 
-  // 9. REPLACE / CHANGE VALUE (e.g. "change MD to Managing Director" or "replace X with Y")
+  // 9. MERGE / COMBINE COLUMNS (e.g. "merge first name and last name into full name")
+  const mergeMatch = command.match(
+    /(?:merge|combine)\s+([a-zA-Z0-9_ ()]+?)\s+and\s+([a-zA-Z0-9_ ()]+?)\s+(?:into|to|as)\s+([a-zA-Z0-9_ ()]+)/i
+  );
+  if (mergeMatch) {
+    const c1 = resolveCol(mergeMatch[1], columns);
+    const c2 = resolveCol(mergeMatch[2], columns);
+    const target = resolveCol(mergeMatch[3], columns) || mergeMatch[3].trim();
+    if (c1 && c2 && target) {
+      return {
+        explanation: `Merge columns "${columns.find((c) => c.id === c1)?.name || c1}" and "${
+          columns.find((c) => c.id === c2)?.name || c2
+        }" into "${target}"`,
+        operations: [
+          {
+            type: 'merge_columns',
+            sourceColumns: [c1, c2],
+            targetColumn: target,
+            separator: ' ',
+          },
+        ],
+      };
+    }
+  }
+
+  // 10. ADD PREFIX / SUFFIX (e.g. "add https:// to domain", "append .com to site")
+  const prefixMatch = command.match(
+    /add\s+([^\s]+)\s+to\s+(?:beginning\s+of\s+|start\s+of\s+)?([a-zA-Z0-9_ ()]+)/i
+  );
+  if (prefixMatch && !cmd.includes('row')) {
+    const pref = prefixMatch[1].trim().replace(/^["']|["']$/g, '');
+    const targetCol = resolveCol(prefixMatch[2], columns);
+    if (targetCol) {
+      return {
+        explanation: `Add prefix "${pref}" to column "${columns.find((c) => c.id === targetCol)?.name || ''}"`,
+        operations: [{ type: 'prefix_suffix', columns: [targetCol], prefix: pref }],
+      };
+    }
+  }
+
+  // 11. MATH OPERATION (e.g. "multiply price by 1.2", "add 10 to price")
+  const mathMatch = command.match(/(multiply|divide|add|subtract)\s+([a-zA-Z0-9_ ()]+?)\s+(?:by|with)\s+([0-9.]+)/i);
+  if (mathMatch) {
+    const op = mathMatch[1].toLowerCase();
+    const col = resolveCol(mathMatch[2], columns);
+    const val = parseFloat(mathMatch[3]);
+    if (col && !isNaN(val)) {
+      return {
+        explanation: `Apply ${op} ${val} to column "${columns.find((c) => c.id === col)?.name || ''}"`,
+        operations: [{ type: 'math_operation', column: col, operator: op, value: val }],
+      };
+    }
+  }
+
+  // 12. REPLACE / CHANGE VALUE FROM X TO Y (e.g. "change value from X to Y", "replace value X with Y", "change MD to Managing Director")
   const replaceMatch = command.match(
-    /(?:change|replace|convert)\s+(?:all\s+)?["']?([^"']+)["']?\s+(?:to|with|into)\s+["']?([^"']+)["']?/i
+    /(?:change|replace|convert)\s+(?:all\s+)?(?:value\s+)?(?:from\s+)?["']?([^"']+)["']?\s+(?:to|with|into)\s+["']?([^"']+)["']?(?:\s+in\s+([a-zA-Z0-9_ ()]+))?/i
   );
   if (replaceMatch) {
     const from = replaceMatch[1].trim();
-    const to = replaceMatch[2].trim();
+    let to = replaceMatch[2].trim();
+    const specifiedCol = replaceMatch[3] ? resolveCol(replaceMatch[3], columns) : null;
+    const targetCol = specifiedCol || explicitColId;
+
     if (!/^(?:lower|lowercase|upper|uppercase|title|titlecase)$/i.test(to)) {
-      const targetCol = explicitColId || selectedColumnId || columns[0]?.id;
+      if (to.toLowerCase() === 'empty' || to.toLowerCase() === 'blank') to = '';
       return {
-        explanation: `Replace "${from}" with "${to}" in "${
-          columns.find((c) => c.id === targetCol)?.name || 'active column'
-        }"`,
+        explanation: `Replace "${from}" with "${to}"${
+          targetCol ? ` in column "${columns.find((c) => c.id === targetCol)?.name || ''}"` : ' across all columns'
+        }`,
         operations: [
           {
             type: 'replace_values',
-            column: targetCol,
+            column: targetCol || undefined,
+            columns: targetCol ? [targetCol] : columns.map((c) => c.id),
             from,
             to,
             match: 'contains',

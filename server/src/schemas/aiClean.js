@@ -36,7 +36,8 @@ export const aiOperationSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('keep_rows'), where: z.array(condition) }),
   z.object({
     type: z.literal('replace_values'),
-    column: z.string(),
+    column: z.string().optional(),
+    columns: z.array(z.string()).optional(),
     from: z.string(),
     to: z.string(),
     match: z.enum(['whole_cell', 'contains']).default('contains'),
@@ -50,6 +51,50 @@ export const aiOperationSchema = z.discriminatedUnion('type', [
     keep: z.enum(['first', 'last']).default('first'),
   }),
   z.object({ type: z.literal('fill_empty'), column: z.string(), value: z.string() }),
+  // Copies data from one column into another column (creates new column if target does not exist)
+  z.object({
+    type: z.literal('copy_column'),
+    fromColumn: z.string(),
+    toColumn: z.string(),
+    createIfMissing: z.boolean().optional().default(true),
+  }),
+  // Sets cell value(s) in a column to a fixed string
+  z.object({
+    type: z.literal('set_column_value'),
+    column: z.string(),
+    value: z.string(),
+    where: z.array(condition).optional().default([]),
+  }),
+  // Merges two or more columns into a target column with a separator
+  z.object({
+    type: z.literal('merge_columns'),
+    sourceColumns: z.array(z.string()),
+    targetColumn: z.string(),
+    separator: z.string().optional().default(' '),
+    deleteSources: z.boolean().optional().default(false),
+  }),
+  // Splits a column by a delimiter into multiple target columns
+  z.object({
+    type: z.literal('split_column'),
+    sourceColumn: z.string(),
+    separator: z.string().optional().default(' '),
+    targetColumns: z.array(z.string()),
+  }),
+  // Adds prefix and/or suffix to cells in column(s)
+  z.object({
+    type: z.literal('prefix_suffix'),
+    columns: z.array(z.string()).optional(),
+    column: z.string().optional(),
+    prefix: z.string().optional().default(''),
+    suffix: z.string().optional().default(''),
+  }),
+  // Applies a math operation to a numeric column
+  z.object({
+    type: z.literal('math_operation'),
+    column: z.string(),
+    operator: z.enum(['add', 'subtract', 'multiply', 'divide']),
+    value: z.number(),
+  }),
   // Clears all cell values in column(s) to blank ""
   z.object({
     type: z.literal('clear_column'),

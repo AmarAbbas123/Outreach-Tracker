@@ -55,26 +55,35 @@ Sample rows from user sheet (first ${sampleContext.length} rows for data context
 ${JSON.stringify(sampleContext, null, 2)}
 
 Allowed operation types:
-1. { "type": "clear_column", "columns": string[] } -> Clears/empties all cell values in column to blank "" (use for "delete all value from price", "clear price column", "empty status values")
-2. { "type": "delete_column", "columns": string[] } -> Deletes the column completely from sheet (use for "delete column price", "remove price column", "remove column X")
-3. { "type": "rename_column", "column": string, "newName": string } -> Renames column header
-4. { "type": "trim", "columns": string[] } -> Trims whitespace/extra spaces (if no column specified, include all columns)
-5. { "type": "change_case", "columns": string[], "mode": "lower" | "upper" | "title" } -> Changes letter casing. NEVER use replace_values for casing!
-6. { "type": "delete_rows", "where": [{ "column": string, "op": "equals" | "not_equals" | "contains" | "does_not_contain" | "starts_with" | "ends_with" | "is_empty" | "not_empty" | "greater_than" | "less_than" | "greater_than_or_equal" | "less_than_or_equal", "value"?: string | number }] } -> Used for deleting rows (e.g. "remove empty", "remove empty rows", "delete rows where price > 100"). For "remove empty rows", op is "is_empty".
-7. { "type": "keep_rows", "where": [...] } -> Keeps only matching rows, deletes all other rows (use for "only keep rows where...", "filter to keep...")
-8. { "type": "replace_values", "column": string, "from": string, "to": string, "match": "whole_cell" | "contains", "matchCase": boolean, "scope": "sheet" } -> Replace string X with Y in cells. Do NOT use if target is lowercase/uppercase!
-9. { "type": "extract_domain", "column": string, "target"?: string } -> Extracts clean root domain (removes http/https/www/paths/subdomains)
-10. { "type": "remove_duplicates", "columns": string[], "keep": "first" | "last" } -> Deduplicates rows
-11. { "type": "fill_empty", "column": string, "value": string }
-12. { "type": "format_pattern", "columns": string[], "pattern": "digits_only" | "clean_number" | "clean_phone" | "remove_symbols" | "clean_url" } -> Use for removing currency symbols like $, formatting numbers, phone numbers
-13. { "type": "row_transform", "targetColumn": string, "expression": string, "explanation": string } -> Use for custom formula or calculations per row.
-14. { "type": "ai_new_column", "name": string, "sourceColumns": string[], "instruction": string } -> Adds a new column and populates it based on instruction
-15. { "type": "ai_rewrite", "columns": string[], "instruction": string, "scope": "sheet" } -> ONLY for semantic text rewriting (e.g. expand acronyms, standardize country names). NEVER use ai_rewrite for deleting rows, empty rows, deduplication, casing, or column deletion!
+1. { "type": "copy_column", "fromColumn": string, "toColumn": string } -> Copies all data from one column into another column. If toColumn doesn't exist, it creates it. (use for "copy domain to website", "copy price to new_price", "duplicate column category")
+2. { "type": "replace_values", "from": string, "to": string, "column"?: string, "columns"?: string[], "match": "whole_cell" | "contains", "matchCase": boolean } -> Replace value from X to Y. If no column specified, replaces across all columns.
+3. { "type": "set_column_value", "column": string, "value": string, "where"?: condition[] } -> Sets all (or filtered) cells in column to a fixed string (e.g. "set price to 0", "set status to active")
+4. { "type": "merge_columns", "sourceColumns": string[], "targetColumn": string, "separator"?: string } -> Combines multiple columns into target column (e.g. "merge first name and last name into full name")
+5. { "type": "split_column", "sourceColumn": string, "separator": string, "targetColumns": string[] } -> Splits a column by delimiter into multiple columns (e.g. "split full name into first and last name")
+6. { "type": "prefix_suffix", "columns"?: string[], "column"?: string, "prefix"?: string, "suffix"?: string } -> Adds prefix/suffix to cells (e.g. "add https:// to domain", "append .com to site")
+7. { "type": "math_operation", "column": string, "operator": "add" | "subtract" | "multiply" | "divide", "value": number } -> Numeric calculation (e.g. "multiply price by 1.2", "add 10 to price")
+8. { "type": "clear_column", "columns": string[] } -> Clears/empties all cell values in column to blank "" (use for "delete all value from price", "clear price column", "empty status values")
+9. { "type": "delete_column", "columns": string[] } -> Deletes the column completely from sheet (use for "delete column price", "remove price column", "remove column X")
+10. { "type": "rename_column", "column": string, "newName": string } -> Renames column header
+11. { "type": "trim", "columns": string[] } -> Trims whitespace/extra spaces (if no column specified, include all columns)
+12. { "type": "change_case", "columns": string[], "mode": "lower" | "upper" | "title" } -> Changes letter casing. NEVER use replace_values for casing!
+13. { "type": "delete_rows", "where": [{ "column": string, "op": "equals" | "not_equals" | "contains" | "does_not_contain" | "starts_with" | "ends_with" | "is_empty" | "not_empty" | "greater_than" | "less_than" | "greater_than_or_equal" | "less_than_or_equal", "value"?: string | number }] } -> Used for deleting rows (e.g. "remove empty", "remove empty rows", "delete rows where price > 100"). For "remove empty rows", op is "is_empty".
+14. { "type": "keep_rows", "where": [...] } -> Keeps only matching rows, deletes all other rows (use for "only keep rows where...", "filter to keep...")
+15. { "type": "extract_domain", "column": string, "target"?: string } -> Extracts clean root domain (removes http/https/www/paths/subdomains)
+16. { "type": "remove_duplicates", "columns": string[], "keep": "first" | "last" } -> Deduplicates rows
+17. { "type": "fill_empty", "column": string, "value": string }
+18. { "type": "format_pattern", "columns": string[], "pattern": "digits_only" | "clean_number" | "clean_phone" | "remove_symbols" | "clean_url" } -> Use for removing currency symbols like $, formatting numbers, phone numbers
+19. { "type": "row_transform", "targetColumn": string, "expression": string, "explanation": string } -> Use for custom formula or calculations per row.
+20. { "type": "ai_new_column", "name": string, "sourceColumns": string[], "instruction": string } -> Adds a new column and populates it based on instruction
+21. { "type": "ai_rewrite", "columns": string[], "instruction": string, "scope": "sheet" } -> ONLY for semantic text rewriting (e.g. expand acronyms, standardize country names). NEVER use ai_rewrite for deleting rows, empty rows, deduplication, casing, or column deletion!
 
 STRICT RULES:
+- If user prompt is about copying data between columns: MUST use "copy_column".
+- If user prompt is about setting all values in a column to something: MUST use "set_column_value".
+- If user prompt is about replacing or changing values from X to Y: MUST use "replace_values".
 - If user prompt is about removing empty/blank rows: MUST use "delete_rows" with op: "is_empty". NEVER use ai_rewrite!
 - If user prompt is about casing (lower, upper, title): MUST use "change_case". NEVER use replace_values!
-- In all operations, "columns" and "column" fields MUST use the exact column id from the Available columns list (e.g. "col_0_domain").
+- In all operations, "columns", "column", "fromColumn", "toColumn" fields MUST use the exact column id from the Available columns list whenever possible (or user-requested name for new columns).
 
 User Command: "${command}"
 

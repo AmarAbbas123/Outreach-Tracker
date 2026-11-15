@@ -831,33 +831,195 @@ function DatasetGrid({
             setRowCell(cells, targetColId, d || val)
             return { ...r, cells }
           })
-        } else if (op.type === 'replace_values') {
-          const colId = resolveColId(op.column || selectedColumnId || columns[0]?.id)
-          const from = String(op.from || '')
-          const to = String(op.to || '')
-          currentRows = currentRows.map((r) => {
-            const val = getCellValue(r, colId)
-            let replacedVal = val
-            let didReplace = false
+        } else if (op.type === 'copy_column') {
+          const fromId = resolveColId(op.fromColumn)
+          let toId = resolveColId(op.toColumn)
+          const targetCol = columns.find(
+            (c) => c.id === toId || c.name.toLowerCase() === String(op.toColumn).toLowerCase()
+          )
 
-            if (op.match === 'whole_cell') {
-              if (op.matchCase ? val === from : val.toLowerCase() === from.toLowerCase()) {
-                replacedVal = to
-                didReplace = true
-              }
-            } else {
-              if (op.matchCase ? val.includes(from) : val.toLowerCase().includes(from.toLowerCase())) {
-                const regex = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), op.matchCase ? 'g' : 'gi')
-                replacedVal = val.replace(regex, to)
-                didReplace = true
-              }
+          if (!targetCol && op.createIfMissing !== false) {
+            const newColName = String(op.toColumn).trim()
+            const newColId = `col_${columns.length}_${newColName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+            const newCol: DatasetColumn = {
+              id: newColId,
+              name: newColName,
+              type: 'text',
+              order: columns.length,
+              hidden: false,
             }
-            if (didReplace) {
+            const updatedCols = [...columns, newCol]
+            setColumns(updatedCols)
+            toId = newColId
+            api.patch(`/datasets/${dataset._id}/columns`, { columns: updatedCols }).catch(console.error)
+          }
+
+          currentRows = currentRows.map((r) => {
+            const val = getCellValue(r, fromId)
+            const cells = { ...r.cells }
+            setRowCell(cells, toId, val)
+            return { ...r, cells }
+          })
+        } else if (op.type === 'set_column_value') {
+          const colId = resolveColId(op.column || selectedColumnId || columns[0]?.id)
+          const val = String(op.value ?? '')
+          currentRows = currentRows.map((r) => {
+            let matchAll = true
+            if (op.where && op.where.length > 0) {
+              op.where.forEach((cond: any) => {
+                const condColId = resolveColId(cond.column)
+                const cellVal = getCellValue(r, condColId).trim().toLowerCase()
+                const condVal = String(cond.value ?? '').trim().toLowerCase()
+                if (cond.op === 'equals' && cellVal !== condVal) matchAll = false
+                if (cond.op === 'is_empty' && cellVal.length !== 0) matchAll = false
+                if (cond.op === 'not_empty' && cellVal.length === 0) matchAll = false
+              })
+            }
+            if (matchAll) {
               const cells = { ...r.cells }
-              setRowCell(cells, colId, replacedVal)
+              setRowCell(cells, colId, val)
               return { ...r, cells }
             }
             return r
+          })
+        } else if (op.type === 'merge_columns') {
+          const srcIds = (op.sourceColumns || []).map(resolveColId)
+          let toId = resolveColId(op.targetColumn)
+          const targetCol = columns.find(
+            (c) => c.id === toId || c.name.toLowerCase() === String(op.targetColumn).toLowerCase()
+          )
+
+          if (!targetCol) {
+            const newColName = String(op.targetColumn).trim()
+            const newColId = `col_${columns.length}_${newColName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+            const newCol: DatasetColumn = {
+              id: newColId,
+              name: newColName,
+              type: 'text',
+              order: columns.length,
+              hidden: false,
+            }
+            const updatedCols = [...columns, newCol]
+            setColumns(updatedCols)
+            toId = newColId
+            api.patch(`/datasets/${dataset._id}/columns`, { columns: updatedCols }).catch(console.error)
+          }
+
+          const sep = op.separator !== undefined ? String(op.separator) : ' '
+          currentRows = currentRows.map((r) => {
+            const combined = srcIds
+              .map((scId: string) => getCellValue(r, scId).trim())
+              .filter(Boolean)
+              .join(sep)
+            const cells = { ...r.cells }
+            setRowCell(cells, toId, combined)
+            if (op.deleteSources) {
+              srcIds.forEach((scId: string) => {
+                if (scId !== toId) deleteRowCell(cells, scId)
+              })
+            }
+            return { ...r, cells }
+          })
+        } else if (op.type === 'split_column') {
+          const srcId = resolveColId(op.sourceColumn || selectedColumnId)
+          const sep = op.separator || ' '
+          const targets = (op.targetColumns || []).map((t: string) => String(t).trim())
+
+          const updatedCols = [...columns]
+          const targetColIds: string[] = []
+          targets.forEach((tName: string) => {
+            let existing = updatedCols.find(
+              (c) => c.name.toLowerCase() === tName.toLowerCase() || c.id === tName
+            )
+            if (!existing) {
+              const newColId = `col_${updatedCols.length}_${tName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+              existing = { id: newColId, name: tName, type: 'text', order: updatedCols.length, hidden: false }
+              updatedCols.push(existing)
+            }
+            targetColIds.push(existing.id)
+          })
+
+          if (updatedCols.length > columns.length) {
+            setColumns(updatedCols)
+            api.patch(`/datasets/${dataset._id}/columns`, { columns: updatedCols }).catch(console.error)
+          }
+
+          currentRows = currentRows.map((r) => {
+            const val = getCellValue(r, srcId)
+            const parts = val.split(sep)
+            const cells = { ...r.cells }
+            targetColIds.forEach((tId, idx) => {
+              setRowCell(cells, tId, parts[idx]?.trim() || '')
+            })
+            return { ...r, cells }
+          })
+        } else if (op.type === 'prefix_suffix') {
+          const targetCols = (
+            op.columns?.length ? op.columns : [op.column || selectedColumnId || columns[0]?.id]
+          ).map(resolveColId)
+          const prefix = String(op.prefix || '')
+          const suffix = String(op.suffix || '')
+          currentRows = currentRows.map((r) => {
+            const cells = { ...r.cells }
+            targetCols.forEach((cId: string) => {
+              const val = getCellValue(r, cId)
+              if (val.trim()) {
+                const newVal = `${prefix}${val}${suffix}`
+                setRowCell(cells, cId, newVal)
+              }
+            })
+            return { ...r, cells }
+          })
+        } else if (op.type === 'math_operation') {
+          const colId = resolveColId(op.column || selectedColumnId || columns[0]?.id)
+          const factor = Number(op.value) || 0
+          const operator = op.operator
+          currentRows = currentRows.map((r) => {
+            const val = getCellValue(r, colId)
+            const num = parseFloat(val.replace(/[^0-9.-]/g, ''))
+            if (!isNaN(num)) {
+              let result = num
+              if (operator === 'add') result = num + factor
+              if (operator === 'subtract') result = num - factor
+              if (operator === 'multiply') result = num * factor
+              if (operator === 'divide' && factor !== 0) result = num / factor
+              const cells = { ...r.cells }
+              setRowCell(cells, colId, String(Math.round(result * 100) / 100))
+              return { ...r, cells }
+            }
+            return r
+          })
+        } else if (op.type === 'replace_values') {
+          const targetCols = (op.columns?.length ? op.columns : [op.column || selectedColumnId]).filter(Boolean).map(resolveColId)
+          const colsToProcess = targetCols.length > 0 ? targetCols : columns.map((c) => c.id)
+          const from = String(op.from || '')
+          const to = String(op.to || '')
+          currentRows = currentRows.map((r) => {
+            const cells = { ...r.cells }
+            let didAnyChange = false
+            colsToProcess.forEach((colId: string) => {
+              const val = getCellValue(r, colId)
+              let replacedVal = val
+              let didReplace = false
+
+              if (op.match === 'whole_cell') {
+                if (op.matchCase ? val === from : val.toLowerCase() === from.toLowerCase()) {
+                  replacedVal = to
+                  didReplace = true
+                }
+              } else {
+                if (op.matchCase ? val.includes(from) : val.toLowerCase().includes(from.toLowerCase())) {
+                  const regex = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), op.matchCase ? 'g' : 'gi')
+                  replacedVal = val.replace(regex, to)
+                  didReplace = true
+                }
+              }
+              if (didReplace) {
+                setRowCell(cells, colId, replacedVal)
+                didAnyChange = true
+              }
+            })
+            return didAnyChange ? { ...r, cells } : r
           })
         } else if (op.type === 'fill_empty') {
           const colId = resolveColId(op.column || selectedColumnId || columns[0]?.id)
