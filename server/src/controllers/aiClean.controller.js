@@ -152,7 +152,7 @@ export const analyzeData = async (req, res, next) => {
 // POST /api/v1/ai/clean/command
 export const parseCommand = async (req, res, next) => {
   try {
-    const { command, columns = [] } = req.body;
+    const { command, columns = [], sampleRows = [] } = req.body;
     if (!command || !command.trim()) {
       return res.status(400).json({ success: false, message: 'Command is required.' });
     }
@@ -161,6 +161,7 @@ export const parseCommand = async (req, res, next) => {
     const geminiPlan = await planOperationsWithGemini({
       command: command.trim(),
       columns,
+      sampleRows,
       workspaceId: req.workspaceId,
       userId: req.user?._id,
     });

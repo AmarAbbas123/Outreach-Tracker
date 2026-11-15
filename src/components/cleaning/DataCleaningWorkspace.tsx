@@ -566,22 +566,33 @@ function DatasetGrid({
 
   // ── AI Plain-Language Command ──
 
-  const handleAICommandSubmit = async (e: FormEvent) => {
+  const handleAICommandSubmit = async (e: FormEvent, autoApply = false) => {
     e.preventDefault()
     if (!commandInput.trim()) return
 
     setCommandLoading(true)
     try {
+      const sampleRows = rows.slice(0, 5).map((r) => ({
+        _id: r._id,
+        cells: r.cells,
+      }))
+
       const res = await api.post('/ai/clean/command', {
         command: commandInput.trim(),
         columns,
+        sampleRows,
       })
 
       if (res.data.success && res.data.data.operations) {
-        setCommandPreview({
-          command: commandInput.trim(),
-          operations: res.data.data.operations,
-        })
+        if (autoApply) {
+          await executeOperations(res.data.data.operations, commandInput.trim())
+        } else {
+          setCommandPreview({
+            command: commandInput.trim(),
+            explanation: res.data.data.explanation,
+            operations: res.data.data.operations,
+          })
+        }
       }
     } catch (err: any) {
       alert(err.response?.data?.message || 'Could not interpret command.')
@@ -590,11 +601,10 @@ function DatasetGrid({
     }
   }
 
-  const applyAIOperations = async () => {
-    if (!commandPreview) return
+  // Execute an array of planned operations
+  const executeOperations = async (ops: any[], commandText: string) => {
     setApplyingAI(true)
     let currentRows = [...rows]
-    const ops = commandPreview.operations
 
     try {
       for (const op of ops) {
@@ -628,15 +638,24 @@ function DatasetGrid({
             let keep = true
             ;(op.where || []).forEach((cond: any) => {
               const condColId = resolveColId(cond.column)
-              const val = getCellValue(r, condColId).trim().toLowerCase()
-              const condVal = String(cond.value || '').trim().toLowerCase()
-              if (cond.op === 'is_empty' && val.length === 0) keep = false
-              if (cond.op === 'not_empty' && val.length > 0) keep = false
+              const rawVal = getCellValue(r, condColId).trim()
+              const val = rawVal.toLowerCase()
+              const condVal = String(cond.value ?? '').trim().toLowerCase()
+              const numVal = parseFloat(rawVal)
+              const condNum = parseFloat(String(cond.value ?? ''))
+
+              if (cond.op === 'is_empty' && rawVal.length === 0) keep = false
+              if (cond.op === 'not_empty' && rawVal.length > 0) keep = false
               if (cond.op === 'equals' && val === condVal) keep = false
               if (cond.op === 'not_equals' && val !== condVal) keep = false
               if (cond.op === 'contains' && val.includes(condVal)) keep = false
+              if (cond.op === 'does_not_contain' && !val.includes(condVal)) keep = false
               if (cond.op === 'starts_with' && val.startsWith(condVal)) keep = false
               if (cond.op === 'ends_with' && val.endsWith(condVal)) keep = false
+              if ((cond.op === 'lt' || cond.op === 'less_than') && !isNaN(numVal) && !isNaN(condNum) && numVal < condNum) keep = false
+              if ((cond.op === 'gt' || cond.op === 'greater_than') && !isNaN(numVal) && !isNaN(condNum) && numVal > condNum) keep = false
+              if ((cond.op === 'lte' || cond.op === 'less_than_or_equal') && !isNaN(numVal) && !isNaN(condNum) && numVal <= condNum) keep = false
+              if ((cond.op === 'gte' || cond.op === 'greater_than_or_equal') && !isNaN(numVal) && !isNaN(condNum) && numVal >= condNum) keep = false
             })
             return keep
           })
@@ -704,20 +723,64 @@ function DatasetGrid({
                   res.data.data.mappings.map((m: any) => [String(m.from).toLowerCase(), String(m.to)])
                 )
                 currentRows = currentRows.map((r) => {
-                  const val = getCellValue(r, cId).trim()
+                  let val = getCellValue(r, cId).trim()
                   if (map.has(val.toLowerCase())) {
                     return { ...r, cells: { ...r.cells, [cId]: map.get(val.toLowerCase())! } }
+                  }
+                  for (const [from, to] of map.entries()) {
+                    if (val.toLowerCase().includes(from.toLowerCase())) {
+                      const regex = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+                      val = val.replace(regex, to)
+                      return { ...r, cells: { ...r.cells, [cId]: val } }
+                    }
                   }
                   return r
                 })
               }
             }
           }
+        } else if (op.type === 'ai_new_column') {
+          const newColName = String(op.name || 'New Column').trim()
+          const newColId = `col_${columns.length}_${newColName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`
+          const sourceColIds = (op.sourceColumns?.length ? op.sourceColumns : [selectedColumnId || columns[0]?.id]).map(resolveColId)
+
+          const uniqueVals = Array.from(
+            new Set(currentRows.map((r) => sourceColIds.map((scId) => getCellValue(r, scId).trim()).filter(Boolean).join(' ')).filter(Boolean))
+          ).slice(0, 100)
+
+          let map = new Map<string, string>()
+          if (uniqueVals.length > 0) {
+            const res = await api.post('/ai/clean/standardize', {
+              values: uniqueVals,
+              instruction: op.instruction,
+            })
+            if (res.data.success && res.data.data.mappings) {
+              map = new Map(res.data.data.mappings.map((m: any) => [String(m.from).toLowerCase(), String(m.to)]))
+            }
+          }
+
+          const newCol: DatasetColumn = {
+            id: newColId,
+            name: newColName,
+            type: 'text',
+            order: columns.length,
+            hidden: false,
+          }
+          const updatedColumns = [...columns, newCol]
+          setColumns(updatedColumns)
+
+          currentRows = currentRows.map((r) => {
+            const sourceVal = sourceColIds.map((scId) => getCellValue(r, scId).trim()).filter(Boolean).join(' ')
+            const computedVal = map.get(sourceVal.toLowerCase()) || ''
+            return { ...r, cells: { ...r.cells, [newColId]: computedVal } }
+          })
+
+          api.patch(`/datasets/${dataset._id}/columns`, { columns: updatedColumns }).catch(console.error)
         }
       }
 
-      applyRowChanges(currentRows, `AI: ${commandPreview.command}`)
-      setAiStatusMessage(`Successfully applied: "${commandPreview.command}" (${currentRows.length} rows remaining)`)
+      applyRowChanges(currentRows, `AI: ${commandText}`)
+      setAiStatusMessage(`Successfully applied: "${commandText}" (${currentRows.length} rows remaining)`)
       setTimeout(() => setAiStatusMessage(null), 5000)
       setCommandPreview(null)
       setCommandInput('')
@@ -726,6 +789,11 @@ function DatasetGrid({
     } finally {
       setApplyingAI(false)
     }
+  }
+
+  const applyAIOperations = async () => {
+    if (!commandPreview) return
+    await executeOperations(commandPreview.operations, commandPreview.command)
   }
 
   // Filter & Search Logic (Memoized & Robust)
@@ -851,7 +919,7 @@ function DatasetGrid({
 
       {/* ── AI Command Bar ── */}
       <div className="px-3 pt-2">
-        <form onSubmit={handleAICommandSubmit} className="relative flex items-center gap-2">
+        <form onSubmit={(e) => handleAICommandSubmit(e, false)} className="relative flex items-center gap-2">
           <div className="relative flex-1">
             <Sparkles size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-600" />
             <input
@@ -859,15 +927,43 @@ function DatasetGrid({
               placeholder='Tell AI what to clean… (e.g. "remove rows with no email and lowercase all domains", "change Managing Director to MD")'
               value={commandInput}
               onChange={(e) => setCommandInput(e.target.value)}
-              className="w-full pl-9 pr-24 py-2 bg-indigo-50/50 border border-indigo-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800 placeholder-indigo-400"
+              className="w-full pl-9 pr-48 py-2 bg-indigo-50/50 border border-indigo-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800 placeholder-indigo-400"
             />
-            <button
-              type="submit"
-              disabled={commandLoading || !commandInput.trim()}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors cursor-pointer"
-            >
-              {commandLoading ? 'Thinking…' : 'Run AI'}
-            </button>
+            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              <button
+                type="submit"
+                disabled={commandLoading || applyingAI || !commandInput.trim()}
+                className="px-2.5 py-1 bg-indigo-600 text-white rounded-md text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                title="Review plan before applying"
+              >
+                {commandLoading ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" /> Thinking…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={12} /> Plan AI
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleAICommandSubmit(e, true)}
+                disabled={commandLoading || applyingAI || !commandInput.trim()}
+                className="px-2.5 py-1 bg-emerald-600 text-white rounded-md text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                title="Apply AI cleaning directly to the spreadsheet"
+              >
+                {applyingAI ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" /> Applying…
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight size={12} /> Apply Directly
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </form>
 
@@ -881,38 +977,70 @@ function DatasetGrid({
               </span>
               <button
                 onClick={() => setCommandPreview(null)}
-                className="text-gray-400 hover:text-gray-600 p-0.5"
+                className="text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
               >
                 <X size={14} />
               </button>
             </div>
-            <div className="space-y-1 text-gray-700 pl-5 list-disc">
-              {commandPreview.operations.map((op: any, i: number) => (
-                <div key={i}>
-                  • Action: <strong className="uppercase">{op.type}</strong> {op.columns ? `on ${op.columns.length} column(s)` : ''}
-                </div>
-              ))}
+
+            {commandPreview.explanation && (
+              <p className="text-indigo-900 font-medium text-xs bg-indigo-100/70 px-2.5 py-1.5 rounded-md flex items-center gap-1.5">
+                <span>💡</span> {commandPreview.explanation}
+              </p>
+            )}
+
+            <div className="space-y-1 text-gray-700 pl-2">
+              {commandPreview.operations.map((op: any, i: number) => {
+                let desc = `${op.type.toUpperCase()}`
+                if (op.type === 'trim') {
+                  desc = `Trim extra spaces in ${op.columns ? op.columns.map((c: string) => columns.find((col) => col.id === c)?.name || c).join(', ') : 'all columns'}`
+                } else if (op.type === 'change_case') {
+                  desc = `Convert to ${op.mode}case for ${op.columns ? op.columns.map((c: string) => columns.find((col) => col.id === c)?.name || c).join(', ') : 'column'}`
+                } else if (op.type === 'delete_rows') {
+                  desc = `Delete rows where ${op.where ? op.where.map((w: any) => `${columns.find((col) => col.id === w.column)?.name || w.column} ${String(w.op).replace(/_/g, ' ')} ${w.value ?? ''}`).join(' AND ') : 'condition matches'}`
+                } else if (op.type === 'replace_values') {
+                  desc = `Replace "${op.from}" with "${op.to}" in ${columns.find((col) => col.id === op.column)?.name || op.column}`
+                } else if (op.type === 'extract_domain') {
+                  desc = `Extract clean root domain in ${columns.find((col) => col.id === op.column)?.name || op.column}`
+                } else if (op.type === 'remove_duplicates') {
+                  desc = `Remove duplicates by ${op.columns ? op.columns.map((c: string) => columns.find((col) => col.id === c)?.name || c).join(', ') : 'column'}`
+                } else if (op.type === 'fill_empty') {
+                  desc = `Fill empty cells with "${op.value}" in ${columns.find((col) => col.id === op.column)?.name || op.column}`
+                } else if (op.type === 'ai_rewrite') {
+                  desc = `AI Transform: ${op.instruction}`
+                } else if (op.type === 'ai_new_column') {
+                  desc = `Add new column "${op.name}": ${op.instruction}`
+                }
+
+                return (
+                  <div key={i} className="flex items-center gap-1.5 text-xs text-indigo-950">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0"></span>
+                    <span>{desc}</span>
+                  </div>
+                )
+              })}
             </div>
+
             <div className="flex gap-2 pt-1">
               <button
                 type="button"
                 onClick={applyAIOperations}
                 disabled={applyingAI}
-                className="px-3 py-1 bg-indigo-600 text-white rounded text-xs font-medium hover:bg-indigo-700 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                className="px-3.5 py-1.5 bg-indigo-600 text-white rounded text-xs font-semibold hover:bg-indigo-700 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-2xs"
               >
                 {applyingAI ? (
                   <>
                     <Loader2 size={13} className="animate-spin" />
-                    Applying…
+                    Applying to Sheet…
                   </>
                 ) : (
-                  'Approve & Apply Changes'
+                  'Approve & Apply to Sheet'
                 )}
               </button>
               <button
                 type="button"
                 onClick={() => setCommandPreview(null)}
-                className="px-3 py-1 bg-white border border-gray-300 text-gray-700 rounded text-xs font-medium hover:bg-gray-50 cursor-pointer"
+                className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded text-xs font-medium hover:bg-gray-50 cursor-pointer"
               >
                 Cancel
               </button>
