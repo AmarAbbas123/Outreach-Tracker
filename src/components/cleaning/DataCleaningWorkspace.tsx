@@ -8,7 +8,6 @@ import {
   RotateCcw,
   Sparkles,
   Search,
-  Filter,
   Check,
   CheckCircle2,
   AlertCircle,
@@ -250,9 +249,6 @@ function DatasetGrid({
   // Clean / Grid States
   const [search, setSearch] = useState('')
   const [selectedColumnId, setSelectedColumnId] = useState<string>(dataset.columns[0]?.id || '')
-  const [filterColumnId, setFilterColumnId] = useState<string>('all')
-  const [filterOp, setFilterOp] = useState<string>('contains')
-  const [filterVal, setFilterVal] = useState<string>('')
   const [commandInput, setCommandInput] = useState('')
   const [commandLoading, setCommandLoading] = useState(false)
   const [applyingAI, setApplyingAI] = useState(false)
@@ -1158,76 +1154,14 @@ function DatasetGrid({
     await executeOperations(commandPreview.operations, commandPreview.command)
   }
 
-  // Filter & Search Logic (Memoized & Robust)
-  const isFilterActive =
-    search.trim().length > 0 ||
-    filterVal.trim().length > 0 ||
-    filterOp === 'is_empty' ||
-    filterOp === 'not_empty'
-
+  // Quick Search Filter (Memoized)
   const visibleRows = useMemo(() => {
-    return rows.filter((r) => {
-      // 1. Quick search across all columns
-      if (search.trim()) {
-        const q = search.toLowerCase().trim()
-        const match = columns.some((col) => getCellValue(r, col.id, col.name).toLowerCase().includes(q))
-        if (!match) return false
-      }
-
-      // 2. Filter operators
-      if (filterOp === 'is_empty') {
-        if (filterColumnId === 'all') {
-          const hasEmpty = columns.some((col) => getCellValue(r, col.id, col.name).trim().length === 0)
-          if (!hasEmpty) return false
-        } else {
-          const cellVal = getCellValue(r, filterColumnId).trim()
-          if (cellVal.length > 0) return false
-        }
-      } else if (filterOp === 'not_empty') {
-        if (filterColumnId === 'all') {
-          const allNonEmpty = columns.every((col) => getCellValue(r, col.id, col.name).trim().length > 0)
-          if (!allNonEmpty) return false
-        } else {
-          const cellVal = getCellValue(r, filterColumnId).trim()
-          if (cellVal.length === 0) return false
-        }
-      } else if (filterVal.trim()) {
-        const target = filterVal.toLowerCase().trim()
-        if (filterColumnId === 'all') {
-          const cellVals = columns.map((col) => getCellValue(r, col.id, col.name).toLowerCase())
-          if (filterOp === 'contains' && !cellVals.some((v) => v.includes(target))) return false
-          if (filterOp === 'does_not_contain' && cellVals.some((v) => v.includes(target))) return false
-          if (filterOp === 'equals' && !cellVals.some((v) => v === target)) return false
-          if (filterOp === 'not_equals' && cellVals.some((v) => v === target)) return false
-          if (filterOp === 'starts_with' && !cellVals.some((v) => v.startsWith(target))) return false
-          if (filterOp === 'ends_with' && !cellVals.some((v) => v.endsWith(target))) return false
-        } else {
-          const cellVal = getCellValue(r, filterColumnId).toLowerCase()
-          if (filterOp === 'contains' && !cellVal.includes(target)) return false
-          if (filterOp === 'does_not_contain' && cellVal.includes(target)) return false
-          if (filterOp === 'equals' && cellVal !== target) return false
-          if (filterOp === 'not_equals' && cellVal === target) return false
-          if (filterOp === 'starts_with' && !cellVal.startsWith(target)) return false
-          if (filterOp === 'ends_with' && !cellVal.endsWith(target)) return false
-        }
-      }
-
-      return true
-    })
-  }, [rows, columns, search, filterColumnId, filterOp, filterVal])
-
-  // Filter-then-act: Delete visible filtered rows
-  const handleDeleteFilteredRows = () => {
-    const visibleIds = new Set(visibleRows.map((r) => r._id))
-    const count = visibleRows.length
-    if (count === 0) return
-    if (!window.confirm(`Delete all ${count} currently filtered rows?`)) return
-
-    const remaining = rows.filter((r) => !visibleIds.has(r._id))
-    applyRowChanges(remaining, `Deleted ${count} filtered rows`)
-    setFilterVal('')
-    setSearch('')
-  }
+    if (!search.trim()) return rows
+    const q = search.toLowerCase().trim()
+    return rows.filter((r) =>
+      columns.some((col) => getCellValue(r, col.id, col.name).toLowerCase().includes(q))
+    )
+  }, [rows, columns, search])
 
   return (
     <div className="space-y-3 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[82vh]">
@@ -1616,73 +1550,6 @@ function DatasetGrid({
           </button>
         </form>
       )}
-
-      {/* ── Filter Bar ── */}
-      <div className="px-3 py-1.5 bg-gray-50/70 border-b border-gray-200 flex items-center gap-2 text-xs flex-wrap">
-        <Filter size={13} className="text-gray-400 shrink-0" />
-        <span className="text-gray-600 font-medium">Filter:</span>
-        <select
-          value={filterColumnId}
-          onChange={(e) => setFilterColumnId(e.target.value)}
-          className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-medium"
-        >
-          <option value="all">Across All Columns</option>
-          {columns.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterOp}
-          onChange={(e) => setFilterOp(e.target.value)}
-          className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-medium"
-        >
-          <option value="contains">contains</option>
-          <option value="does_not_contain">does not contain</option>
-          <option value="equals">equals</option>
-          <option value="not_equals">does not equal</option>
-          <option value="starts_with">starts with</option>
-          <option value="ends_with">ends with</option>
-          <option value="is_empty">is empty</option>
-          <option value="not_empty">is not empty</option>
-        </select>
-        {filterOp !== 'is_empty' && filterOp !== 'not_empty' && (
-          <input
-            type="text"
-            placeholder="Search value…"
-            value={filterVal}
-            onChange={(e) => setFilterVal(e.target.value)}
-            className="px-2 py-1 bg-white border border-gray-300 rounded text-xs flex-1 max-w-xs focus:ring-1 focus:ring-indigo-500"
-          />
-        )}
-        {isFilterActive && (
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full font-semibold text-[10px]">
-              {visibleRows.length} visible
-            </span>
-            <button
-              type="button"
-              onClick={handleDeleteFilteredRows}
-              className="flex items-center gap-1 px-2.5 py-1 bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 rounded text-[11px] font-semibold transition-colors cursor-pointer"
-              title="Delete all currently matching rows"
-            >
-              <Trash2 size={12} /> Delete {visibleRows.length} Filtered Rows
-            </button>
-            <button
-              onClick={() => {
-                setFilterVal('')
-                setSearch('')
-                setFilterColumnId('all')
-                setFilterOp('contains')
-              }}
-              className="text-gray-400 hover:text-gray-600 text-[11px] underline cursor-pointer"
-            >
-              Clear filter
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* ── Virtualized / Scrollable Spreadsheet Grid ── */}
       <div className="flex-1 overflow-auto bg-white relative">
