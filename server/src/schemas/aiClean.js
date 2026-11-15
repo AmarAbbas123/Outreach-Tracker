@@ -49,6 +49,18 @@ export const aiOperationSchema = z.discriminatedUnion('type', [
     keep: z.enum(['first', 'last']).default('first'),
   }),
   z.object({ type: z.literal('fill_empty'), column: z.string(), value: z.string() }),
+  // Clears all cell values in column(s) to blank ""
+  z.object({
+    type: z.literal('clear_column'),
+    columns: z.array(z.string()).optional(),
+    column: z.string().optional(),
+  }),
+  // Deletes column(s) completely from the dataset
+  z.object({
+    type: z.literal('delete_column'),
+    columns: z.array(z.string()).optional(),
+    column: z.string().optional(),
+  }),
   // needs understanding: the app sends the UNIQUE values, the AI returns old to new pairs
   z.object({
     type: z.literal('ai_rewrite'),

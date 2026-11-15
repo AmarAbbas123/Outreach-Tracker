@@ -57,8 +57,10 @@ Allowed operation types:
 5. { "type": "extract_domain", "column": string (use column id), "target": string } -> extracts clean domain (removes http/https/www/paths)
 6. { "type": "remove_duplicates", "columns": string[], "keep": "first" | "last" }
 7. { "type": "fill_empty", "column": string (use column id), "value": string }
-8. { "type": "ai_rewrite", "columns": string[], "instruction": string, "scope": "sheet" } -> use this for semantic transforms like shortening job titles, normalizing company names (removing Ltd/Inc), standardizing country/niche, translating, fixing typos
-9. { "type": "ai_new_column", "name": string, "sourceColumns": string[], "instruction": string } -> use when user wants to add a new column extracted or derived from existing columns (e.g. First Name from Full Name, or Seniority level)
+8. { "type": "clear_column", "columns": string[] } -> clears/empties all cell values in the specified column(s) to blank "" (use when user says "delete all value from price", "clear price column", "empty values in X")
+9. { "type": "delete_column", "columns": string[] } -> removes the column completely from the dataset (use when user says "delete column price", "remove column X")
+10. { "type": "ai_rewrite", "columns": string[], "instruction": string, "scope": "sheet" } -> use this for semantic transforms like shortening job titles, normalizing company names (removing Ltd/Inc), standardizing country/niche, translating, fixing typos
+11. { "type": "ai_new_column", "name": string, "sourceColumns": string[], "instruction": string } -> use when user wants to add a new column extracted or derived from existing columns (e.g. First Name from Full Name, or Seniority level)
 
 IMPORTANT: In all operations, "columns" and "column" fields MUST use the exact column id from the Available columns list (e.g. "col_0_domain").
 

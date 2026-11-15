@@ -707,6 +707,27 @@ function DatasetGrid({
             }
             return r
           })
+        } else if (op.type === 'clear_column') {
+          const targetCols = (op.columns?.length ? op.columns : [op.column || selectedColumnId || columns[0]?.id]).map(resolveColId)
+          currentRows = currentRows.map((r) => {
+            const cells = { ...r.cells }
+            targetCols.forEach((cId: string) => {
+              cells[cId] = ''
+            })
+            return { ...r, cells }
+          })
+        } else if (op.type === 'delete_column') {
+          const targetCols = (op.columns?.length ? op.columns : [op.column || selectedColumnId]).map(resolveColId)
+          const updatedColumns = columns.filter((c) => !targetCols.includes(c.id))
+          setColumns(updatedColumns)
+          currentRows = currentRows.map((r) => {
+            const cells = { ...r.cells }
+            targetCols.forEach((cId: string) => {
+              delete cells[cId]
+            })
+            return { ...r, cells }
+          })
+          api.patch(`/datasets/${dataset._id}/columns`, { columns: updatedColumns }).catch(console.error)
         } else if (op.type === 'ai_rewrite') {
           const targetCols = (op.columns?.length ? op.columns : [selectedColumnId || columns[0]?.id]).map(resolveColId)
           for (const cId of targetCols) {
@@ -1006,6 +1027,10 @@ function DatasetGrid({
                   desc = `Remove duplicates by ${op.columns ? op.columns.map((c: string) => columns.find((col) => col.id === c)?.name || c).join(', ') : 'column'}`
                 } else if (op.type === 'fill_empty') {
                   desc = `Fill empty cells with "${op.value}" in ${columns.find((col) => col.id === op.column)?.name || op.column}`
+                } else if (op.type === 'clear_column') {
+                  desc = `Clear all values in ${op.columns ? op.columns.map((c: string) => columns.find((col) => col.id === c)?.name || c).join(', ') : columns.find((col) => col.id === op.column)?.name || op.column}`
+                } else if (op.type === 'delete_column') {
+                  desc = `Delete column ${op.columns ? op.columns.map((c: string) => columns.find((col) => col.id === c)?.name || c).join(', ') : columns.find((col) => col.id === op.column)?.name || op.column} from sheet`
                 } else if (op.type === 'ai_rewrite') {
                   desc = `AI Transform: ${op.instruction}`
                 } else if (op.type === 'ai_new_column') {

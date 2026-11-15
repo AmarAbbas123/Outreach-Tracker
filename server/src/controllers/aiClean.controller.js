@@ -183,10 +183,35 @@ export const parseCommand = async (req, res, next) => {
     // Check if a specific column is explicitly mentioned in the command text
     let explicitColId = null;
     columns.forEach((c) => {
-      if (cmd.includes(c.name.toLowerCase())) {
+      const cleanColName = c.name.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').trim();
+      if (cmd.includes(c.name.toLowerCase()) || (cleanColName && cmd.includes(cleanColName))) {
         explicitColId = c.id;
       }
     });
+
+    // 0. Clear / Empty column values (e.g. "delete all value from price", "clear price column", "empty status values")
+    if (
+      (cmd.includes('delete all value') || cmd.includes('delete all values') || cmd.includes('clear') || cmd.includes('empty')) &&
+      !cmd.includes('delete row') && !cmd.includes('delete rows') && !cmd.includes('remove row') && !cmd.includes('remove rows')
+    ) {
+      if (explicitColId) {
+        operations.push({
+          type: 'clear_column',
+          columns: [explicitColId],
+        });
+      }
+    }
+
+    // 0b. Delete entire column (e.g. "delete column price", "remove price column")
+    if (
+      (cmd.includes('delete column') || cmd.includes('remove column') || cmd.includes('drop column')) &&
+      explicitColId
+    ) {
+      operations.push({
+        type: 'delete_column',
+        columns: [explicitColId],
+      });
+    }
 
     // 1. Lowercase / Uppercase / Titlecase commands
     if (cmd.includes('lowercase') || cmd.includes('lower case')) {
