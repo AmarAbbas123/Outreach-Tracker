@@ -659,6 +659,91 @@ function DatasetGrid({
             })
             return keep
           })
+        } else if (op.type === 'keep_rows') {
+          currentRows = currentRows.filter((r) => {
+            let matchAll = true
+            ;(op.where || []).forEach((cond: any) => {
+              const condColId = resolveColId(cond.column)
+              const rawVal = getCellValue(r, condColId).trim()
+              const val = rawVal.toLowerCase()
+              const condVal = String(cond.value ?? '').trim().toLowerCase()
+              const numVal = parseFloat(rawVal)
+              const condNum = parseFloat(String(cond.value ?? ''))
+
+              if (cond.op === 'is_empty' && rawVal.length !== 0) matchAll = false
+              if (cond.op === 'not_empty' && rawVal.length === 0) matchAll = false
+              if (cond.op === 'equals' && val !== condVal) matchAll = false
+              if (cond.op === 'not_equals' && val === condVal) matchAll = false
+              if (cond.op === 'contains' && !val.includes(condVal)) matchAll = false
+              if (cond.op === 'does_not_contain' && val.includes(condVal)) matchAll = false
+              if (cond.op === 'starts_with' && !val.startsWith(condVal)) matchAll = false
+              if (cond.op === 'ends_with' && !val.endsWith(condVal)) matchAll = false
+              if ((cond.op === 'lt' || cond.op === 'less_than') && (isNaN(numVal) || isNaN(condNum) || numVal >= condNum)) matchAll = false
+              if ((cond.op === 'gt' || cond.op === 'greater_than') && (isNaN(numVal) || isNaN(condNum) || numVal <= condNum)) matchAll = false
+              if ((cond.op === 'lte' || cond.op === 'less_than_or_equal') && (isNaN(numVal) || isNaN(condNum) || numVal > condNum)) matchAll = false
+              if ((cond.op === 'gte' || cond.op === 'greater_than_or_equal') && (isNaN(numVal) || isNaN(condNum) || numVal < condNum)) matchAll = false
+            })
+            return matchAll
+          })
+        } else if (op.type === 'rename_column') {
+          const colId = resolveColId(op.column || selectedColumnId)
+          const newName = String(op.newName || '').trim()
+          if (newName) {
+            const updatedColumns = columns.map((c) => (c.id === colId ? { ...c, name: newName } : c))
+            setColumns(updatedColumns)
+            api.patch(`/datasets/${dataset._id}/columns`, { columns: updatedColumns }).catch(console.error)
+          }
+        } else if (op.type === 'format_pattern') {
+          const targetCols = (op.columns?.length ? op.columns : [op.column || selectedColumnId || columns[0]?.id]).map(resolveColId)
+          currentRows = currentRows.map((r) => {
+            const cells = { ...r.cells }
+            targetCols.forEach((cId: string) => {
+              let val = getCellValue(r, cId)
+              if (op.pattern === 'digits_only') {
+                val = val.replace(/\D/g, '')
+              } else if (op.pattern === 'clean_number') {
+                val = val.replace(/[^0-9.-]/g, '').trim()
+              } else if (op.pattern === 'clean_phone') {
+                val = val.replace(/[^0-9+]/g, '').trim()
+              } else if (op.pattern === 'remove_symbols') {
+                val = val.replace(/[^\w\s]/gi, '').replace(/\s+/g, ' ').trim()
+              } else if (op.pattern === 'clean_url') {
+                val = normalizeDomain(val)
+              }
+              cells[cId] = val
+            })
+            return { ...r, cells }
+          })
+        } else if (op.type === 'row_transform') {
+          const targetColId = resolveColId(op.targetColumn || selectedColumnId || columns[0]?.id)
+          const expr = String(op.expression || '').trim()
+          if (expr) {
+            try {
+              const evalFn = new Function('row', 'col', 'normalizeDomain', `
+                try {
+                  ${columns.map((c) => `const ${c.id.replace(/[^a-zA-Z0-9_$]/g, '_')} = row['${c.id}'] ?? row['${c.name}'] ?? '';`).join('\n')}
+                  return (${expr});
+                } catch(e) {
+                  return row['${targetColId}'] ?? '';
+                }
+              `)
+
+              currentRows = currentRows.map((r) => {
+                const rowScope: Record<string, string> = {}
+                columns.forEach((c) => {
+                  rowScope[c.id] = getCellValue(r, c.id, c.name)
+                  rowScope[c.name] = getCellValue(r, c.id, c.name)
+                })
+                const computed = evalFn(rowScope, targetColId, normalizeDomain)
+                return {
+                  ...r,
+                  cells: { ...r.cells, [targetColId]: computed !== undefined && computed !== null ? String(computed) : '' },
+                }
+              })
+            } catch (evalErr) {
+              console.error('row_transform evaluation error:', evalErr)
+            }
+          }
         } else if (op.type === 'remove_duplicates') {
           const targetCols = (op.columns?.length ? op.columns : [selectedColumnId || columns[0]?.id]).map(resolveColId)
           const seen = new Set<string>()
@@ -1019,6 +1104,14 @@ function DatasetGrid({
                   desc = `Convert to ${op.mode}case for ${op.columns ? op.columns.map((c: string) => columns.find((col) => col.id === c)?.name || c).join(', ') : 'column'}`
                 } else if (op.type === 'delete_rows') {
                   desc = `Delete rows where ${op.where ? op.where.map((w: any) => `${columns.find((col) => col.id === w.column)?.name || w.column} ${String(w.op).replace(/_/g, ' ')} ${w.value ?? ''}`).join(' AND ') : 'condition matches'}`
+                } else if (op.type === 'keep_rows') {
+                  desc = `Keep only rows where ${op.where ? op.where.map((w: any) => `${columns.find((col) => col.id === w.column)?.name || w.column} ${String(w.op).replace(/_/g, ' ')} ${w.value ?? ''}`).join(' AND ') : 'condition matches'}`
+                } else if (op.type === 'rename_column') {
+                  desc = `Rename column ${columns.find((col) => col.id === op.column)?.name || op.column} to "${op.newName}"`
+                } else if (op.type === 'format_pattern') {
+                  desc = `Format ${op.pattern.replace(/_/g, ' ')} in ${op.columns ? op.columns.map((c: string) => columns.find((col) => col.id === c)?.name || c).join(', ') : columns.find((col) => col.id === op.column)?.name || op.column}`
+                } else if (op.type === 'row_transform') {
+                  desc = `Custom Row Formula on ${columns.find((col) => col.id === op.targetColumn)?.name || op.targetColumn}${op.explanation ? `: ${op.explanation}` : ''}`
                 } else if (op.type === 'replace_values') {
                   desc = `Replace "${op.from}" with "${op.to}" in ${columns.find((col) => col.id === op.column)?.name || op.column}`
                 } else if (op.type === 'extract_domain') {

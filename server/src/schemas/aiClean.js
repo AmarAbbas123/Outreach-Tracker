@@ -33,6 +33,7 @@ export const aiOperationSchema = z.discriminatedUnion('type', [
     mode: z.enum(['lower', 'upper', 'title']),
   }),
   z.object({ type: z.literal('delete_rows'), where: z.array(condition) }),
+  z.object({ type: z.literal('keep_rows'), where: z.array(condition) }),
   z.object({
     type: z.literal('replace_values'),
     column: z.string(),
@@ -60,6 +61,26 @@ export const aiOperationSchema = z.discriminatedUnion('type', [
     type: z.literal('delete_column'),
     columns: z.array(z.string()).optional(),
     column: z.string().optional(),
+  }),
+  // Renames a column
+  z.object({
+    type: z.literal('rename_column'),
+    column: z.string(),
+    newName: z.string(),
+  }),
+  // Formats specific patterns (e.g. clean_number, digits_only, clean_url, clean_phone, remove_symbols)
+  z.object({
+    type: z.literal('format_pattern'),
+    columns: z.array(z.string()).optional(),
+    column: z.string().optional(),
+    pattern: z.enum(['digits_only', 'clean_number', 'clean_phone', 'remove_symbols', 'clean_url']),
+  }),
+  // Dynamic JavaScript formula/expression evaluated per row for custom client prompts
+  z.object({
+    type: z.literal('row_transform'),
+    targetColumn: z.string(),
+    expression: z.string(),
+    explanation: z.string().optional(),
   }),
   // needs understanding: the app sends the UNIQUE values, the AI returns old to new pairs
   z.object({
