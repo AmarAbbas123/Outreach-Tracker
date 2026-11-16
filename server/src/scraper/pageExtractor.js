@@ -61,12 +61,13 @@ export function extractPageData(html, pageUrl) {
   for (const raw of rawMatches) {
     const cleaned = raw.trim();
     const digitsOnly = cleaned.replace(/\D/g, '');
-    // Avoid false positives: years, zip codes, random short numbers
+    // Avoid false positives: years, zip codes, random short numbers, unix timestamps
     if (
       digitsOnly.length >= 7 &&
       digitsOnly.length <= 15 &&
       !/^(19|20)\d{2}$/.test(cleaned) &&
-      !/^\d{5}$/.test(cleaned)
+      !/^\d{5}$/.test(cleaned) &&
+      !/^(16|17)\d{10,12}$/.test(digitsOnly)
     ) {
       if (cleaned.includes('-') || cleaned.includes('(') || cleaned.includes('.') || cleaned.startsWith('+') || digitsOnly.length >= 10) {
         phones.add(cleaned);

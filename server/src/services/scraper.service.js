@@ -51,65 +51,120 @@ const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 /**
- * Safe fetch with SSRF check, robots check, timeout, browser UA fallback, and size limits
+ * Safe fetch with SSRF check, robots check, timeout, browser UA fallback, size limits,
+ * and automatic protocol / www candidate fallbacks for misconfigured servers.
  */
 export async function safeFetchHtml(inputUrl, { ignoreRobots = false } = {}) {
-  const safeUrl = await assertSafeUrl(inputUrl);
-  const targetUrl = safeUrl.href;
+  async function fetchCandidate(urlToFetch) {
+    const safeUrl = await assertSafeUrl(urlToFetch);
+    const targetUrl = safeUrl.href;
 
-  if (!ignoreRobots) {
-    const allowed = await isAllowed(targetUrl, USER_AGENT);
-    if (!allowed) {
-      const err = new Error(`Blocked by robots.txt`);
-      err.code = 'ROBOTS_BLOCKED';
-      throw err;
+    if (!ignoreRobots) {
+      const allowed = await isAllowed(targetUrl, USER_AGENT);
+      if (!allowed) {
+        const err = new Error(`Blocked by robots.txt`);
+        err.code = 'ROBOTS_BLOCKED';
+        throw err;
+      }
+    }
+
+    // Attempt fetch with bot UA, fallback to standard browser UA if blocked/failed
+    let res = null;
+    try {
+      res = await fetch(targetUrl, {
+        headers: {
+          'User-Agent': USER_AGENT,
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        signal: AbortSignal.timeout(15000),
+        redirect: 'follow',
+      });
+    } catch {}
+
+    if (!res || !res.ok) {
+      // Retry with browser UA & realistic headers
+      res = await fetch(targetUrl, {
+        headers: {
+          'User-Agent': BROWSER_USER_AGENT,
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"Windows"',
+        },
+        signal: AbortSignal.timeout(15000),
+        redirect: 'follow',
+      });
+    }
+
+    if (!res.ok) {
+      throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
+    }
+
+    // Final destination check on redirects
+    await assertSafeUrl(res.url);
+
+    // Buffer page: allow modern heavy pages up to 15MB, gracefully slice without crashing if larger
+    const buffer = await res.arrayBuffer();
+    const maxBytes = 15 * 1024 * 1024; // 15MB limit
+    const activeBuffer = buffer.byteLength > maxBytes ? buffer.slice(0, maxBytes) : buffer;
+
+    const html = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true }).decode(activeBuffer);
+    return { html, finalUrl: res.url };
+  }
+
+  // Generate candidate URLs with protocol & www fallbacks
+  const trimmed = String(inputUrl || '').trim();
+  const candidates = [];
+  const addCandidate = (u) => {
+    if (u && !candidates.includes(u)) candidates.push(u);
+  };
+
+  if (trimmed.startsWith('http://')) {
+    addCandidate(trimmed);
+    addCandidate(trimmed.replace(/^http:\/\//i, 'https://'));
+    const stripped = trimmed.replace(/^http:\/\/(www\.)?/i, 'https://');
+    addCandidate(stripped);
+  } else if (trimmed.startsWith('https://')) {
+    addCandidate(trimmed);
+    const stripped = trimmed.replace(/^https:\/\/(www\.)?/i, 'https://');
+    addCandidate(stripped);
+    addCandidate(trimmed.replace(/^https:\/\//i, 'http://'));
+  } else {
+    // Bare domain: prioritize https://
+    addCandidate(`https://${trimmed}`);
+    addCandidate(`http://${trimmed}`);
+    if (trimmed.startsWith('www.')) {
+      addCandidate(`https://${trimmed.replace(/^www\./i, '')}`);
+    } else {
+      addCandidate(`https://www.${trimmed}`);
     }
   }
 
-  // Attempt fetch with bot UA, fallback to standard browser UA if blocked/failed
-  let res = null;
-  try {
-    res = await fetch(targetUrl, {
-      headers: {
-        'User-Agent': USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      signal: AbortSignal.timeout(15000),
-      redirect: 'follow',
-    });
-  } catch {}
+  let lastError = null;
+  for (let i = 0; i < candidates.length; i++) {
+    const candidate = candidates[i];
+    try {
+      const result = await fetchCandidate(candidate);
+      // Check for server-side fatal crash / broken stack traces
+      const isCrash =
+        result.html.includes('Fatal error:') ||
+        result.html.includes('Maximum call stack size') ||
+        result.html.includes('Parse error: syntax error');
 
-  if (!res || !res.ok) {
-    // Retry with browser UA & realistic headers
-    res = await fetch(targetUrl, {
-      headers: {
-        'User-Agent': BROWSER_USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
-      },
-      signal: AbortSignal.timeout(15000),
-      redirect: 'follow',
-    });
+      // If this candidate returned a fatal crash, try next candidate before accepting
+      if (isCrash && i < candidates.length - 1) {
+        continue;
+      }
+
+      return result;
+    } catch (err) {
+      lastError = err;
+    }
   }
 
-  if (!res.ok) {
-    throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
-  }
-
-  // Final destination check on redirects
-  await assertSafeUrl(res.url);
-
-  // Buffer page: allow modern heavy pages up to 15MB, gracefully slice without crashing if larger
-  const buffer = await res.arrayBuffer();
-  const maxBytes = 15 * 1024 * 1024; // 15MB limit
-  const activeBuffer = buffer.byteLength > maxBytes ? buffer.slice(0, maxBytes) : buffer;
-
-  const html = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true }).decode(activeBuffer);
-  return { html, finalUrl: res.url };
+  throw lastError || new Error(`Failed to fetch HTML from ${inputUrl}`);
 }
 
 /**
