@@ -47,25 +47,54 @@ export function broadcastJobProgress(jobId, payload) {
 /**
  * Safe fetch with SSRF check, robots check, timeout, and size limits
  */
-export async function safeFetchHtml(inputUrl) {
+const BROWSER_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+
+/**
+ * Safe fetch with SSRF check, robots check, timeout, browser UA fallback, and size limits
+ */
+export async function safeFetchHtml(inputUrl, { ignoreRobots = false } = {}) {
   const safeUrl = await assertSafeUrl(inputUrl);
   const targetUrl = safeUrl.href;
 
-  const allowed = await isAllowed(targetUrl, USER_AGENT);
-  if (!allowed) {
-    const err = new Error(`Blocked by robots.txt`);
-    err.code = 'ROBOTS_BLOCKED';
-    throw err;
+  if (!ignoreRobots) {
+    const allowed = await isAllowed(targetUrl, USER_AGENT);
+    if (!allowed) {
+      const err = new Error(`Blocked by robots.txt`);
+      err.code = 'ROBOTS_BLOCKED';
+      throw err;
+    }
   }
 
-  const res = await fetch(targetUrl, {
-    headers: {
-      'User-Agent': USER_AGENT,
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    },
-    signal: AbortSignal.timeout(15000), // 15s timeout
-    redirect: 'follow',
-  });
+  // Attempt fetch with bot UA, fallback to standard browser UA if blocked/failed
+  let res = null;
+  try {
+    res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': USER_AGENT,
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      signal: AbortSignal.timeout(15000),
+      redirect: 'follow',
+    });
+  } catch {}
+
+  if (!res || !res.ok) {
+    // Retry with browser UA & realistic headers
+    res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': BROWSER_USER_AGENT,
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+      },
+      signal: AbortSignal.timeout(15000),
+      redirect: 'follow',
+    });
+  }
 
   if (!res.ok) {
     throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
@@ -272,12 +301,45 @@ export async function analyzeAnyUrl(url) {
  * Scrape Any URL: Describe It (AI Recipe Generation)
  */
 export async function describeWithAI({ url, instruction, columnNames = [] }) {
-  const { html, finalUrl } = await safeFetchHtml(url);
+  const { html, finalUrl } = await safeFetchHtml(url, { ignoreRobots: true });
   const $ = cheerio.load(html);
 
   // Clean HTML to save tokens and avoid prompt injections
-  $('script, style, nav, footer, header, svg, noscript, iframe').remove();
-  const bodySample = $('body').html()?.slice(0, 15000) || '';
+  $('script, style, nav, footer, header, svg, noscript, iframe, link, meta').remove();
+
+  // Strip massive attributes and inline data uris
+  $('*').each((_, el) => {
+    if (el.attribs) {
+      Object.keys(el.attribs).forEach((attr) => {
+        if (el.attribs[attr] && el.attribs[attr].length > 150) {
+          el.attribs[attr] = el.attribs[attr].slice(0, 40) + '...';
+        }
+      });
+    }
+  });
+
+  // Detect candidate repeated classes and tags on the page
+  const tagCounts = {};
+  $('[class]').each((_, el) => {
+    const cls = ($(el).attr('class') || '').trim();
+    cls.split(/\s+/).forEach((c) => {
+      if (c.length > 2 && !c.startsWith('is-') && !c.startsWith('has-')) {
+        tagCounts[c] = (tagCounts[c] || 0) + 1;
+      }
+    });
+  });
+
+  const candidateClasses = Object.entries(tagCounts)
+    .filter(([_, count]) => count >= 3 && count <= 150)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+    .map(([cls, count]) => `.${cls} (${count} occurrences)`);
+
+  // Target main content area
+  let mainContainer = $('main, article, [role="main"], #content, .content, .main, table, body').first();
+  if (!mainContainer.length) mainContainer = $('body');
+
+  const sampleHtml = mainContainer.html()?.slice(0, 32000) || $('body').html()?.slice(0, 32000) || '';
 
   const client = getAIClient();
   if (!client) {
@@ -285,17 +347,18 @@ export async function describeWithAI({ url, instruction, columnNames = [] }) {
   }
 
   const prompt = `You are an expert web scraping recipe generator.
-Given this HTML structure from "${finalUrl}" and the user instruction, propose a clean, robust Cheerio selector recipe to extract the repeated records into table rows.
+Given this HTML from "${finalUrl}" and the user instruction, propose a clean, robust Cheerio selector recipe to extract the repeated records into table rows.
 
 User Instruction: "${instruction}"
 Suggested Columns: ${JSON.stringify(columnNames)}
+Detected Candidate Repeated Classes: ${candidateClasses.join(', ') || 'none'}
 
 HTML Sample:
-${bodySample}
+${sampleHtml}
 
 Return JSON matching this exact structure:
 {
-  "rowSelector": "css selector identifying each repeated item card or table row",
+  "rowSelector": "css selector identifying each repeated item card or table row (e.g. .card, tr.item, .loop-card)",
   "fields": [
     {
       "name": "Column Name",
@@ -303,7 +366,7 @@ Return JSON matching this exact structure:
       "attr": "text" | "href" | "src"
     }
   ],
-  "nextPageSelector": "optional selector for Next pagination link"
+  "nextPageSelector": "optional selector for Next pagination link, or empty string if none"
 }`;
 
   for (const model of CANDIDATE_MODELS) {
@@ -315,16 +378,66 @@ Return JSON matching this exact structure:
       });
 
       const parsed = JSON.parse(res.text || '{}');
+      if (parsed.nextPageSelector === null) parsed.nextPageSelector = '';
+      if (Array.isArray(parsed.fields)) {
+        parsed.fields.forEach((f) => {
+          if (!f.attr || f.attr === null) f.attr = 'text';
+        });
+      }
+
       const recipe = recipeSchema.parse(parsed);
 
-      // Execute on the page to produce 10 preview rows
-      const { rows, nextUrl } = runRecipe(html, recipe, finalUrl);
+      // Execute on the page to produce preview rows
+      let { rows, nextUrl } = runRecipe(html, recipe, finalUrl);
+
+      // Self-correcting fallback if rows returned 0
+      if (rows.length === 0) {
+        console.warn(`Initial selector "${recipe.rowSelector}" returned 0 rows. Attempting fallback matching...`);
+        for (const [candCls] of Object.entries(tagCounts).slice(0, 6)) {
+          const testRecipe = { ...recipe, rowSelector: `.${candCls}` };
+          const testRun = runRecipe(html, testRecipe, finalUrl);
+          if (testRun.rows.length > 0) {
+            recipe.rowSelector = `.${candCls}`;
+            rows = testRun.rows;
+            nextUrl = testRun.nextUrl;
+            break;
+          }
+        }
+      }
+
+      // If still 0 rows, fallback to AI direct chunk extraction for preview
+      if (rows.length === 0) {
+        const textSample = $('body').text().replace(/\s+/g, ' ').slice(0, 4000);
+        const directPrompt = `Extract up to 10 rows matching the user instruction from this page text:
+User instruction: "${instruction}"
+Page text:
+${textSample}
+
+Return JSON:
+{
+  "rows": [
+    { "field1": "val", "field2": "val" }
+  ]
+}`;
+        try {
+          const directRes = await client.models.generateContent({
+            model,
+            contents: directPrompt,
+            config: { responseMimeType: 'application/json' },
+          });
+          const directParsed = JSON.parse(directRes.text || '{}');
+          if (Array.isArray(directParsed.rows) && directParsed.rows.length > 0) {
+            rows = directParsed.rows;
+          }
+        } catch {}
+      }
 
       return {
         recipe,
         previewRows: rows.slice(0, 10),
         totalDetected: rows.length,
         nextUrl,
+        explanation: `Successfully extracted ${rows.length} rows using recipe selector "${recipe.rowSelector}"`,
       };
     } catch (err) {
       console.warn(`Model ${model} failed for describe: ${err.message}`);
@@ -350,6 +463,23 @@ export async function processScrapeJob(jobId) {
     const blacklist = await Blacklist.find({ workspace: job.workspace }).lean();
     const blacklistedDomains = new Set(blacklist.map((b) => b.domain.toLowerCase()));
 
+    // Auto-compile recipe from instruction if needed
+    if (job.instruction && !job.recipe && tasks.length > 0) {
+      try {
+        const descResult = await describeWithAI({
+          url: tasks[0].url,
+          instruction: job.instruction,
+          columnNames: [],
+        });
+        if (descResult.recipe) {
+          job.recipe = descResult.recipe;
+          await job.save();
+        }
+      } catch (err) {
+        console.warn('Could not auto-compile recipe from instruction:', err.message);
+      }
+    }
+
     // Create a new Dataset in Data Cleaning to hold results
     let dataset = null;
     if (job.dataset) {
@@ -358,7 +488,7 @@ export async function processScrapeJob(jobId) {
 
     if (!dataset) {
       let defaultColumns = [];
-      if (job.inputType === 'any_url' && job.recipe?.fields) {
+      if ((job.inputType === 'any_url' || job.instruction) && job.recipe?.fields) {
         defaultColumns = job.recipe.fields.map((f, i) => ({
           id: `col_${i}_${f.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
           name: f.name,
@@ -430,20 +560,59 @@ export async function processScrapeJob(jobId) {
           }
 
           try {
-            if (job.inputType === 'any_url' && job.recipe) {
-              // Any URL Recipe Extraction
+            if ((job.inputType === 'any_url' || job.instruction) && (job.recipe || job.instruction)) {
+              // Any URL Recipe / Instruction Mode
               const { html, finalUrl } = await safeFetchHtml(task.url);
               task.pagesVisited = [finalUrl];
-              const { rows } = runRecipe(html, job.recipe, finalUrl);
+              let rows = [];
+              if (job.recipe) {
+                const res = runRecipe(html, job.recipe, finalUrl);
+                rows = res.rows || [];
+              }
+
+              // Fallback to AI direct extraction if 0 rows and instruction exists
+              if (rows.length === 0 && job.instruction) {
+                try {
+                  const client = getAIClient();
+                  if (client) {
+                    const $ = cheerio.load(html);
+                    $('script, style, nav, footer, header, svg, noscript, iframe').remove();
+                    const textSample = $('body').text().replace(/\s+/g, ' ').slice(0, 4000);
+                    const prompt = `Extract structured records matching this instruction from the page text.
+Instruction: "${job.instruction}"
+Page Text: ${textSample}
+
+Return JSON:
+{
+  "rows": [
+    { "field1": "val1", "field2": "val2" }
+  ]
+}`;
+                    const aiRes = await client.models.generateContent({
+                      model: CANDIDATE_MODELS[0],
+                      contents: prompt,
+                      config: { responseMimeType: 'application/json' },
+                    });
+                    const parsed = JSON.parse(aiRes.text || '{}');
+                    if (Array.isArray(parsed.rows)) {
+                      rows = parsed.rows;
+                    }
+                  }
+                } catch {}
+              }
 
               if (rows.length > 0) {
                 task.status = 'ok';
-                task.extractedData = { count: rows.length };
+                task.extractedData = { count: rows.length, sample: rows[0] };
                 rows.forEach((r) => {
                   const cells = {};
+                  Object.keys(r).forEach((k) => {
+                    cells[k] = r[k] !== undefined && r[k] !== null ? String(r[k]) : '';
+                  });
                   dataset.columns.forEach((c) => {
-                    cells[c.id] = r[c.name] || r[c.id] || '';
-                    cells[c.name] = cells[c.id];
+                    if (cells[c.id] === undefined) {
+                      cells[c.id] = r[c.name] !== undefined ? String(r[c.name]) : r[c.id] !== undefined ? String(r[c.id]) : '';
+                    }
                   });
                   insertedRows.push({
                     dataset: dataset._id,

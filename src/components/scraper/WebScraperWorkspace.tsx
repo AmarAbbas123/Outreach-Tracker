@@ -137,7 +137,8 @@ export default function WebScraperWorkspace({
 
   // New Job Form State
   const [newJobName, setNewJobName] = useState('')
-  const [newJobMode, setNewJobMode] = useState<'prospect' | 'recipe'>('prospect')
+  const [newJobMode, setNewJobMode] = useState<'prospect' | 'instruction' | 'recipe'>('prospect')
+  const [newJobInstruction, setNewJobInstruction] = useState('')
   const [newJobUrls, setNewJobUrls] = useState('')
   const [newJobMaxPages, setNewJobMaxPages] = useState(3)
   const [newJobUseAI, setNewJobUseAI] = useState(true)
@@ -350,7 +351,7 @@ export default function WebScraperWorkspace({
     try {
       let payload: any = {
         name: newJobName.trim() || `Scrape Job (${new Date().toLocaleDateString()})`,
-        inputType: newJobMode === 'recipe' ? 'any_url' : 'urls',
+        inputType: newJobMode === 'prospect' ? 'urls' : 'any_url',
         inputs: urls,
         options: {
           maxPagesPerSite: newJobMaxPages,
@@ -358,7 +359,13 @@ export default function WebScraperWorkspace({
         },
       }
 
-      if (newJobMode === 'recipe') {
+      if (newJobMode === 'instruction') {
+        if (!newJobInstruction.trim()) {
+          alert('Please enter an extraction instruction.')
+          return
+        }
+        payload.instruction = newJobInstruction.trim()
+      } else if (newJobMode === 'recipe') {
         const recipeObj = recipes.find((r) => r._id === selectedRecipeId)?.recipe || describeResult?.recipe
         if (!recipeObj) {
           alert('Please select or specify a valid recipe.')
@@ -371,6 +378,7 @@ export default function WebScraperWorkspace({
       setShowNewJobModal(false)
       setNewJobUrls('')
       setNewJobName('')
+      setNewJobInstruction('')
       setActiveTab('jobs')
       refetchJobs()
     } catch (err: any) {
@@ -389,7 +397,17 @@ export default function WebScraperWorkspace({
     setTestingUrl(true)
     setTestResult(null)
     try {
-      if (newJobMode === 'recipe') {
+      if (newJobMode === 'instruction') {
+        if (!newJobInstruction.trim()) {
+          alert('Please enter an extraction instruction to test.')
+          return
+        }
+        const res = await api.post('/scrape/describe', {
+          url: firstUrl,
+          instruction: newJobInstruction.trim(),
+        })
+        setTestResult({ mode: 'instruction', data: res.data.data })
+      } else if (newJobMode === 'recipe') {
         const recipeObj = recipes.find((r) => r._id === selectedRecipeId)?.recipe || describeResult?.recipe
         if (!recipeObj) {
           alert('Please select a recipe first.')
@@ -1081,16 +1099,41 @@ export default function WebScraperWorkspace({
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                  Extraction Instruction (Plain Language)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-semibold text-gray-700">
+                    Extraction Instruction (Plain Language)
+                  </label>
+                  <span className="text-[10px] text-gray-400">Tell AI exactly what repeating elements to extract</span>
+                </div>
                 <textarea
                   rows={3}
-                  placeholder='e.g. "Extract the blog article title, author name, publication date, read time, and article URL"'
+                  placeholder='e.g. "Extract the blog article title, author name, publication date, and article URL"'
                   value={describeInstruction}
                   onChange={(e) => setDescribeInstruction(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white resize-none"
                 />
+                {/* Quick Example Chips */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-1.5">
+                  <span className="text-[10px] text-gray-400 font-medium">Quick examples:</span>
+                  {[
+                    { label: 'Articles & Blogs', text: 'Extract blog article title, author name, publication date, and article URL', cols: 'title, author, date, url' },
+                    { label: 'Product Catalog', text: 'Extract product title, price, in-stock availability, and product link', cols: 'title, price, stock, url' },
+                    { label: 'Company Directory', text: 'Extract company name, website link, phone, and address', cols: 'name, website, phone, address' },
+                    { label: 'Team Members', text: 'Extract person name, job title, and linkedin or email', cols: 'name, role, contact' },
+                  ].map((ex, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setDescribeInstruction(ex.text)
+                        setDescribeColumns(ex.cols)
+                      }}
+                      className="text-[10px] px-2 py-0.5 bg-gray-100 hover:bg-indigo-50 hover:text-indigo-700 text-gray-600 rounded border border-gray-200 transition-colors cursor-pointer"
+                    >
+                      + {ex.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -1509,42 +1552,97 @@ export default function WebScraperWorkspace({
 
               <div>
                 <label className="block font-semibold text-gray-700 mb-1">Scraping Mode</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setNewJobMode('prospect')}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                       newJobMode === 'prospect'
                         ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold'
                         : 'border-gray-200 hover:bg-gray-50 text-gray-600'
                     }`}
                   >
-                    <div className="font-bold">Prospect Deep Scan</div>
-                    <div className="text-[11px] text-gray-500 mt-0.5">
-                      Extracts verified emails, socials, and /write-for-us pages across subpages.
+                    <div className="font-bold flex items-center gap-1.5 text-xs">
+                      <Mail size={13} className="text-indigo-600" /> Prospect Scan
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      Emails, socials, and /write-for-us subpages.
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setNewJobMode('instruction')}
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                      newJobMode === 'instruction'
+                        ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold'
+                        : 'border-gray-200 hover:bg-gray-50 text-gray-600'
+                    }`}
+                  >
+                    <div className="font-bold flex items-center gap-1.5 text-xs">
+                      <Sparkles size={13} className="text-indigo-600" /> AI Instruction
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      Tell AI what to extract across target sites.
                     </div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setNewJobMode('recipe')}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                       newJobMode === 'recipe'
                         ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold'
                         : 'border-gray-200 hover:bg-gray-50 text-gray-600'
                     }`}
                   >
-                    <div className="font-bold">Cheerio Recipe / AI</div>
-                    <div className="text-[11px] text-gray-500 mt-0.5">
-                      Extracts specific items (catalog, blog posts, team) using custom CSS selectors.
+                    <div className="font-bold flex items-center gap-1.5 text-xs">
+                      <Code size={13} className="text-indigo-600" /> Saved Recipe
+                    </div>
+                    <div className="text-[10px] text-gray-500 mt-1">
+                      Run previously saved CSS selector schema.
                     </div>
                   </button>
                 </div>
               </div>
 
+              {newJobMode === 'instruction' && (
+                <div className="space-y-1.5 bg-indigo-50/30 border border-indigo-100 p-3 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <label className="block font-semibold text-gray-800 text-[11px]">
+                      Extraction Instruction (Plain Language)
+                    </label>
+                    <span className="text-[10px] text-indigo-600 font-medium">Applied to each target URL</span>
+                  </div>
+                  <textarea
+                    rows={2}
+                    placeholder='e.g. "Extract article title, author name, date, and article link"'
+                    value={newJobInstruction}
+                    onChange={(e) => setNewJobInstruction(e.target.value)}
+                    className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-xs resize-none"
+                  />
+                  <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                    {[
+                      'Articles (title, author, date, link)',
+                      'Catalog (product, price, stock, link)',
+                      'Directory (name, website, phone)',
+                    ].map((s, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setNewJobInstruction(`Extract ${s.toLowerCase()}`)}
+                        className="text-[10px] px-2 py-0.5 bg-white hover:bg-indigo-50 text-gray-600 rounded border border-gray-200 transition-colors cursor-pointer"
+                      >
+                        + {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {newJobMode === 'recipe' && (
                 <div>
-                  <label className="block font-semibold text-gray-700 mb-1">Select Recipe</label>
+                  <label className="block font-semibold text-gray-700 mb-1">Select Saved Recipe</label>
                   <select
                     value={selectedRecipeId}
                     onChange={(e) => setSelectedRecipeId(e.target.value)}
@@ -1771,3 +1869,4 @@ export default function WebScraperWorkspace({
     </div>
   )
 }
+

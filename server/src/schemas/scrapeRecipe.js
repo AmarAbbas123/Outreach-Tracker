@@ -5,14 +5,19 @@ export const recipeSchema = z.object({
   fields: z
     .array(
       z.object({
-        name: z.string().min(1).max(40),
+        name: z.string().min(1).max(60),
         selector: z.string().max(200).default(''), // relative to row; empty means row itself
-        attr: z.enum(['text', 'href', 'src', 'content']).default('text'),
+        attr: z.string().nullish().transform((val) => {
+          if (!val) return 'text';
+          const lower = String(val).toLowerCase().trim();
+          if (['href', 'src', 'content', 'title', 'alt'].includes(lower)) return lower;
+          return 'text';
+        }),
       })
     )
     .min(1)
-    .max(20),
-  nextPageSelector: z.string().max(200).optional(),
+    .max(30),
+  nextPageSelector: z.string().max(200).nullable().optional(),
 });
 
 // Fallback: rows read straight from page text by the AI
