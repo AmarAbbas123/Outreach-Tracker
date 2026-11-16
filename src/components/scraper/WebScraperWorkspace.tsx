@@ -18,6 +18,7 @@ import {
   List as ListIcon,
   Link2,
   Mail,
+  Phone,
   FileSpreadsheet,
   Bot,
   Check,
@@ -140,7 +141,7 @@ export default function WebScraperWorkspace({
   const [newJobMode, setNewJobMode] = useState<'prospect' | 'instruction' | 'recipe'>('prospect')
   const [newJobInstruction, setNewJobInstruction] = useState('')
   const [newJobUrls, setNewJobUrls] = useState('')
-  const [newJobMaxPages, setNewJobMaxPages] = useState(3)
+  const [newJobMaxPages, setNewJobMaxPages] = useState(10)
   const [newJobUseAI, setNewJobUseAI] = useState(true)
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>('')
   const [testResult, setTestResult] = useState<any>(null)
@@ -674,16 +675,24 @@ export default function WebScraperWorkspace({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
+                      const phone = analyzeResult.primaryPhone || (analyzeResult.phones && analyzeResult.phones[0]) || ''
                       if (analyzeResult.emails && analyzeResult.emails.length > 0) {
                         const rows = analyzeResult.emails.map((em: any) => ({
                           Domain: analyzeResult.domain,
                           Email: em.email,
+                          Phone: phone,
                           Type: em.isRole ? 'Role/Generic' : 'Personal',
                           SourceUrl: em.sourceUrl,
                           Title: analyzeResult.title || '',
                           ContactPage: analyzeResult.contactPageUrl || '',
                           GuestPostPage: analyzeResult.guestPostPageUrl || '',
                           LinkedIn: analyzeResult.linkedin || '',
+                          Twitter: analyzeResult.twitter || '',
+                          Facebook: analyzeResult.facebook || '',
+                          Instagram: analyzeResult.instagram || '',
+                          YouTube: analyzeResult.youtube || '',
+                          TikTok: analyzeResult.tiktok || '',
+                          GitHub: analyzeResult.github || '',
                         }))
                         handleSendToCleaning(`Contacts: ${analyzeResult.domain}`, rows)
                       } else {
@@ -691,10 +700,17 @@ export default function WebScraperWorkspace({
                           {
                             Domain: analyzeResult.domain || inputUrl,
                             Email: analyzeResult.primaryEmail || 'None found',
+                            Phone: phone,
                             Title: analyzeResult.title || '',
                             ContactPage: analyzeResult.contactPageUrl || '',
                             GuestPostPage: analyzeResult.guestPostPageUrl || '',
                             LinkedIn: analyzeResult.linkedin || '',
+                            Twitter: analyzeResult.twitter || '',
+                            Facebook: analyzeResult.facebook || '',
+                            Instagram: analyzeResult.instagram || '',
+                            YouTube: analyzeResult.youtube || '',
+                            TikTok: analyzeResult.tiktok || '',
+                            GitHub: analyzeResult.github || '',
                             Author: analyzeResult.author || '',
                           },
                         ]
@@ -830,32 +846,104 @@ export default function WebScraperWorkspace({
 
                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
                       <span className="font-bold text-gray-700 block">Verified Social Channels</span>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-gray-500">LinkedIn:</span>
-                        {analyzeResult.linkedin ? (
-                          <a href={analyzeResult.linkedin} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[200px]">
-                            {analyzeResult.linkedin} <ExternalLink size={10} />
-                          </a>
-                        ) : <span className="text-gray-400">—</span>}
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-gray-500">Twitter / X:</span>
-                        {analyzeResult.twitter ? (
-                          <a href={analyzeResult.twitter} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[200px]">
-                            {analyzeResult.twitter} <ExternalLink size={10} />
-                          </a>
-                        ) : <span className="text-gray-400">—</span>}
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-gray-500">Facebook:</span>
-                        {analyzeResult.facebook ? (
-                          <a href={analyzeResult.facebook} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[200px]">
-                            {analyzeResult.facebook} <ExternalLink size={10} />
-                          </a>
-                        ) : <span className="text-gray-400">—</span>}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">LinkedIn:</span>
+                          {analyzeResult.linkedin || analyzeResult.socials?.linkedin ? (
+                            <a href={analyzeResult.linkedin || analyzeResult.socials?.linkedin} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.linkedin || analyzeResult.socials?.linkedin} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">Twitter / X:</span>
+                          {analyzeResult.twitter || analyzeResult.socials?.twitter ? (
+                            <a href={analyzeResult.twitter || analyzeResult.socials?.twitter} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.twitter || analyzeResult.socials?.twitter} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">Facebook:</span>
+                          {analyzeResult.facebook || analyzeResult.socials?.facebook ? (
+                            <a href={analyzeResult.facebook || analyzeResult.socials?.facebook} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.facebook || analyzeResult.socials?.facebook} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">Instagram:</span>
+                          {analyzeResult.instagram || analyzeResult.socials?.instagram ? (
+                            <a href={analyzeResult.instagram || analyzeResult.socials?.instagram} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.instagram || analyzeResult.socials?.instagram} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">YouTube:</span>
+                          {analyzeResult.youtube || analyzeResult.socials?.youtube ? (
+                            <a href={analyzeResult.youtube || analyzeResult.socials?.youtube} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.youtube || analyzeResult.socials?.youtube} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">TikTok:</span>
+                          {analyzeResult.tiktok || analyzeResult.socials?.tiktok ? (
+                            <a href={analyzeResult.tiktok || analyzeResult.socials?.tiktok} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.tiktok || analyzeResult.socials?.tiktok} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">GitHub:</span>
+                          {analyzeResult.github || analyzeResult.socials?.github ? (
+                            <a href={analyzeResult.github || analyzeResult.socials?.github} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.github || analyzeResult.socials?.github} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">Pinterest:</span>
+                          {analyzeResult.pinterest || analyzeResult.socials?.pinterest ? (
+                            <a href={analyzeResult.pinterest || analyzeResult.socials?.pinterest} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.pinterest || analyzeResult.socials?.pinterest} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Phone Numbers Section */}
+                  {((analyzeResult.phones && analyzeResult.phones.length > 0) || analyzeResult.primaryPhone) && (
+                    <div className="border border-emerald-200 bg-emerald-50/30 rounded-xl overflow-hidden">
+                      <div className="bg-emerald-50 px-3 py-2 border-b border-emerald-200 flex items-center justify-between">
+                        <span className="font-bold text-emerald-950 text-xs flex items-center gap-1.5">
+                          <Phone size={13} className="text-emerald-600" /> Extracted Phone Numbers
+                        </span>
+                        <span className="text-[11px] text-emerald-700 font-medium">
+                          {(analyzeResult.phones?.length) || (analyzeResult.primaryPhone ? 1 : 0)} phone(s) found
+                        </span>
+                      </div>
+                      <div className="p-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {(analyzeResult.phones?.length ? analyzeResult.phones : [analyzeResult.primaryPhone]).map((ph: string, pIdx: number) => (
+                          <div key={pIdx} className="flex items-center justify-between px-3 py-2 bg-white border border-emerald-200/80 rounded-lg text-xs shadow-2xs">
+                            <a href={`tel:${ph}`} className="font-mono font-semibold text-gray-900 hover:text-emerald-700 flex items-center gap-1.5 truncate">
+                              <Phone size={11} className="text-emerald-500 shrink-0" /> {ph}
+                            </a>
+                            <button
+                              onClick={() => handleCopy(ph, `phone_${pIdx}`)}
+                              className="text-gray-400 hover:text-gray-700 cursor-pointer ml-2 p-1"
+                              title="Copy phone number"
+                            >
+                              {copiedKey === `phone_${pIdx}` ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Emails Table */}
                   <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -1679,10 +1767,13 @@ export default function WebScraperWorkspace({
                     onChange={(e) => setNewJobMaxPages(Number(e.target.value))}
                     className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg bg-white text-xs"
                   >
-                    <option value={1}>1 (Homepage only)</option>
-                    <option value={2}>2 pages</option>
-                    <option value={3}>3 pages (Recommended)</option>
-                    <option value={5}>5 pages (Deep)</option>
+                    <option value={1}>1 page (Homepage only)</option>
+                    <option value={3}>3 pages</option>
+                    <option value={5}>5 pages</option>
+                    <option value={10}>10 pages (Recommended)</option>
+                    <option value={15}>15 pages</option>
+                    <option value={25}>25 pages</option>
+                    <option value={50}>50 pages (Deep Crawl)</option>
                   </select>
                 </div>
 

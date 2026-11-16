@@ -40,8 +40,40 @@ export function extractPageData(html, pageUrl) {
   else if (htmlLower.includes('hubspot')) cms = 'HubSpot';
   else if (htmlLower.includes('webflow')) cms = 'Webflow';
 
-  // 3. Contact Emails
+  // 3. Contact Emails & Phones
   const emails = extractEmails($, pageUrl);
+
+  const phones = new Set();
+  // tel: links
+  $('a[href^="tel:"]').each((_, el) => {
+    let p = ($(el).attr('href') || '').slice(4).trim();
+    p = p.replace(/[^\d+().\-\s]/g, '').trim();
+    const digits = p.replace(/\D/g, '');
+    if (digits.length >= 7 && digits.length <= 16) {
+      phones.add(p);
+    }
+  });
+
+  // Regex phone scan across text and common contact containers
+  const phoneRegex = /(?:(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}|\b\+?[1-9]\d{1,14}\b)/g;
+  const candidateText = $('footer, header, [class*="contact"], [id*="contact"], [class*="about"], [id*="about"], body').text().replace(/\s+/g, ' ');
+  const rawMatches = candidateText.match(phoneRegex) || [];
+  for (const raw of rawMatches) {
+    const cleaned = raw.trim();
+    const digitsOnly = cleaned.replace(/\D/g, '');
+    // Avoid false positives: years, zip codes, random short numbers
+    if (
+      digitsOnly.length >= 7 &&
+      digitsOnly.length <= 15 &&
+      !/^(19|20)\d{2}$/.test(cleaned) &&
+      !/^\d{5}$/.test(cleaned)
+    ) {
+      if (cleaned.includes('-') || cleaned.includes('(') || cleaned.includes('.') || cleaned.startsWith('+') || digitsOnly.length >= 10) {
+        phones.add(cleaned);
+        if (phones.size >= 10) break;
+      }
+    }
+  }
 
   // 4. Social Links
   const socials = {
@@ -50,6 +82,9 @@ export function extractPageData(html, pageUrl) {
     facebook: '',
     instagram: '',
     youtube: '',
+    tiktok: '',
+    github: '',
+    pinterest: '',
   };
 
   $('a[href]').each((_, el) => {
@@ -57,27 +92,44 @@ export function extractPageData(html, pageUrl) {
     if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
     const lower = href.toLowerCase();
 
-    if (!socials.linkedin && (lower.includes('linkedin.com/company/') || lower.includes('linkedin.com/in/'))) {
+    if (!socials.linkedin && (lower.includes('linkedin.com/company/') || lower.includes('linkedin.com/in/') || lower.includes('linkedin.com/pub/'))) {
       socials.linkedin = href;
     } else if (!socials.twitter && (lower.includes('twitter.com/') || lower.includes('x.com/'))) {
-      if (!lower.includes('/status/') && !lower.includes('/intent/')) socials.twitter = href;
-    } else if (!socials.facebook && lower.includes('facebook.com/')) {
-      if (!lower.includes('sharer') && !lower.includes('plugins')) socials.facebook = href;
+      if (!lower.includes('/status/') && !lower.includes('/intent/') && !lower.includes('sharer') && !lower.includes('/share')) {
+        socials.twitter = href;
+      }
+    } else if (!socials.facebook && (lower.includes('facebook.com/') || lower.includes('fb.com/'))) {
+      if (!lower.includes('sharer') && !lower.includes('plugins') && !lower.includes('/share')) {
+        socials.facebook = href;
+      }
     } else if (!socials.instagram && lower.includes('instagram.com/')) {
-      socials.instagram = href;
-    } else if (!socials.youtube && (lower.includes('youtube.com/channel/') || lower.includes('youtube.com/@') || lower.includes('youtube.com/user/'))) {
+      if (!lower.includes('/explore/') && !lower.includes('/accounts/')) {
+        socials.instagram = href;
+      }
+    } else if (!socials.youtube && (lower.includes('youtube.com/channel/') || lower.includes('youtube.com/@') || lower.includes('youtube.com/user/') || lower.includes('youtube.com/c/'))) {
       socials.youtube = href;
+    } else if (!socials.tiktok && lower.includes('tiktok.com/@')) {
+      socials.tiktok = href;
+    } else if (!socials.github && lower.includes('github.com/')) {
+      if (!lower.includes('github.com/pricing') && !lower.includes('github.com/features')) {
+        socials.github = href;
+      }
+    } else if (!socials.pinterest && lower.includes('pinterest.com/')) {
+      if (!lower.includes('pin/create') && !lower.includes('pin.it')) {
+        socials.pinterest = href;
+      }
     }
   });
 
-  // 5. Contact & Guest Post Pages
+  // 5. Contact, Team & Guest Post Subpages
   let contactPageUrl = '';
   let guestPostPageUrl = '';
+  const discoveredSubpages = new Set();
 
   $('a[href]').each((_, el) => {
     const href = ($(el).attr('href') || '').trim();
     const text = $(el).text().toLowerCase().trim();
-    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('javascript:')) return;
+    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) return;
 
     let fullUrl = '';
     try {
@@ -86,38 +138,50 @@ export function extractPageData(html, pageUrl) {
       return;
     }
 
+    if (!fullUrl.startsWith(origin)) return; // Internal links only
     const lower = fullUrl.toLowerCase();
 
     // Contact page check
-    if (!contactPageUrl) {
-      if (
-        text === 'contact' ||
-        text === 'contact us' ||
-        text === 'about us' ||
-        lower.includes('/contact') ||
-        lower.includes('/contact-us') ||
-        lower.includes('/about-us') ||
-        lower.includes('/get-in-touch')
-      ) {
+    if (
+      text === 'contact' ||
+      text === 'contact us' ||
+      text === 'about us' ||
+      text === 'team' ||
+      lower.includes('/contact') ||
+      lower.includes('/contact-us') ||
+      lower.includes('/contactus') ||
+      lower.includes('/about') ||
+      lower.includes('/about-us') ||
+      lower.includes('/aboutus') ||
+      lower.includes('/get-in-touch') ||
+      lower.includes('/team') ||
+      lower.includes('/our-team') ||
+      lower.includes('/people') ||
+      lower.includes('/leadership') ||
+      lower.includes('/impressum') ||
+      lower.includes('/privacy') ||
+      lower.includes('/terms')
+    ) {
+      if (!contactPageUrl && (lower.includes('/contact') || text.includes('contact'))) {
         contactPageUrl = fullUrl;
       }
+      discoveredSubpages.add(fullUrl);
     }
 
     // Guest post page check
-    if (!guestPostPageUrl) {
-      if (
-        text.includes('write for us') ||
-        text.includes('contribute') ||
-        text.includes('guest post') ||
-        text.includes('submit article') ||
-        lower.includes('/write-for-us') ||
-        lower.includes('/contribute') ||
-        lower.includes('/guest-post') ||
-        lower.includes('/submit-guest-post') ||
-        lower.includes('/submissions')
-      ) {
-        guestPostPageUrl = fullUrl;
-      }
+    if (
+      text.includes('write for us') ||
+      text.includes('contribute') ||
+      text.includes('guest post') ||
+      text.includes('submit article') ||
+      lower.includes('/write-for-us') ||
+      lower.includes('/contribute') ||
+      lower.includes('/guest-post') ||
+      lower.includes('/submit-guest-post') ||
+      lower.includes('/submissions')
+    ) {
+      if (!guestPostPageUrl) guestPostPageUrl = fullUrl;
+      discoveredSubpages.add(fullUrl);
     }
   });
 
@@ -286,10 +350,13 @@ export function extractPageData(html, pageUrl) {
     cms,
     emails,
     primaryEmail: emails[0]?.email || '',
+    phones: Array.from(phones),
+    primaryPhone: Array.from(phones)[0] || '',
     socials,
     contactPageUrl,
     guestPostPageUrl,
     hasGuestPostPage: Boolean(guestPostPageUrl),
+    candidateSubpages: Array.from(discoveredSubpages),
     authors: Array.from(authors),
     latestDate,
     tables,

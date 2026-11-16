@@ -144,24 +144,48 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     }
   }
 
-  const maxPages = Math.min(options.maxPagesPerSite || 5, 5);
+  // Increase max pages per site up to 50
+  const maxPages = Math.max(1, Math.min(Number(options.maxPagesPerSite) || 10, 50));
   const allEmails = [...homeResult.emails];
+  const allPhones = [...(homeResult.phones || [])];
+  const allSocials = { ...homeResult.socials };
 
-  // Extra subpages to check
+  // Subpages to visit: prioritize discovered candidate links, then fallbacks
   const subpagesToVisit = [];
   const origin = new URL(homeResult.url).origin;
 
-  if (homeResult.contactPageUrl && homeResult.contactPageUrl !== homeResult.url) {
-    subpagesToVisit.push(homeResult.contactPageUrl);
-  } else {
-    subpagesToVisit.push(`${origin}/contact`);
-    subpagesToVisit.push(`${origin}/about`);
+  // Add discovered subpages from page links
+  if (Array.isArray(homeResult.candidateSubpages)) {
+    for (const sub of homeResult.candidateSubpages) {
+      if (sub && !subpagesToVisit.includes(sub) && sub !== homeResult.url) {
+        subpagesToVisit.push(sub);
+      }
+    }
   }
 
-  if (homeResult.guestPostPageUrl && homeResult.guestPostPageUrl !== homeResult.url) {
-    subpagesToVisit.push(homeResult.guestPostPageUrl);
-  } else {
-    subpagesToVisit.push(`${origin}/write-for-us`);
+  // Common fallbacks if candidate subpages are few
+  const standardPaths = [
+    '/contact',
+    '/contact-us',
+    '/about',
+    '/about-us',
+    '/team',
+    '/our-team',
+    '/people',
+    '/leadership',
+    '/write-for-us',
+    '/guest-post',
+    '/contribute',
+    '/impressum',
+    '/terms',
+    '/privacy-policy',
+  ];
+
+  for (const path of standardPaths) {
+    const full = `${origin}${path}`;
+    if (!subpagesToVisit.includes(full) && full !== homeResult.url) {
+      subpagesToVisit.push(full);
+    }
   }
 
   // Visit extra pages up to maxPages limit
@@ -170,17 +194,35 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     if (pagesVisited.includes(pageUrl)) continue;
 
     try {
-      // 1 sec polite delay between subpages on same origin
-      await new Promise((r) => setTimeout(r, 1000));
+      // 500ms polite delay between subpages on same origin
+      await new Promise((r) => setTimeout(r, 500));
       const { html, finalUrl } = await safeFetchHtml(pageUrl);
       pagesVisited.push(finalUrl);
 
       const subData = extractPageData(html, finalUrl);
+
+      // Merge discovered emails
       subData.emails.forEach((e) => {
         if (!allEmails.some((existing) => existing.email === e.email)) {
           allEmails.push(e);
         }
       });
+
+      // Merge discovered phone numbers
+      (subData.phones || []).forEach((p) => {
+        if (!allPhones.includes(p)) {
+          allPhones.push(p);
+        }
+      });
+
+      // Merge discovered social channels
+      if (subData.socials) {
+        Object.keys(subData.socials).forEach((key) => {
+          if (!allSocials[key] && subData.socials[key]) {
+            allSocials[key] = subData.socials[key];
+          }
+        });
+      }
 
       // Update contact or guest post page if discovered
       if (!homeResult.contactPageUrl && subData.contactPageUrl) {
@@ -217,13 +259,20 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     emails: allEmails,
     isRoleEmail: allEmails[0]?.isRole || false,
     emailSourceUrl: allEmails[0]?.sourceUrl || homeResult.url,
+    primaryPhone: allPhones[0] || '',
+    phones: allPhones,
     contactPageUrl: homeResult.contactPageUrl,
     guestPostPageUrl: homeResult.guestPostPageUrl,
     hasGuestPost: homeResult.hasGuestPostPage,
-    linkedin: homeResult.socials.linkedin,
-    twitter: homeResult.socials.twitter,
-    facebook: homeResult.socials.facebook,
-    instagram: homeResult.socials.instagram,
+    socials: allSocials,
+    linkedin: allSocials.linkedin || '',
+    twitter: allSocials.twitter || '',
+    facebook: allSocials.facebook || '',
+    instagram: allSocials.instagram || '',
+    youtube: allSocials.youtube || '',
+    tiktok: allSocials.tiktok || '',
+    github: allSocials.github || '',
+    pinterest: allSocials.pinterest || '',
     author: homeResult.authors[0] || '',
     latestDate: homeResult.latestDate,
     pagesVisited,
@@ -279,12 +328,31 @@ export async function analyzeAnyUrl(url) {
     url: finalUrl,
     domain: data.domain,
     title: data.title,
+    emails: data.emails,
+    primaryEmail: data.emails[0]?.email || '',
+    phones: data.phones || [],
+    primaryPhone: data.primaryPhone || '',
+    socials: data.socials || {},
+    linkedin: data.socials?.linkedin || '',
+    twitter: data.socials?.twitter || '',
+    facebook: data.socials?.facebook || '',
+    instagram: data.socials?.instagram || '',
+    youtube: data.socials?.youtube || '',
+    tiktok: data.socials?.tiktok || '',
+    github: data.socials?.github || '',
+    pinterest: data.socials?.pinterest || '',
+    author: data.authors?.[0] || '',
+    authors: data.authors || [],
+    contactPageUrl: data.contactPageUrl,
+    guestPostPageUrl: data.guestPostPageUrl,
     tables: data.tables,
     lists: data.lists,
     links: data.links,
     contacts: {
       emails: data.emails,
-      socials: data.socials,
+      phones: data.phones || [],
+      primaryPhone: data.primaryPhone || '',
+      socials: data.socials || {},
       contactPageUrl: data.contactPageUrl,
       guestPostPageUrl: data.guestPostPageUrl,
     },
@@ -512,13 +580,20 @@ export async function processScrapeJob(jobId) {
         defaultColumns = [
           { id: 'col_0_domain', name: 'Domain', type: 'text', order: 0, hidden: false },
           { id: 'col_1_email', name: 'Contact Email', type: 'text', order: 1, hidden: false },
-          { id: 'col_2_title', name: 'Page Title', type: 'text', order: 2, hidden: false },
-          { id: 'col_3_contact_url', name: 'Contact Page', type: 'text', order: 3, hidden: false },
-          { id: 'col_4_guest_post', name: 'Write For Us Page', type: 'text', order: 4, hidden: false },
-          { id: 'col_5_social_linkedin', name: 'LinkedIn', type: 'text', order: 5, hidden: false },
-          { id: 'col_6_author', name: 'Author', type: 'text', order: 6, hidden: false },
-          { id: 'col_7_cms', name: 'CMS', type: 'text', order: 7, hidden: false },
-          { id: 'col_8_status', name: 'Scrape Status', type: 'text', order: 8, hidden: false },
+          { id: 'col_2_phone', name: 'Phone Number', type: 'text', order: 2, hidden: false },
+          { id: 'col_3_title', name: 'Page Title', type: 'text', order: 3, hidden: false },
+          { id: 'col_4_contact_url', name: 'Contact Page', type: 'text', order: 4, hidden: false },
+          { id: 'col_5_guest_post', name: 'Write For Us Page', type: 'text', order: 5, hidden: false },
+          { id: 'col_6_social_linkedin', name: 'LinkedIn', type: 'text', order: 6, hidden: false },
+          { id: 'col_7_social_twitter', name: 'Twitter / X', type: 'text', order: 7, hidden: false },
+          { id: 'col_8_social_facebook', name: 'Facebook', type: 'text', order: 8, hidden: false },
+          { id: 'col_9_social_instagram', name: 'Instagram', type: 'text', order: 9, hidden: false },
+          { id: 'col_10_social_youtube', name: 'YouTube', type: 'text', order: 10, hidden: false },
+          { id: 'col_11_social_tiktok', name: 'TikTok', type: 'text', order: 11, hidden: false },
+          { id: 'col_12_social_github', name: 'GitHub', type: 'text', order: 12, hidden: false },
+          { id: 'col_13_author', name: 'Author', type: 'text', order: 13, hidden: false },
+          { id: 'col_14_cms', name: 'CMS', type: 'text', order: 14, hidden: false },
+          { id: 'col_15_status', name: 'Scrape Status', type: 'text', order: 15, hidden: false },
         ];
       }
 
@@ -659,19 +734,33 @@ Return JSON:
                 Domain: result.domain,
                 col_1_email: result.primaryEmail,
                 'Contact Email': result.primaryEmail,
-                col_2_title: result.title,
+                col_2_phone: result.primaryPhone,
+                'Phone Number': result.primaryPhone,
+                col_3_title: result.title,
                 'Page Title': result.title,
-                col_3_contact_url: result.contactPageUrl,
+                col_4_contact_url: result.contactPageUrl,
                 'Contact Page': result.contactPageUrl,
-                col_4_guest_post: result.guestPostPageUrl,
+                col_5_guest_post: result.guestPostPageUrl,
                 'Write For Us Page': result.guestPostPageUrl,
-                col_5_social_linkedin: result.linkedin,
+                col_6_social_linkedin: result.linkedin,
                 LinkedIn: result.linkedin,
-                col_6_author: result.author,
+                col_7_social_twitter: result.twitter,
+                'Twitter / X': result.twitter,
+                col_8_social_facebook: result.facebook,
+                Facebook: result.facebook,
+                col_9_social_instagram: result.instagram,
+                Instagram: result.instagram,
+                col_10_social_youtube: result.youtube,
+                YouTube: result.youtube,
+                col_11_social_tiktok: result.tiktok,
+                TikTok: result.tiktok,
+                col_12_social_github: result.github,
+                GitHub: result.github,
+                col_13_author: result.author,
                 Author: result.author,
-                col_7_cms: result.cms,
+                col_14_cms: result.cms,
                 CMS: result.cms,
-                col_8_status: task.status,
+                col_15_status: task.status,
                 'Scrape Status': task.status,
               };
 
@@ -684,18 +773,29 @@ Return JSON:
               });
 
               // If enriching existing prospects, update prospect directly
-              if (job.inputType === 'prospects' && result.primaryEmail) {
-                await Prospect.updateMany(
-                  { workspace: job.workspace, domain: result.domain, contactEmail: { $in: ['', null] } },
-                  {
-                    $set: {
-                      contactEmail: result.primaryEmail,
-                      emailSourceUrl: result.emailSourceUrl,
-                      emailFoundAt: new Date(),
-                      status: 'contact_found',
-                    },
-                  }
-                );
+              if (job.inputType === 'prospects') {
+                const updateFields = {};
+                if (result.primaryEmail) {
+                  updateFields.contactEmail = result.primaryEmail;
+                  updateFields.emailSourceUrl = result.emailSourceUrl;
+                  updateFields.emailFoundAt = new Date();
+                  updateFields.status = 'contact_found';
+                }
+                if (result.primaryPhone) {
+                  updateFields.contactPhone = result.primaryPhone;
+                }
+                if (result.linkedin) {
+                  updateFields.socialLinkedin = result.linkedin;
+                }
+                if (result.twitter) {
+                  updateFields.socialTwitter = result.twitter;
+                }
+                if (Object.keys(updateFields).length > 0) {
+                  await Prospect.updateMany(
+                    { workspace: job.workspace, domain: result.domain },
+                    { $set: updateFields }
+                  );
+                }
               }
             }
           } catch (taskErr) {
