@@ -103,13 +103,12 @@ export async function safeFetchHtml(inputUrl, { ignoreRobots = false } = {}) {
   // Final destination check on redirects
   await assertSafeUrl(res.url);
 
-  // Buffer up to 2MB limit
+  // Buffer page: allow modern heavy pages up to 15MB, gracefully slice without crashing if larger
   const buffer = await res.arrayBuffer();
-  if (buffer.byteLength > 2 * 1024 * 1024) {
-    throw new Error('Page size exceeded 2MB limit');
-  }
+  const maxBytes = 15 * 1024 * 1024; // 15MB limit
+  const activeBuffer = buffer.byteLength > maxBytes ? buffer.slice(0, maxBytes) : buffer;
 
-  const html = new TextDecoder().decode(buffer);
+  const html = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true }).decode(activeBuffer);
   return { html, finalUrl: res.url };
 }
 
@@ -303,6 +302,19 @@ export async function analyzeAnyUrl(url) {
 export async function describeWithAI({ url, instruction, columnNames = [] }) {
   const { html, finalUrl } = await safeFetchHtml(url, { ignoreRobots: true });
   const $ = cheerio.load(html);
+
+  // Check for server-side fatal crash / broken stack traces
+  const rawText = $('body').text().trim();
+  if (
+    rawText.includes('Fatal error:') ||
+    rawText.includes('Maximum call stack size') ||
+    rawText.includes('Parse error: syntax error')
+  ) {
+    const errorSnippet = rawText.slice(0, 180).replace(/\s+/g, ' ');
+    throw new Error(
+      `Target site returned a server-side fatal crash: "${errorSnippet}". The target website is currently down or misconfigured.`
+    );
+  }
 
   // Clean HTML to save tokens and avoid prompt injections
   $('script, style, nav, footer, header, svg, noscript, iframe, link, meta').remove();
