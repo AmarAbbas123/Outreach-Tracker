@@ -334,7 +334,10 @@ export function extractPageData(html, pageUrl) {
     } catch {}
   });
 
-  // 11. Main Text & Headings
+  // 11. Company Address Extraction (JSON-LD, <address>, Microdata, and Contact Classes)
+  const companyAddress = extractCompanyAddress($, structuredData);
+
+  // 12. Main Text & Headings
   const headings = [];
   $('h1, h2, h3').each((_, el) => {
     const text = $(el).text().replace(/\s+/g, ' ').trim();
@@ -353,6 +356,8 @@ export function extractPageData(html, pageUrl) {
     primaryEmail: emails[0]?.email || '',
     phones: Array.from(phones),
     primaryPhone: Array.from(phones)[0] || '',
+    address: companyAddress.primaryAddress,
+    addresses: companyAddress.addresses,
     socials,
     contactPageUrl,
     guestPostPageUrl,
@@ -365,5 +370,143 @@ export function extractPageData(html, pageUrl) {
     links: links.slice(0, 500),
     structuredData,
     headings: headings.slice(0, 50),
+  };
+}
+
+/**
+ * Extract physical company/office address using Schema, <address> tags, and contact classes
+ */
+export function extractCompanyAddress($, structuredData = []) {
+  const candidates = [];
+
+  const addAddress = (raw) => {
+    if (!raw || typeof raw !== 'string') return;
+    let cleaned = raw
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
+    cleaned = cleaned.replace(/^(office\s+)?address\s*[:\-–—]\s*/i, '');
+    cleaned = cleaned.replace(/^(our\s+)?location\s*[:\-–—]\s*/i, '');
+    cleaned = cleaned.replace(/^(head\s+office|registered\s+office|hq)\s*[:\-–—]\s*/i, '');
+    cleaned = cleaned.replace(/^(visit\s+us\s+at|find\s+us\s+at)\s*[:\-–—]\s*/i, '');
+    cleaned = cleaned.trim();
+
+    if (cleaned.length < 10 || cleaned.length > 250) return;
+    if (!/[a-zA-Z]{3,}/.test(cleaned)) return; // Must contain words
+    const lower = cleaned.toLowerCase();
+    if (lower.startsWith('email') || lower.startsWith('phone') || lower.startsWith('http') || lower.includes('@')) return;
+    if (lower.includes('all rights reserved') || lower.includes('copyright') || lower.includes('privacy policy')) return;
+
+    if (!candidates.includes(cleaned)) {
+      candidates.push(cleaned);
+    }
+  };
+
+  // 1. JSON-LD structured data (highest precision)
+  function inspectLdObj(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    if (Array.isArray(obj)) {
+      obj.forEach(inspectLdObj);
+      return;
+    }
+    if (obj['@graph'] && Array.isArray(obj['@graph'])) {
+      obj['@graph'].forEach(inspectLdObj);
+      return;
+    }
+
+    if (obj.address) {
+      if (typeof obj.address === 'string') {
+        addAddress(obj.address);
+      } else if (typeof obj.address === 'object') {
+        const a = obj.address;
+        const street = a.streetAddress || '';
+        const locality = a.addressLocality || '';
+        const region = a.addressRegion || '';
+        const postal = a.postalCode || '';
+        const country = typeof a.addressCountry === 'string' ? a.addressCountry : a.addressCountry?.name || '';
+        const parts = [street, locality, region, postal, country].filter(Boolean);
+        if (parts.length > 0) {
+          addAddress(parts.join(', '));
+        }
+      }
+    }
+
+    if (obj['@type'] === 'PostalAddress') {
+      const street = obj.streetAddress || '';
+      const locality = obj.addressLocality || '';
+      const region = obj.addressRegion || '';
+      const postal = obj.postalCode || '';
+      const country = typeof obj.addressCountry === 'string' ? obj.addressCountry : obj.addressCountry?.name || '';
+      const parts = [street, locality, region, postal, country].filter(Boolean);
+      if (parts.length > 0) {
+        addAddress(parts.join(', '));
+      }
+    }
+  }
+
+  if (Array.isArray(structuredData)) {
+    structuredData.forEach(inspectLdObj);
+  }
+
+  // 2. Microdata
+  $('[itemprop="address"], [itemtype*="PostalAddress"]').each((_, el) => {
+    addAddress($(el).text());
+  });
+
+  // 3. HTML5 <address> tag
+  $('address').each((_, el) => {
+    const clone = $(el).clone();
+    clone.find('a[href^="tel:"], a[href^="mailto:"]').remove();
+    addAddress(clone.text());
+  });
+
+  // 4. Targeted CSS selectors
+  const addressSelectors = [
+    '[class*="contact-info_text"]',
+    '[class*="office-address"]',
+    '[class*="company-address"]',
+    '[class*="footer-address"]',
+    '[class*="contact-address"]',
+    '[class*="location-text"]',
+    '[class*="address-info"]',
+    '[class*="address-text"]',
+    '.office-location',
+    '.contact-address',
+  ];
+
+  addressSelectors.forEach((sel) => {
+    $(sel).each((_, el) => {
+      addAddress($(el).text());
+    });
+  });
+
+  // 5. Contact / Footer contextual lines
+  $('footer, [class*="contact"], [id*="contact"], [class*="footer"]').each((_, container) => {
+    const text = $(container).text();
+    const lines = text.split(/[\r\n]+/);
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (/^(office\s+)?address\s*[:\-–—]/i.test(line) || /^(head\s+office|location)\s*[:\-–—]/i.test(line)) {
+        addAddress(line);
+      }
+    }
+  });
+
+  let primaryAddress = candidates[0] || '';
+  for (const c of candidates) {
+    if (
+      /(street|st\.|road|rd\.|avenue|ave\.|lane|plaza|building|floor|suite|ste\.|block|drive|dr\.|p\.?o\.?\s*box|\d{5})/i.test(
+        c
+      )
+    ) {
+      primaryAddress = c;
+      break;
+    }
+  }
+
+  return {
+    addresses: candidates.slice(0, 5),
+    primaryAddress,
   };
 }

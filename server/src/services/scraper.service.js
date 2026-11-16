@@ -203,6 +203,10 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
   const maxPages = Math.max(1, Math.min(Number(options.maxPagesPerSite) || 10, 50));
   const allEmails = [...homeResult.emails];
   const allPhones = [...(homeResult.phones || [])];
+  const allAddresses = [...(homeResult.addresses || [])];
+  if (homeResult.address && !allAddresses.includes(homeResult.address)) {
+    allAddresses.unshift(homeResult.address);
+  }
   const allSocials = { ...homeResult.socials };
 
   // Subpages to visit: prioritize discovered candidate links, then fallbacks
@@ -270,6 +274,16 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
         }
       });
 
+      // Merge discovered addresses
+      (subData.addresses || []).forEach((a) => {
+        if (!allAddresses.includes(a)) {
+          allAddresses.push(a);
+        }
+      });
+      if (subData.address && !allAddresses.includes(subData.address)) {
+        allAddresses.push(subData.address);
+      }
+
       // Merge discovered social channels
       if (subData.socials) {
         Object.keys(subData.socials).forEach((key) => {
@@ -316,6 +330,8 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     emailSourceUrl: allEmails[0]?.sourceUrl || homeResult.url,
     primaryPhone: allPhones[0] || '',
     phones: allPhones,
+    address: allAddresses[0] || homeResult.address || '',
+    addresses: allAddresses,
     contactPageUrl: homeResult.contactPageUrl,
     guestPostPageUrl: homeResult.guestPostPageUrl,
     hasGuestPost: homeResult.hasGuestPostPage,
@@ -387,6 +403,8 @@ export async function analyzeAnyUrl(url) {
     primaryEmail: data.emails[0]?.email || '',
     phones: data.phones || [],
     primaryPhone: data.primaryPhone || '',
+    address: data.address || '',
+    addresses: data.addresses || [],
     socials: data.socials || {},
     linkedin: data.socials?.linkedin || '',
     twitter: data.socials?.twitter || '',
@@ -407,6 +425,8 @@ export async function analyzeAnyUrl(url) {
       emails: data.emails,
       phones: data.phones || [],
       primaryPhone: data.primaryPhone || '',
+      address: data.address || '',
+      addresses: data.addresses || [],
       socials: data.socials || {},
       contactPageUrl: data.contactPageUrl,
       guestPostPageUrl: data.guestPostPageUrl,
@@ -636,19 +656,20 @@ export async function processScrapeJob(jobId) {
           { id: 'col_0_domain', name: 'Domain', type: 'text', order: 0, hidden: false },
           { id: 'col_1_email', name: 'Contact Email', type: 'text', order: 1, hidden: false },
           { id: 'col_2_phone', name: 'Phone Number', type: 'text', order: 2, hidden: false },
-          { id: 'col_3_title', name: 'Page Title', type: 'text', order: 3, hidden: false },
-          { id: 'col_4_contact_url', name: 'Contact Page', type: 'text', order: 4, hidden: false },
-          { id: 'col_5_guest_post', name: 'Write For Us Page', type: 'text', order: 5, hidden: false },
-          { id: 'col_6_social_linkedin', name: 'LinkedIn', type: 'text', order: 6, hidden: false },
-          { id: 'col_7_social_twitter', name: 'Twitter / X', type: 'text', order: 7, hidden: false },
-          { id: 'col_8_social_facebook', name: 'Facebook', type: 'text', order: 8, hidden: false },
-          { id: 'col_9_social_instagram', name: 'Instagram', type: 'text', order: 9, hidden: false },
-          { id: 'col_10_social_youtube', name: 'YouTube', type: 'text', order: 10, hidden: false },
-          { id: 'col_11_social_tiktok', name: 'TikTok', type: 'text', order: 11, hidden: false },
-          { id: 'col_12_social_github', name: 'GitHub', type: 'text', order: 12, hidden: false },
-          { id: 'col_13_author', name: 'Author', type: 'text', order: 13, hidden: false },
-          { id: 'col_14_cms', name: 'CMS', type: 'text', order: 14, hidden: false },
-          { id: 'col_15_status', name: 'Scrape Status', type: 'text', order: 15, hidden: false },
+          { id: 'col_3_address', name: 'Company Address', type: 'text', order: 3, hidden: false },
+          { id: 'col_4_title', name: 'Page Title', type: 'text', order: 4, hidden: false },
+          { id: 'col_5_contact_url', name: 'Contact Page', type: 'text', order: 5, hidden: false },
+          { id: 'col_6_guest_post', name: 'Write For Us Page', type: 'text', order: 6, hidden: false },
+          { id: 'col_7_social_linkedin', name: 'LinkedIn', type: 'text', order: 7, hidden: false },
+          { id: 'col_8_social_twitter', name: 'Twitter / X', type: 'text', order: 8, hidden: false },
+          { id: 'col_9_social_facebook', name: 'Facebook', type: 'text', order: 9, hidden: false },
+          { id: 'col_10_social_instagram', name: 'Instagram', type: 'text', order: 10, hidden: false },
+          { id: 'col_11_social_youtube', name: 'YouTube', type: 'text', order: 11, hidden: false },
+          { id: 'col_12_social_tiktok', name: 'TikTok', type: 'text', order: 12, hidden: false },
+          { id: 'col_13_social_github', name: 'GitHub', type: 'text', order: 13, hidden: false },
+          { id: 'col_14_author', name: 'Author', type: 'text', order: 14, hidden: false },
+          { id: 'col_15_cms', name: 'CMS', type: 'text', order: 15, hidden: false },
+          { id: 'col_16_status', name: 'Scrape Status', type: 'text', order: 16, hidden: false },
         ];
       }
 
@@ -791,31 +812,33 @@ Return JSON:
                 'Contact Email': result.primaryEmail,
                 col_2_phone: result.primaryPhone,
                 'Phone Number': result.primaryPhone,
-                col_3_title: result.title,
+                col_3_address: result.address,
+                'Company Address': result.address,
+                col_4_title: result.title,
                 'Page Title': result.title,
-                col_4_contact_url: result.contactPageUrl,
+                col_5_contact_url: result.contactPageUrl,
                 'Contact Page': result.contactPageUrl,
-                col_5_guest_post: result.guestPostPageUrl,
+                col_6_guest_post: result.guestPostPageUrl,
                 'Write For Us Page': result.guestPostPageUrl,
-                col_6_social_linkedin: result.linkedin,
+                col_7_social_linkedin: result.linkedin,
                 LinkedIn: result.linkedin,
-                col_7_social_twitter: result.twitter,
+                col_8_social_twitter: result.twitter,
                 'Twitter / X': result.twitter,
-                col_8_social_facebook: result.facebook,
+                col_9_social_facebook: result.facebook,
                 Facebook: result.facebook,
-                col_9_social_instagram: result.instagram,
+                col_10_social_instagram: result.instagram,
                 Instagram: result.instagram,
-                col_10_social_youtube: result.youtube,
+                col_11_social_youtube: result.youtube,
                 YouTube: result.youtube,
-                col_11_social_tiktok: result.tiktok,
+                col_12_social_tiktok: result.tiktok,
                 TikTok: result.tiktok,
-                col_12_social_github: result.github,
+                col_13_social_github: result.github,
                 GitHub: result.github,
-                col_13_author: result.author,
+                col_14_author: result.author,
                 Author: result.author,
-                col_14_cms: result.cms,
+                col_15_cms: result.cms,
                 CMS: result.cms,
-                col_15_status: task.status,
+                col_16_status: task.status,
                 'Scrape Status': task.status,
               };
 
@@ -838,6 +861,9 @@ Return JSON:
                 }
                 if (result.primaryPhone) {
                   updateFields.contactPhone = result.primaryPhone;
+                }
+                if (result.address) {
+                  updateFields.address = result.address;
                 }
                 if (result.linkedin) {
                   updateFields.socialLinkedin = result.linkedin;

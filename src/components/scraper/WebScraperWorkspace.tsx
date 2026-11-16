@@ -19,6 +19,7 @@ import {
   Link2,
   Mail,
   Phone,
+  MapPin,
   FileSpreadsheet,
   Bot,
   Check,
@@ -676,11 +677,13 @@ export default function WebScraperWorkspace({
                   <button
                     onClick={() => {
                       const phone = analyzeResult.primaryPhone || (analyzeResult.phones && analyzeResult.phones[0]) || ''
+                      const address = analyzeResult.address || (analyzeResult.addresses && analyzeResult.addresses[0]) || ''
                       if (analyzeResult.emails && analyzeResult.emails.length > 0) {
                         const rows = analyzeResult.emails.map((em: any) => ({
                           Domain: analyzeResult.domain,
                           Email: em.email,
                           Phone: phone,
+                          Address: address,
                           Type: em.isRole ? 'Role/Generic' : 'Personal',
                           SourceUrl: em.sourceUrl,
                           Title: analyzeResult.title || '',
@@ -701,6 +704,7 @@ export default function WebScraperWorkspace({
                             Domain: analyzeResult.domain || inputUrl,
                             Email: analyzeResult.primaryEmail || 'None found',
                             Phone: phone,
+                            Address: address,
                             Title: analyzeResult.title || '',
                             ContactPage: analyzeResult.contactPageUrl || '',
                             GuestPostPage: analyzeResult.guestPostPageUrl || '',
@@ -842,6 +846,16 @@ export default function WebScraperWorkspace({
                         <span className="text-gray-500">Author Name:</span>
                         <span className="font-medium text-gray-800">{analyzeResult.author || 'None'}</span>
                       </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-gray-500">Address:</span>
+                        {analyzeResult.address || (analyzeResult.addresses && analyzeResult.addresses[0]) ? (
+                          <span className="font-medium text-gray-800 max-w-[200px] truncate" title={analyzeResult.address || analyzeResult.addresses[0]}>
+                            {analyzeResult.address || analyzeResult.addresses[0]}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">None detected</span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
@@ -914,6 +928,39 @@ export default function WebScraperWorkspace({
                       </div>
                     </div>
                   </div>
+
+                  {/* Company Address Section */}
+                  {(analyzeResult.address || (analyzeResult.addresses && analyzeResult.addresses.length > 0)) && (
+                    <div className="border border-indigo-200 bg-indigo-50/30 rounded-xl overflow-hidden">
+                      <div className="bg-indigo-50 px-3 py-2 border-b border-indigo-200 flex items-center justify-between">
+                        <span className="font-bold text-indigo-950 text-xs flex items-center gap-1.5">
+                          <MapPin size={13} className="text-indigo-600" /> Extracted Company Address
+                        </span>
+                        {analyzeResult.addresses && analyzeResult.addresses.length > 1 && (
+                          <span className="text-[11px] text-indigo-700 font-medium">
+                            {analyzeResult.addresses.length} locations found
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-3 space-y-2">
+                        {(analyzeResult.addresses?.length ? analyzeResult.addresses : [analyzeResult.address]).map((addr: string, aIdx: number) => (
+                          <div key={aIdx} className="flex items-center justify-between px-3 py-2 bg-white border border-indigo-200/80 rounded-lg text-xs shadow-2xs">
+                            <span className="font-medium text-gray-800 flex items-center gap-2">
+                              <MapPin size={12} className="text-indigo-500 shrink-0" />
+                              {addr}
+                            </span>
+                            <button
+                              onClick={() => handleCopy(addr, `addr_${aIdx}`)}
+                              className="text-gray-400 hover:text-gray-700 cursor-pointer ml-2 p-1 shrink-0"
+                              title="Copy address"
+                            >
+                              {copiedKey === `addr_${aIdx}` ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Phone Numbers Section */}
                   {((analyzeResult.phones && analyzeResult.phones.length > 0) || analyzeResult.primaryPhone) && (

@@ -68,6 +68,16 @@ const prospectSchema = new mongoose.Schema(
       lowercase: true,
       default: '',
     },
+    contactPhone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     emailSourceUrl: {
       type: String,
       trim: true,
