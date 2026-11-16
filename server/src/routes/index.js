@@ -5,6 +5,7 @@ import campaignRoutes from './campaign.routes.js';
 import prospectRoutes from './prospect.routes.js';
 import datasetRoutes from './dataset.routes.js';
 import aiCleanRoutes from './aiClean.routes.js';
+import scraperRoutes from './scraper.routes.js';
 
 const router = Router();
 
@@ -14,6 +15,7 @@ router.use('/campaigns', campaignRoutes);
 router.use('/prospects', prospectRoutes);
 router.use('/datasets', datasetRoutes);
 router.use('/ai/clean', aiCleanRoutes);
+router.use('/scrape', scraperRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

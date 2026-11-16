@@ -18,6 +18,7 @@ import {
   bulkAction,
   importCSV,
 } from '../controllers/prospect.controller.js';
+import { scrapeSelectedProspects } from '../controllers/scraper.controller.js';
 
 const router = Router();
 
@@ -43,6 +44,7 @@ router.get('/', listProspects);
 router.post('/', validate(createProspectSchema), createProspect);
 router.post('/bulk', validate(bulkActionSchema), bulkAction);
 router.post('/import', upload.single('file'), importCSV);
+router.post('/scrape', scrapeSelectedProspects);
 
 router.get('/:id', getProspect);
 router.put('/:id', validate(updateProspectSchema), updateProspect);

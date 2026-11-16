@@ -68,6 +68,14 @@ const prospectSchema = new mongoose.Schema(
       lowercase: true,
       default: '',
     },
+    emailSourceUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    emailFoundAt: {
+      type: Date,
+    },
     niche: {
       type: String,
       trim: true,

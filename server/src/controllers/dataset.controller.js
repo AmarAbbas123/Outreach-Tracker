@@ -120,6 +120,88 @@ export const uploadDataset = async (req, res, next) => {
   }
 };
 
+// POST /datasets/create (create from array of JSON row objects)
+export const createDatasetFromRows = async (req, res, next) => {
+  try {
+    const workspaceId = req.workspaceId;
+    const userId = req.user?._id;
+    const { name = 'Scraped Dataset', columns = [], rows = [] } = req.body;
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Rows array cannot be empty.' });
+    }
+
+    // Prepare columns
+    let datasetColumns = [];
+    if (columns.length > 0) {
+      datasetColumns = columns.map((c, i) => ({
+        id: c.id || `col_${i}_${c.name ? c.name.toLowerCase().replace(/[^a-z0-9]/g, '_') : i}`,
+        name: c.name || `Column ${i + 1}`,
+        type: c.type || 'text',
+        originalIndex: i,
+        hidden: false,
+      }));
+    } else {
+      // Derive from first row keys
+      const keys = Object.keys(rows[0]);
+      datasetColumns = keys.map((key, i) => ({
+        id: `col_${i}_${key.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+        name: key,
+        type: 'text',
+        originalIndex: i,
+        hidden: false,
+      }));
+    }
+
+    const dataset = await Dataset.create({
+      workspace: workspaceId,
+      name,
+      originalFileName: `${name}.csv`,
+      sheetName: 'Sheet1',
+      columns: datasetColumns,
+      rowCount: rows.length,
+      status: 'ready',
+      steps: [
+        {
+          label: `Imported from Scraper (${rows.length} rows)`,
+          rowsAffected: rows.length,
+          at: new Date(),
+          byAI: false,
+        },
+      ],
+      createdBy: userId,
+    });
+
+    const rowDocs = rows.map((r, idx) => {
+      const cells = {};
+      datasetColumns.forEach((col) => {
+        cells[col.id] = r[col.name] !== undefined ? String(r[col.name]).trim() : r[col.id] !== undefined ? String(r[col.id]).trim() : '';
+      });
+      return {
+        dataset: dataset._id,
+        index: idx,
+        cells,
+        original: { ...cells },
+        isDeleted: false,
+        isAdded: false,
+      };
+    });
+
+    if (rowDocs.length > 0) {
+      await DatasetRow.insertMany(rowDocs, { ordered: false });
+    }
+
+    res.status(201).json({
+      success: true,
+      data: {
+        dataset,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // GET /datasets
 export const listDatasets = async (req, res, next) => {
   try {

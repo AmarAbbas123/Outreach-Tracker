@@ -4,7 +4,7 @@ import AiUsage from '../models/AiUsage.js';
 
 let aiClient = null;
 
-const getAIClient = () => {
+export const getAIClient = () => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
     return null;
@@ -15,7 +15,7 @@ const getAIClient = () => {
   return aiClient;
 };
 
-const CANDIDATE_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+export const CANDIDATE_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
 
 /**
  * Plans data cleaning operations from a plain-language prompt using Gemini with multi-model fallback

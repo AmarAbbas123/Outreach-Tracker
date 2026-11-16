@@ -3,6 +3,7 @@ import multer from 'multer';
 import { requireAuth } from '../middleware/auth.js';
 import {
   uploadDataset,
+  createDatasetFromRows,
   listDatasets,
   getDataset,
   getDatasetRows,
@@ -25,6 +26,7 @@ const upload = multer({
 router.use(requireAuth);
 
 router.post('/upload', upload.single('file'), uploadDataset);
+router.post('/create', createDatasetFromRows);
 router.get('/', listDatasets);
 router.get('/:id', getDataset);
 router.get('/:id/rows', getDatasetRows);

@@ -73,10 +73,23 @@ export interface DatasetRowData {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export default function DataCleaningWorkspace({ onProspectsUpdated }: { onProspectsUpdated: () => void }) {
+export default function DataCleaningWorkspace({
+  onProspectsUpdated,
+  initialDatasetId = null,
+}: {
+  onProspectsUpdated: () => void
+  initialDatasetId?: string | null
+}) {
   const queryClient = useQueryClient()
-  const [activeDatasetId, setActiveDatasetId] = useState<string | null>(null)
+  const [activeDatasetId, setActiveDatasetId] = useState<string | null>(initialDatasetId)
   const [showUploadModal, setShowUploadModal] = useState(false)
+
+  // Sync if initialDatasetId changes
+  useEffect(() => {
+    if (initialDatasetId) {
+      setActiveDatasetId(initialDatasetId)
+    }
+  }, [initialDatasetId])
 
   // Fetch datasets list
   const { data: datasets = [], isLoading } = useQuery({

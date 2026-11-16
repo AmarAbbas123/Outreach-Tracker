@@ -21,6 +21,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import DataCleaningWorkspace from '../components/cleaning/DataCleaningWorkspace'
+import WebScraperWorkspace from '../components/scraper/WebScraperWorkspace'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -96,8 +97,10 @@ export const statusLabels: Record<ProspectStatus, string> = {
 export default function Prospects() {
   const queryClient = useQueryClient()
 
-  // Tab State: 'database' vs 'cleaning'
-  const [activeTab, setActiveTab] = useState<'database' | 'cleaning'>('database')
+  // Tab State: 'database' vs 'cleaning' vs 'scraper'
+  const [activeTab, setActiveTab] = useState<'database' | 'cleaning' | 'scraper'>('database')
+  const [cleaningInitialDatasetId, setCleaningInitialDatasetId] = useState<string | null>(null)
+  const [bulkScrapeLoading, setBulkScrapeLoading] = useState(false)
 
   // Filter & Pagination States
   const [search, setSearch] = useState('')
@@ -231,6 +234,21 @@ export default function Prospects() {
     bulkActionMutation.mutate({ action: 'tag', ids: selected, tag: bulkTagInput.trim() })
   }
 
+  const handleBulkScrape = async () => {
+    if (selected.length === 0) return
+    setBulkScrapeLoading(true)
+    try {
+      await api.post('/prospects/scrape', { prospectIds: selected })
+      setSelected([])
+      setActiveTab('scraper')
+      queryClient.invalidateQueries({ queryKey: ['scrape-jobs'] })
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to start scrape job for selected prospects.')
+    } finally {
+      setBulkScrapeLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-5 pb-12">
       {/* Workspace Tabs Header */}
@@ -238,7 +256,7 @@ export default function Prospects() {
         <div>
           <h2 className="text-xl font-bold text-gray-900">Prospects</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Two workspaces: clean messy raw spreadsheets with AI, and manage your verified link-building outreach list.
+            Three unified workspaces: discover with web scraping, clean spreadsheets with AI, and manage verified outreach.
           </p>
         </div>
 
@@ -268,12 +286,38 @@ export default function Prospects() {
             <Sparkles size={13} className="text-indigo-600" />
             Data Cleaning
           </button>
+          <button
+            onClick={() => setActiveTab('scraper')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'scraper'
+                ? 'bg-white text-indigo-700 shadow-2xs'
+                : 'text-gray-600 hover:text-indigo-600'
+            }`}
+          >
+            <Globe size={13} className="text-indigo-600" />
+            Web Scraper
+          </button>
         </div>
       </div>
 
-      {activeTab === 'cleaning' ? (
-        <DataCleaningWorkspace onProspectsUpdated={() => refetch()} />
-      ) : (
+      {activeTab === 'cleaning' && (
+        <DataCleaningWorkspace
+          onProspectsUpdated={() => refetch()}
+          initialDatasetId={cleaningInitialDatasetId}
+        />
+      )}
+
+      {activeTab === 'scraper' && (
+        <WebScraperWorkspace
+          onNavigateToCleaning={(datasetId) => {
+            setCleaningInitialDatasetId(datasetId || null)
+            setActiveTab('cleaning')
+          }}
+          onProspectsUpdated={() => refetch()}
+        />
+      )}
+
+      {activeTab === 'database' && (
         <>
           {/* Header */}
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -392,6 +436,16 @@ export default function Prospects() {
               className="px-2.5 py-1.5 text-xs font-medium border border-indigo-200 rounded-lg bg-white text-indigo-900 hover:bg-indigo-100 transition-colors"
             >
               Add Tag…
+            </button>
+
+            {/* Bulk Scrape / Enrich Button */}
+            <button
+              onClick={handleBulkScrape}
+              disabled={bulkScrapeLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-2xs cursor-pointer"
+              title="Scrape selected prospect domains for verified emails, socials, and contact pages"
+            >
+              <Globe size={13} /> {bulkScrapeLoading ? 'Starting Scrape…' : 'Scrape Selected'}
             </button>
 
             {/* Bulk Delete Button */}
