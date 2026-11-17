@@ -76,53 +76,23 @@ export function extractPageData(html, pageUrl) {
     }
   }
 
-  // 4. Social Links
-  const socials = {
-    linkedin: '',
-    twitter: '',
-    facebook: '',
-    instagram: '',
-    youtube: '',
-    tiktok: '',
-    github: '',
-    pinterest: '',
-  };
-
-  $('a[href]').each((_, el) => {
-    const href = ($(el).attr('href') || '').trim();
-    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-    const lower = href.toLowerCase();
-
-    if (!socials.linkedin && (lower.includes('linkedin.com/company/') || lower.includes('linkedin.com/in/') || lower.includes('linkedin.com/pub/'))) {
-      socials.linkedin = href;
-    } else if (!socials.twitter && (lower.includes('twitter.com/') || lower.includes('x.com/'))) {
-      if (!lower.includes('/status/') && !lower.includes('/intent/') && !lower.includes('sharer') && !lower.includes('/share')) {
-        socials.twitter = href;
+  // 4. Structured Data (JSON-LD) - parsed early for social & address enrichment
+  const structuredData = [];
+  $('script[type="application/ld+json"]').each((_, el) => {
+    try {
+      const content = $(el).html();
+      if (content) {
+        const parsed = JSON.parse(content);
+        structuredData.push(parsed);
       }
-    } else if (!socials.facebook && (lower.includes('facebook.com/') || lower.includes('fb.com/'))) {
-      if (!lower.includes('sharer') && !lower.includes('plugins') && !lower.includes('/share')) {
-        socials.facebook = href;
-      }
-    } else if (!socials.instagram && lower.includes('instagram.com/')) {
-      if (!lower.includes('/explore/') && !lower.includes('/accounts/')) {
-        socials.instagram = href;
-      }
-    } else if (!socials.youtube && (lower.includes('youtube.com/channel/') || lower.includes('youtube.com/@') || lower.includes('youtube.com/user/') || lower.includes('youtube.com/c/'))) {
-      socials.youtube = href;
-    } else if (!socials.tiktok && lower.includes('tiktok.com/@')) {
-      socials.tiktok = href;
-    } else if (!socials.github && lower.includes('github.com/')) {
-      if (!lower.includes('github.com/pricing') && !lower.includes('github.com/features')) {
-        socials.github = href;
-      }
-    } else if (!socials.pinterest && lower.includes('pinterest.com/')) {
-      if (!lower.includes('pin/create') && !lower.includes('pin.it')) {
-        socials.pinterest = href;
-      }
-    }
+    } catch {}
   });
 
-  // 5. Contact, Team & Guest Post Subpages
+  // 5. Social Links (DOM, Schema sameAs, OpenGraph, clean query tracking)
+  const socialData = extractSocialProfiles($, structuredData);
+  const socials = socialData.socials;
+
+  // 6. Contact, Team & Guest Post Subpages
   let contactPageUrl = '';
   let guestPostPageUrl = '';
   const discoveredSubpages = new Set();
@@ -322,22 +292,10 @@ export function extractPageData(html, pageUrl) {
     } catch {}
   });
 
-  // 10. Structured Data (JSON-LD)
-  const structuredData = [];
-  $('script[type="application/ld+json"]').each((_, el) => {
-    try {
-      const content = $(el).html();
-      if (content) {
-        const parsed = JSON.parse(content);
-        structuredData.push(parsed);
-      }
-    } catch {}
-  });
-
-  // 11. Company Address Extraction (JSON-LD, <address>, Microdata, and Contact Classes)
+  // 10. Company Address Extraction (JSON-LD, <address>, Microdata, and Contact Classes)
   const companyAddress = extractCompanyAddress($, structuredData);
 
-  // 12. Main Text & Headings
+  // 11. Main Text & Headings
   const headings = [];
   $('h1, h2, h3').each((_, el) => {
     const text = $(el).text().replace(/\s+/g, ' ').trim();
@@ -359,6 +317,7 @@ export function extractPageData(html, pageUrl) {
     address: companyAddress.primaryAddress,
     addresses: companyAddress.addresses,
     socials,
+    allSocials: socialData.allSocials,
     contactPageUrl,
     guestPostPageUrl,
     hasGuestPostPage: Boolean(guestPostPageUrl),
@@ -370,6 +329,145 @@ export function extractPageData(html, pageUrl) {
     links: links.slice(0, 500),
     structuredData,
     headings: headings.slice(0, 50),
+  };
+}
+
+/**
+ * Extract comprehensive social profiles across DOM, Schema.org sameAs, and OpenGraph
+ */
+export function extractSocialProfiles($, structuredData = []) {
+  const canonicals = {
+    linkedin: '',
+    twitter: '',
+    facebook: '',
+    instagram: '',
+    youtube: '',
+    tiktok: '',
+    github: '',
+    whatsapp: '',
+    telegram: '',
+    discord: '',
+    threads: '',
+    pinterest: '',
+    medium: '',
+  };
+
+  const allProfiles = [];
+  const seenUrls = new Set();
+
+  function addProfile(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') return;
+    let url = rawUrl.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      if (url.startsWith('//')) url = `https:${url}`;
+      else if (url.includes('.com') || url.includes('.me') || url.includes('.org') || url.includes('.gg')) {
+        url = `https://${url}`;
+      } else {
+        return;
+      }
+    }
+
+    try {
+      const u = new URL(url);
+      u.searchParams.delete('fbclid');
+      u.searchParams.delete('utm_source');
+      u.searchParams.delete('utm_medium');
+      u.searchParams.delete('utm_campaign');
+      u.searchParams.delete('trk');
+      u.searchParams.delete('ref');
+      u.searchParams.delete('ref_src');
+      url = u.href;
+    } catch {
+      return;
+    }
+
+    if (seenUrls.has(url)) return;
+
+    const lower = url.toLowerCase();
+    let network = null;
+
+    if (lower.includes('linkedin.com/')) {
+      if (!lower.includes('/sharearticle') && !lower.includes('/sharing/')) {
+        network = 'linkedin';
+      }
+    } else if (lower.includes('twitter.com/') || lower.includes('x.com/')) {
+      if (!lower.includes('/status/') && !lower.includes('/intent/') && !lower.includes('sharer') && !lower.includes('/share')) {
+        network = 'twitter';
+      }
+    } else if (lower.includes('facebook.com/') || lower.includes('fb.com/') || lower.includes('fb.me/')) {
+      if (!lower.includes('sharer') && !lower.includes('plugins') && !lower.includes('/share.') && !lower.includes('/dialog/')) {
+        network = 'facebook';
+      }
+    } else if (lower.includes('instagram.com/')) {
+      if (!lower.includes('/explore/') && !lower.includes('/accounts/') && !lower.includes('/p/')) {
+        network = 'instagram';
+      }
+    } else if (lower.includes('youtube.com/') || lower.includes('youtu.be/')) {
+      if (!lower.includes('/watch?') && !lower.includes('/embed/')) {
+        network = 'youtube';
+      }
+    } else if (lower.includes('tiktok.com/@')) {
+      network = 'tiktok';
+    } else if (lower.includes('github.com/')) {
+      if (!lower.includes('/pricing') && !lower.includes('/features') && !lower.includes('/topics') && !lower.includes('/site/')) {
+        network = 'github';
+      }
+    } else if (lower.includes('wa.me/') || lower.includes('api.whatsapp.com/') || lower.includes('chat.whatsapp.com/')) {
+      network = 'whatsapp';
+    } else if (lower.includes('t.me/') || lower.includes('telegram.me/')) {
+      network = 'telegram';
+    } else if (lower.includes('discord.gg/') || lower.includes('discord.com/invite/')) {
+      network = 'discord';
+    } else if (lower.includes('threads.net/@')) {
+      network = 'threads';
+    } else if (lower.includes('pinterest.com/')) {
+      if (!lower.includes('pin/create') && !lower.includes('pin.it')) {
+        network = 'pinterest';
+      }
+    } else if (lower.includes('medium.com/')) {
+      network = 'medium';
+    }
+
+    if (network) {
+      seenUrls.add(url);
+      allProfiles.push({ network, url });
+      if (!canonicals[network]) {
+        canonicals[network] = url;
+      }
+    }
+  }
+
+  // 1. Scan links across DOM (href, data-href, data-url)
+  $('a[href], a[data-href], [data-social]').each((_, el) => {
+    const href = $(el).attr('href') || $(el).attr('data-href') || $(el).attr('data-social') || '';
+    addProfile(href);
+  });
+
+  // 2. Scan Schema.org sameAs
+  function inspectLd(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    if (Array.isArray(obj)) return obj.forEach(inspectLd);
+    if (obj['@graph'] && Array.isArray(obj['@graph'])) return obj['@graph'].forEach(inspectLd);
+
+    if (Array.isArray(obj.sameAs)) {
+      obj.sameAs.forEach(addProfile);
+    } else if (typeof obj.sameAs === 'string') {
+      addProfile(obj.sameAs);
+    }
+  }
+
+  if (Array.isArray(structuredData)) {
+    structuredData.forEach(inspectLd);
+  }
+
+  // 3. Scan OpenGraph & Meta links
+  $('meta[property="og:see_also"]').each((_, el) => {
+    addProfile($(el).attr('content'));
+  });
+
+  return {
+    socials: canonicals,
+    allSocials: allProfiles,
   };
 }
 

@@ -208,6 +208,7 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     allAddresses.unshift(homeResult.address);
   }
   const allSocials = { ...homeResult.socials };
+  const allSocialProfiles = [...(homeResult.allSocials || [])];
 
   // Subpages to visit: prioritize discovered candidate links, then fallbacks
   const subpagesToVisit = [];
@@ -287,11 +288,18 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
       // Merge discovered social channels
       if (subData.socials) {
         Object.keys(subData.socials).forEach((key) => {
-          if (!allSocials[key] && subData.socials[key]) {
+          if ((!allSocials[key] || allSocials[key] === '') && subData.socials[key]) {
             allSocials[key] = subData.socials[key];
           }
         });
       }
+
+      // Merge all distinct social profile links across subpages
+      (subData.allSocials || []).forEach((prof) => {
+        if (!allSocialProfiles.some((p) => p.url === prof.url)) {
+          allSocialProfiles.push(prof);
+        }
+      });
 
       // Update contact or guest post page if discovered
       if (!homeResult.contactPageUrl && subData.contactPageUrl) {
@@ -336,6 +344,7 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     guestPostPageUrl: homeResult.guestPostPageUrl,
     hasGuestPost: homeResult.hasGuestPostPage,
     socials: allSocials,
+    allSocials: allSocialProfiles,
     linkedin: allSocials.linkedin || '',
     twitter: allSocials.twitter || '',
     facebook: allSocials.facebook || '',
@@ -343,6 +352,10 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     youtube: allSocials.youtube || '',
     tiktok: allSocials.tiktok || '',
     github: allSocials.github || '',
+    whatsapp: allSocials.whatsapp || '',
+    telegram: allSocials.telegram || '',
+    discord: allSocials.discord || '',
+    threads: allSocials.threads || '',
     pinterest: allSocials.pinterest || '',
     author: homeResult.authors[0] || '',
     latestDate: homeResult.latestDate,
@@ -406,6 +419,7 @@ export async function analyzeAnyUrl(url) {
     address: data.address || '',
     addresses: data.addresses || [],
     socials: data.socials || {},
+    allSocials: data.allSocials || [],
     linkedin: data.socials?.linkedin || '',
     twitter: data.socials?.twitter || '',
     facebook: data.socials?.facebook || '',
@@ -413,6 +427,10 @@ export async function analyzeAnyUrl(url) {
     youtube: data.socials?.youtube || '',
     tiktok: data.socials?.tiktok || '',
     github: data.socials?.github || '',
+    whatsapp: data.socials?.whatsapp || '',
+    telegram: data.socials?.telegram || '',
+    discord: data.socials?.discord || '',
+    threads: data.socials?.threads || '',
     pinterest: data.socials?.pinterest || '',
     author: data.authors?.[0] || '',
     authors: data.authors || [],
@@ -440,6 +458,59 @@ export async function analyzeAnyUrl(url) {
 }
 
 /**
+ * Generic Universal AI Extractor for any arbitrary web page & instruction
+ */
+async function extractWithAIGeneric(html, finalUrl, instruction) {
+  const $ = cheerio.load(html);
+  $('script, style, svg, noscript, iframe').remove();
+
+  const pageTitle = $('title').text().trim();
+  const headings = $('h1, h2, h3').map((_, el) => $(el).text().trim()).get().slice(0, 15).join(' | ');
+  const keyLinks = $('a[href]').map((_, el) => `${$(el).text().trim()} (${$(el).attr('href')})`).get().filter((l) => l.length > 5 && !l.startsWith('#')).slice(0, 30).join('\n');
+  const bodyText = $('body').text().replace(/\s+/g, ' ').slice(0, 16000);
+
+  const client = getAIClient();
+  if (!client) return [];
+
+  const prompt = `You are an expert universal web scraper.
+Extract structured records matching this user instruction from the web page text:
+Instruction: "${instruction}"
+Page URL: ${finalUrl}
+Page Title: ${pageTitle}
+Headings: ${headings}
+
+Key Links:
+${keyLinks}
+
+Page Content:
+${bodyText}
+
+Return valid JSON with this exact structure:
+{
+  "rows": [
+    { "field1": "val1", "field2": "val2" }
+  ]
+}`;
+
+  for (const model of CANDIDATE_MODELS) {
+    try {
+      const res = await client.models.generateContent({
+        model,
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
+      const parsed = JSON.parse(res.text || '{}');
+      if (Array.isArray(parsed.rows) && parsed.rows.length > 0) {
+        return parsed.rows;
+      }
+    } catch (err) {
+      console.warn(`Model ${model} failed for extractWithAIGeneric: ${err.message}`);
+    }
+  }
+  return [];
+}
+
+/**
  * Scrape Any URL: Describe It (AI Recipe Generation)
  */
 export async function describeWithAI({ url, instruction, columnNames = [] }) {
@@ -459,8 +530,26 @@ export async function describeWithAI({ url, instruction, columnNames = [] }) {
     );
   }
 
+  const instLower = String(instruction || '').toLowerCase();
+  const needsHeaderFooter =
+    instLower.includes('contact') ||
+    instLower.includes('address') ||
+    instLower.includes('phone') ||
+    instLower.includes('email') ||
+    instLower.includes('social') ||
+    instLower.includes('about') ||
+    instLower.includes('company') ||
+    instLower.includes('copyright') ||
+    instLower.includes('footer') ||
+    instLower.includes('overview') ||
+    instLower.includes('location');
+
   // Clean HTML to save tokens and avoid prompt injections
-  $('script, style, nav, footer, header, svg, noscript, iframe, link, meta').remove();
+  if (needsHeaderFooter) {
+    $('script, style, svg, noscript, iframe, link, meta').remove();
+  } else {
+    $('script, style, nav, footer, header, svg, noscript, iframe, link, meta').remove();
+  }
 
   // Strip massive attributes and inline data uris
   $('*').each((_, el) => {
@@ -490,30 +579,40 @@ export async function describeWithAI({ url, instruction, columnNames = [] }) {
     .slice(0, 15)
     .map(([cls, count]) => `.${cls} (${count} occurrences)`);
 
-  // Target main content area
-  let mainContainer = $('main, article, [role="main"], #content, .content, .main, table, body').first();
-  if (!mainContainer.length) mainContainer = $('body');
-
-  const sampleHtml = mainContainer.html()?.slice(0, 32000) || $('body').html()?.slice(0, 32000) || '';
+  const pageTitle = $('title').text().trim();
+  const headings = $('h1, h2, h3').map((_, el) => $(el).text().trim()).get().slice(0, 15).join(' | ');
+  const keyLinks = $('a[href]').map((_, el) => `${$(el).text().trim()} (${$(el).attr('href')})`).get().filter((l) => l.length > 5 && !l.startsWith('#')).slice(0, 30).join('\n');
+  const sampleHtml = $('body').html()?.slice(0, 30000) || '';
+  const textSample = $('body').text().replace(/\s+/g, ' ').slice(0, 15000);
 
   const client = getAIClient();
   if (!client) {
     throw new Error('Gemini AI client is not configured.');
   }
 
-  const prompt = `You are an expert web scraping recipe generator.
-Given this HTML from "${finalUrl}" and the user instruction, propose a clean, robust Cheerio selector recipe to extract the repeated records into table rows.
+  const prompt = `You are a universal AI web scraping engine.
+Analyze this web page from "${finalUrl}" and extract the records requested by the user instruction.
+The instruction can be ANY generic, custom, or domain-specific request (e.g. list of items, company profile, team members, articles, products, pricing, contacts, etc.).
 
 User Instruction: "${instruction}"
-Suggested Columns: ${JSON.stringify(columnNames)}
-Detected Candidate Repeated Classes: ${candidateClasses.join(', ') || 'none'}
+Suggested Columns (if any): ${JSON.stringify(columnNames)}
+Page Title: ${pageTitle}
+Headings: ${headings}
+Candidate Repeated Classes: ${candidateClasses.join(', ') || 'none'}
 
-HTML Sample:
+Key Links:
+${keyLinks}
+
+HTML Structure Sample:
 ${sampleHtml}
 
-Return JSON matching this exact structure:
+Page Text Content:
+${textSample}
+
+Return valid JSON with this exact structure:
 {
-  "rowSelector": "css selector identifying each repeated item card or table row (e.g. .card, tr.item, .loop-card)",
+  "mode": "list" | "entity",
+  "rowSelector": "css selector identifying each repeated item card/row, or 'body' if single page-level entity",
   "fields": [
     {
       "name": "Column Name",
@@ -521,7 +620,10 @@ Return JSON matching this exact structure:
       "attr": "text" | "href" | "src"
     }
   ],
-  "nextPageSelector": "optional selector for Next pagination link, or empty string if none"
+  "nextPageSelector": "optional selector for Next pagination link, or empty string",
+  "rows": [
+    { "Column Name": "Extracted Value" }
+  ]
 }`;
 
   for (const model of CANDIDATE_MODELS) {
@@ -534,72 +636,97 @@ Return JSON matching this exact structure:
 
       const parsed = JSON.parse(res.text || '{}');
       if (parsed.nextPageSelector === null) parsed.nextPageSelector = '';
-      if (Array.isArray(parsed.fields)) {
-        parsed.fields.forEach((f) => {
-          if (!f.attr || f.attr === null) f.attr = 'text';
-        });
-      }
+      if (!Array.isArray(parsed.fields)) parsed.fields = [];
+      parsed.fields.forEach((f) => {
+        if (!f.attr || f.attr === null) f.attr = 'text';
+      });
 
-      const recipe = recipeSchema.parse(parsed);
+      let rows = Array.isArray(parsed.rows) ? parsed.rows : [];
+      let nextUrl = '';
 
-      // Execute on the page to produce preview rows
-      let { rows, nextUrl } = runRecipe(html, recipe, finalUrl);
-
-      // Self-correcting fallback if rows returned 0
-      if (rows.length === 0) {
-        console.warn(`Initial selector "${recipe.rowSelector}" returned 0 rows. Attempting fallback matching...`);
-        for (const [candCls] of Object.entries(tagCounts).slice(0, 6)) {
-          const testRecipe = { ...recipe, rowSelector: `.${candCls}` };
+      // If mode is list and rowSelector is specified, test Cheerio recipe
+      if (parsed.mode !== 'entity' && parsed.rowSelector && parsed.rowSelector !== 'body') {
+        try {
+          const testRecipe = recipeSchema.parse({
+            rowSelector: parsed.rowSelector,
+            fields: parsed.fields,
+            nextPageSelector: parsed.nextPageSelector,
+          });
           const testRun = runRecipe(html, testRecipe, finalUrl);
-          if (testRun.rows.length > 0) {
-            recipe.rowSelector = `.${candCls}`;
+          if (testRun.rows && testRun.rows.length > 0) {
             rows = testRun.rows;
             nextUrl = testRun.nextUrl;
-            break;
-          }
-        }
-      }
-
-      // If still 0 rows, fallback to AI direct chunk extraction for preview
-      if (rows.length === 0) {
-        const textSample = $('body').text().replace(/\s+/g, ' ').slice(0, 4000);
-        const directPrompt = `Extract up to 10 rows matching the user instruction from this page text:
-User instruction: "${instruction}"
-Page text:
-${textSample}
-
-Return JSON:
-{
-  "rows": [
-    { "field1": "val", "field2": "val" }
-  ]
-}`;
-        try {
-          const directRes = await client.models.generateContent({
-            model,
-            contents: directPrompt,
-            config: { responseMimeType: 'application/json' },
-          });
-          const directParsed = JSON.parse(directRes.text || '{}');
-          if (Array.isArray(directParsed.rows) && directParsed.rows.length > 0) {
-            rows = directParsed.rows;
           }
         } catch {}
       }
 
+      // If rows are still empty, try fallback classes
+      if (rows.length === 0 && candidateClasses.length > 0) {
+        for (const [candCls] of Object.entries(tagCounts).slice(0, 5)) {
+          try {
+            const testRecipe = recipeSchema.parse({
+              rowSelector: `.${candCls}`,
+              fields: parsed.fields,
+              nextPageSelector: parsed.nextPageSelector,
+            });
+            const testRun = runRecipe(html, testRecipe, finalUrl);
+            if (testRun.rows.length > 0) {
+              rows = testRun.rows;
+              parsed.rowSelector = `.${candCls}`;
+              break;
+            }
+          } catch {}
+        }
+      }
+
+      // If still empty, fall back to direct AI extraction
+      if (rows.length === 0) {
+        rows = await extractWithAIGeneric(html, finalUrl, instruction);
+      }
+
+      // Ensure fields exist for recipe output
+      if (parsed.fields.length === 0 && rows.length > 0) {
+        parsed.fields = Object.keys(rows[0]).map((k) => ({
+          name: k,
+          selector: '',
+          attr: 'text',
+        }));
+      }
+
+      const recipe = {
+        rowSelector: parsed.rowSelector || 'body',
+        fields: parsed.fields.length > 0 ? parsed.fields : [{ name: 'Content', selector: '', attr: 'text' }],
+        nextPageSelector: parsed.nextPageSelector || '',
+      };
+
       return {
         recipe,
-        previewRows: rows.slice(0, 10),
+        previewRows: rows.slice(0, 15),
         totalDetected: rows.length,
         nextUrl,
-        explanation: `Successfully extracted ${rows.length} rows using recipe selector "${recipe.rowSelector}"`,
+        explanation: `Successfully extracted ${rows.length} ${parsed.mode === 'entity' ? 'record' : 'records'} matching: "${instruction}"`,
       };
     } catch (err) {
       console.warn(`Model ${model} failed for describe: ${err.message}`);
     }
   }
 
-  throw new Error('Failed to generate recipe from AI description. Please try adjusting your instruction.');
+  // Final direct extraction fallback if all models failed recipe generation
+  try {
+    const directRows = await extractWithAIGeneric(html, finalUrl, instruction);
+    if (directRows.length > 0) {
+      const fields = Object.keys(directRows[0]).map((k) => ({ name: k, selector: '', attr: 'text' }));
+      return {
+        recipe: { rowSelector: 'body', fields, nextPageSelector: '' },
+        previewRows: directRows.slice(0, 15),
+        totalDetected: directRows.length,
+        nextUrl: '',
+        explanation: `Directly extracted ${directRows.length} records matching: "${instruction}"`,
+      };
+    }
+  } catch {}
+
+  throw new Error('Could not extract data from the page with the provided instruction. Please check if the URL is accessible.');
 }
 
 /**
@@ -667,9 +794,11 @@ export async function processScrapeJob(jobId) {
           { id: 'col_11_social_youtube', name: 'YouTube', type: 'text', order: 11, hidden: false },
           { id: 'col_12_social_tiktok', name: 'TikTok', type: 'text', order: 12, hidden: false },
           { id: 'col_13_social_github', name: 'GitHub', type: 'text', order: 13, hidden: false },
-          { id: 'col_14_author', name: 'Author', type: 'text', order: 14, hidden: false },
-          { id: 'col_15_cms', name: 'CMS', type: 'text', order: 15, hidden: false },
-          { id: 'col_16_status', name: 'Scrape Status', type: 'text', order: 16, hidden: false },
+          { id: 'col_14_social_other', name: 'WhatsApp / Telegram', type: 'text', order: 14, hidden: false },
+          { id: 'col_15_all_socials', name: 'All Social Links', type: 'text', order: 15, hidden: false },
+          { id: 'col_16_author', name: 'Author', type: 'text', order: 16, hidden: false },
+          { id: 'col_17_cms', name: 'CMS', type: 'text', order: 17, hidden: false },
+          { id: 'col_18_status', name: 'Scrape Status', type: 'text', order: 18, hidden: false },
         ];
       }
 
@@ -728,45 +857,49 @@ export async function processScrapeJob(jobId) {
               const { html, finalUrl } = await safeFetchHtml(task.url);
               task.pagesVisited = [finalUrl];
               let rows = [];
-              if (job.recipe) {
-                const res = runRecipe(html, job.recipe, finalUrl);
-                rows = res.rows || [];
+
+              // Try recipe first if valid selector
+              if (job.recipe && job.recipe.rowSelector && job.recipe.rowSelector !== 'body') {
+                try {
+                  const res = runRecipe(html, job.recipe, finalUrl);
+                  rows = res.rows || [];
+                } catch {}
               }
 
-              // Fallback to AI direct extraction if 0 rows and instruction exists
+              // Fallback to Universal AI extraction if 0 rows (e.g. across different websites)
               if (rows.length === 0 && job.instruction) {
                 try {
-                  const client = getAIClient();
-                  if (client) {
-                    const $ = cheerio.load(html);
-                    $('script, style, nav, footer, header, svg, noscript, iframe').remove();
-                    const textSample = $('body').text().replace(/\s+/g, ' ').slice(0, 4000);
-                    const prompt = `Extract structured records matching this instruction from the page text.
-Instruction: "${job.instruction}"
-Page Text: ${textSample}
-
-Return JSON:
-{
-  "rows": [
-    { "field1": "val1", "field2": "val2" }
-  ]
-}`;
-                    const aiRes = await client.models.generateContent({
-                      model: CANDIDATE_MODELS[0],
-                      contents: prompt,
-                      config: { responseMimeType: 'application/json' },
-                    });
-                    const parsed = JSON.parse(aiRes.text || '{}');
-                    if (Array.isArray(parsed.rows)) {
-                      rows = parsed.rows;
-                    }
-                  }
+                  rows = await extractWithAIGeneric(html, finalUrl, job.instruction);
                 } catch {}
               }
 
               if (rows.length > 0) {
                 task.status = 'ok';
                 task.extractedData = { count: rows.length, sample: rows[0] };
+
+                // Dynamically ensure dataset columns contain all extracted field names
+                if (dataset) {
+                  const existingColNames = new Set(dataset.columns.map((c) => c.name.toLowerCase()));
+                  const sampleRow = rows[0];
+                  let colAdded = false;
+                  Object.keys(sampleRow).forEach((k) => {
+                    if (!existingColNames.has(k.toLowerCase()) && k !== '_id' && k !== 'dataset') {
+                      dataset.columns.push({
+                        id: `col_${dataset.columns.length}_${k.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+                        name: k,
+                        type: 'text',
+                        order: dataset.columns.length,
+                        hidden: false,
+                      });
+                      existingColNames.add(k.toLowerCase());
+                      colAdded = true;
+                    }
+                  });
+                  if (colAdded) {
+                    await dataset.save();
+                  }
+                }
+
                 rows.forEach((r) => {
                   const cells = {};
                   Object.keys(r).forEach((k) => {
@@ -834,11 +967,15 @@ Return JSON:
                 TikTok: result.tiktok,
                 col_13_social_github: result.github,
                 GitHub: result.github,
-                col_14_author: result.author,
+                col_14_social_other: result.whatsapp || result.telegram || '',
+                'WhatsApp / Telegram': result.whatsapp || result.telegram || '',
+                col_15_all_socials: (result.allSocials || []).map((s) => s.url).join(', '),
+                'All Social Links': (result.allSocials || []).map((s) => s.url).join(', '),
+                col_16_author: result.author,
                 Author: result.author,
-                col_15_cms: result.cms,
+                col_17_cms: result.cms,
                 CMS: result.cms,
-                col_16_status: task.status,
+                col_18_status: task.status,
                 'Scrape Status': task.status,
               };
 
@@ -859,17 +996,23 @@ Return JSON:
                   updateFields.emailFoundAt = new Date();
                   updateFields.status = 'contact_found';
                 }
-                if (result.primaryPhone) {
-                  updateFields.contactPhone = result.primaryPhone;
+                if (result.primaryPhone) updateFields.contactPhone = result.primaryPhone;
+                if (result.address) updateFields.address = result.address;
+                if (result.linkedin) updateFields.socialLinkedin = result.linkedin;
+                if (result.twitter) updateFields.socialTwitter = result.twitter;
+                if (result.facebook) updateFields.socialFacebook = result.facebook;
+                if (result.instagram) updateFields.socialInstagram = result.instagram;
+                if (result.youtube) updateFields.socialYoutube = result.youtube;
+                if (result.github) updateFields.socialGithub = result.github;
+                if (result.tiktok) updateFields.socialTiktok = result.tiktok;
+                if (result.whatsapp || result.telegram) {
+                  updateFields.socialOther = result.whatsapp || result.telegram;
                 }
-                if (result.address) {
-                  updateFields.address = result.address;
-                }
-                if (result.linkedin) {
-                  updateFields.socialLinkedin = result.linkedin;
-                }
-                if (result.twitter) {
-                  updateFields.socialTwitter = result.twitter;
+                if (result.allSocials && result.allSocials.length > 0) {
+                  updateFields.socialLinks = result.allSocials.map((s) => ({
+                    network: s.network,
+                    url: s.url,
+                  }));
                 }
                 if (Object.keys(updateFields).length > 0) {
                   await Prospect.updateMany(

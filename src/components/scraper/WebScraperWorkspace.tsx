@@ -696,6 +696,11 @@ export default function WebScraperWorkspace({
                           YouTube: analyzeResult.youtube || '',
                           TikTok: analyzeResult.tiktok || '',
                           GitHub: analyzeResult.github || '',
+                          WhatsApp: analyzeResult.whatsapp || analyzeResult.socials?.whatsapp || '',
+                          Telegram: analyzeResult.telegram || analyzeResult.socials?.telegram || '',
+                          Discord: analyzeResult.discord || analyzeResult.socials?.discord || '',
+                          Threads: analyzeResult.threads || analyzeResult.socials?.threads || '',
+                          AllSocials: (analyzeResult.allSocials || []).map((s: any) => s.url).join(', '),
                         }))
                         handleSendToCleaning(`Contacts: ${analyzeResult.domain}`, rows)
                       } else {
@@ -715,6 +720,11 @@ export default function WebScraperWorkspace({
                             YouTube: analyzeResult.youtube || '',
                             TikTok: analyzeResult.tiktok || '',
                             GitHub: analyzeResult.github || '',
+                            WhatsApp: analyzeResult.whatsapp || analyzeResult.socials?.whatsapp || '',
+                            Telegram: analyzeResult.telegram || analyzeResult.socials?.telegram || '',
+                            Discord: analyzeResult.discord || analyzeResult.socials?.discord || '',
+                            Threads: analyzeResult.threads || analyzeResult.socials?.threads || '',
+                            AllSocials: (analyzeResult.allSocials || []).map((s: any) => s.url).join(', '),
                             Author: analyzeResult.author || '',
                           },
                         ]
@@ -925,7 +935,64 @@ export default function WebScraperWorkspace({
                             </a>
                           ) : <span className="text-gray-400">—</span>}
                         </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">WhatsApp:</span>
+                          {analyzeResult.whatsapp || analyzeResult.socials?.whatsapp ? (
+                            <a href={analyzeResult.whatsapp || analyzeResult.socials?.whatsapp} target="_blank" rel="noreferrer" className="text-emerald-600 font-medium hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.whatsapp || analyzeResult.socials?.whatsapp} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">Telegram:</span>
+                          {analyzeResult.telegram || analyzeResult.socials?.telegram ? (
+                            <a href={analyzeResult.telegram || analyzeResult.socials?.telegram} target="_blank" rel="noreferrer" className="text-sky-600 font-medium hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.telegram || analyzeResult.socials?.telegram} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">Discord:</span>
+                          {analyzeResult.discord || analyzeResult.socials?.discord ? (
+                            <a href={analyzeResult.discord || analyzeResult.socials?.discord} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.discord || analyzeResult.socials?.discord} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-gray-500">Threads:</span>
+                          {analyzeResult.threads || analyzeResult.socials?.threads ? (
+                            <a href={analyzeResult.threads || analyzeResult.socials?.threads} target="_blank" rel="noreferrer" className="text-gray-800 hover:underline flex items-center gap-1 truncate max-w-[140px]">
+                              {analyzeResult.threads || analyzeResult.socials?.threads} <ExternalLink size={10} />
+                            </a>
+                          ) : <span className="text-gray-400">—</span>}
+                        </div>
                       </div>
+
+                      {/* All Discovered Social Profile URLs */}
+                      {analyzeResult.allSocials && analyzeResult.allSocials.length > 0 && (
+                        <div className="pt-2 border-t border-gray-200 mt-2">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">
+                            All Discovered Profiles ({analyzeResult.allSocials.length})
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {analyzeResult.allSocials.map((prof: any, pIdx: number) => (
+                              <a
+                                key={pIdx}
+                                href={prof.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded text-[10px] text-gray-700 hover:border-indigo-400 hover:text-indigo-600 transition-colors shadow-2xs max-w-[180px] truncate"
+                                title={prof.url}
+                              >
+                                <span className="font-semibold capitalize text-indigo-700">{prof.network}:</span>
+                                <span className="truncate">{prof.url.replace(/^https?:\/\/(www\.)?/, '')}</span>
+                                <ExternalLink size={8} className="shrink-0" />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1215,10 +1282,10 @@ export default function WebScraperWorkspace({
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-3">
             <div className="flex items-center gap-2 text-indigo-700 font-bold text-xs">
-              <Bot size={16} /> Describe What to Extract in Natural Language
+              <Bot size={16} /> Describe What to Extract in Natural Language (Generic & Adaptive)
             </div>
             <p className="text-xs text-gray-500">
-              Tell AI what you want to extract from any web page (e.g. blog posts, product catalog, team members). Gemini analyzes the raw HTML structure and proposes an exact Cheerio recipe with a 10-row preview.
+              Tell AI what you want to extract in plain language. Supports any generic instruction from any user — company overview, team members, services, pricing, articles, products, or contact details. No rigid commands required.
             </p>
 
             <form onSubmit={handleDescribe} className="space-y-3">
@@ -1226,7 +1293,7 @@ export default function WebScraperWorkspace({
                 <label className="block text-[11px] font-semibold text-gray-700 mb-1">Target Page URL</label>
                 <input
                   type="text"
-                  placeholder="https://example.com/blog or https://example.com/products"
+                  placeholder="https://example.com or http://alilogicsinfotech.com/"
                   value={describeUrl}
                   onChange={(e) => setDescribeUrl(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
@@ -1238,11 +1305,11 @@ export default function WebScraperWorkspace({
                   <label className="block text-[11px] font-semibold text-gray-700">
                     Extraction Instruction (Plain Language)
                   </label>
-                  <span className="text-[10px] text-gray-400">Tell AI exactly what repeating elements to extract</span>
+                  <span className="text-[10px] text-gray-400">Write any natural language instruction — flexible & generic</span>
                 </div>
                 <textarea
                   rows={3}
-                  placeholder='e.g. "Extract the blog article title, author name, publication date, and article URL"'
+                  placeholder='e.g. "Extract company overview, address, and contact info" or "Extract team members, job titles, and LinkedIn or email" or "Extract products, prices, and descriptions"'
                   value={describeInstruction}
                   onChange={(e) => setDescribeInstruction(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white resize-none"
@@ -1251,10 +1318,11 @@ export default function WebScraperWorkspace({
                 <div className="flex items-center gap-1.5 flex-wrap pt-1.5">
                   <span className="text-[10px] text-gray-400 font-medium">Quick examples:</span>
                   {[
+                    { label: 'Company Overview & Contacts', text: 'Extract company name, about overview, address, phone number, and social links', cols: 'company, overview, address, phone, socials' },
+                    { label: 'Team Members', text: 'Extract person name, job title, and linkedin or email', cols: 'name, role, contact' },
                     { label: 'Articles & Blogs', text: 'Extract blog article title, author name, publication date, and article URL', cols: 'title, author, date, url' },
                     { label: 'Product Catalog', text: 'Extract product title, price, in-stock availability, and product link', cols: 'title, price, stock, url' },
-                    { label: 'Company Directory', text: 'Extract company name, website link, phone, and address', cols: 'name, website, phone, address' },
-                    { label: 'Team Members', text: 'Extract person name, job title, and linkedin or email', cols: 'name, role, contact' },
+                    { label: 'Services Offered', text: 'Extract service title, description, and link', cols: 'service, description, url' },
                   ].map((ex, idx) => (
                     <button
                       key={idx}
@@ -1747,20 +1815,22 @@ export default function WebScraperWorkspace({
                     <label className="block font-semibold text-gray-800 text-[11px]">
                       Extraction Instruction (Plain Language)
                     </label>
-                    <span className="text-[10px] text-indigo-600 font-medium">Applied to each target URL</span>
+                    <span className="text-[10px] text-indigo-600 font-medium">Applied generic extraction to each target site</span>
                   </div>
                   <textarea
                     rows={2}
-                    placeholder='e.g. "Extract article title, author name, date, and article link"'
+                    placeholder='e.g. "Extract company overview, address, and phone" or "Extract article title, author, date, and link"'
                     value={newJobInstruction}
                     onChange={(e) => setNewJobInstruction(e.target.value)}
                     className="w-full px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-xs resize-none"
                   />
                   <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                     {[
+                      'Overview & Contacts',
                       'Articles (title, author, date, link)',
                       'Catalog (product, price, stock, link)',
-                      'Directory (name, website, phone)',
+                      'Team Members (name, role, email)',
+                      'Services (title, details)',
                     ].map((s, idx) => (
                       <button
                         key={idx}

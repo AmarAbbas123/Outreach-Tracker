@@ -78,6 +78,52 @@ const prospectSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    socialLinkedin: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    socialTwitter: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    socialFacebook: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    socialInstagram: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    socialYoutube: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    socialGithub: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    socialTiktok: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    socialOther: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    socialLinks: [
+      {
+        network: { type: String, trim: true },
+        url: { type: String, trim: true },
+      },
+    ],
     emailSourceUrl: {
       type: String,
       trim: true,
