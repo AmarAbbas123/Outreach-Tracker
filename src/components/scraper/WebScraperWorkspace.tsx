@@ -200,7 +200,13 @@ export default function WebScraperWorkspace({
   useEffect(() => {
     if (!activeJobId) return
 
-    const eventSource = new EventSource(`/api/v1/scrape/jobs/${activeJobId}/events`)
+    const baseURL = (api.defaults.baseURL || '').replace(/\/$/, '')
+    const token = (api.defaults.headers.common as any)?.Authorization?.replace(/^Bearer\s+/i, '') || ''
+    const streamUrl = token
+      ? `${baseURL}/scrape/jobs/${activeJobId}/events?token=${encodeURIComponent(token)}`
+      : `${baseURL}/scrape/jobs/${activeJobId}/events`
+
+    const eventSource = new EventSource(streamUrl)
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data)
@@ -209,7 +215,6 @@ export default function WebScraperWorkspace({
           queryClient.invalidateQueries({ queryKey: ['datasets-list'] })
           onProspectsUpdated?.()
         } else {
-          // Update local cache counts
           queryClient.setQueryData(['scrape-jobs'], (old: ScrapeJob[] | undefined) => {
             if (!old) return old
             return old.map((j) =>
@@ -415,8 +420,8 @@ export default function WebScraperWorkspace({
           alert('Please select a recipe first.')
           return
         }
-        const res = await api.post('/scrape/analyze', { url: firstUrl })
-        setTestResult({ mode: 'recipe', data: res.data.data })
+        const res = await api.post('/scrape/analyze', { url: firstUrl, recipe: recipeObj })
+        setTestResult({ mode: 'recipe', data: { ...res.data.data, rows: res.data.data?.recipeRows || [] } })
       } else {
         const res = await api.post('/scrape/preview', { url: firstUrl })
         setTestResult({ mode: 'prospect', data: res.data.data })
@@ -794,7 +799,9 @@ export default function WebScraperWorkspace({
                   >
                     <Link2 size={13} /> Links
                     <span className="px-1.5 py-0.2 bg-gray-200 rounded-full text-[10px]">
-                      {(analyzeResult.links.internal?.length || 0) + (analyzeResult.links.external?.length || 0)}
+                      {Array.isArray(analyzeResult.links)
+                        ? analyzeResult.links.length
+                        : (analyzeResult.links.internal?.length || 0) + (analyzeResult.links.external?.length || 0)}
                     </span>
                   </button>
                 )}
@@ -1127,59 +1134,63 @@ export default function WebScraperWorkspace({
               {analyzeActiveSubTab === 'tables' && (
                 <div className="space-y-4">
                   {analyzeResult.tables && analyzeResult.tables.length > 0 ? (
-                    analyzeResult.tables.map((tbl: any, idx: number) => (
-                      <div key={idx} className="border border-gray-200 rounded-xl overflow-hidden">
-                        <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-                          <span className="font-bold text-gray-800 text-xs">
-                            Table #{idx + 1} ({tbl.rows?.length || 0} rows, {tbl.headers?.length || 0} columns)
-                          </span>
-                          <button
-                            onClick={() => {
-                              const columns = tbl.headers.map((h: string, cIdx: number) => ({
-                                id: `col_${cIdx}`,
-                                name: h || `Column ${cIdx + 1}`,
-                              }))
-                              const formattedRows = tbl.rows.map((r: string[]) => {
-                                const rowObj: any = {}
-                                tbl.headers.forEach((h: string, cIdx: number) => {
-                                  rowObj[h || `Column ${cIdx + 1}`] = r[cIdx] || ''
+                    analyzeResult.tables.map((tbl: any, idx: number) => {
+                      const headers = tbl.columns || []
+                      const rowObjects = tbl.rows || []
+                      return (
+                        <div key={idx} className="border border-gray-200 rounded-xl overflow-hidden">
+                          <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between">
+                            <span className="font-bold text-gray-800 text-xs">
+                              {tbl.name || `Table #${idx + 1}`} ({rowObjects.length} rows, {headers.length} columns)
+                            </span>
+                            <button
+                              onClick={() => {
+                                const columns = headers.map((h: string, cIdx: number) => ({
+                                  id: `col_${cIdx}`,
+                                  name: h || `Column ${cIdx + 1}`,
+                                }))
+                                const formattedRows = rowObjects.map((r: any) => {
+                                  const rowObj: any = {}
+                                  headers.forEach((h: string) => {
+                                    rowObj[h] = r[h] ?? ''
+                                  })
+                                  return rowObj
                                 })
-                                return rowObj
-                              })
-                              handleSendToCleaning(`Table from ${analyzeResult.domain || 'Site'}`, formattedRows, columns)
-                            }}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold cursor-pointer"
-                          >
-                            <FileSpreadsheet size={12} /> Send Table to Data Cleaning
-                          </button>
-                        </div>
+                                handleSendToCleaning(`Table from ${analyzeResult.domain || 'Site'}`, formattedRows, columns)
+                              }}
+                              className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold cursor-pointer"
+                            >
+                              <FileSpreadsheet size={12} /> Send Table to Data Cleaning
+                            </button>
+                          </div>
 
-                        <div className="overflow-x-auto max-h-60">
-                          <table className="w-full text-left text-[11px]">
-                            <thead className="bg-gray-100 text-gray-700 border-b border-gray-200 sticky top-0">
-                              <tr>
-                                {tbl.headers?.map((h: string, hIdx: number) => (
-                                  <th key={hIdx} className="px-2.5 py-1.5 font-semibold">
-                                    {h || `Col ${hIdx + 1}`}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                              {tbl.rows?.slice(0, 15).map((row: string[], rIdx: number) => (
-                                <tr key={rIdx} className="hover:bg-gray-50">
-                                  {row.map((val: string, cIdx: number) => (
-                                    <td key={cIdx} className="px-2.5 py-1.5 text-gray-800 truncate max-w-xs">
-                                      {val}
-                                    </td>
+                          <div className="overflow-x-auto max-h-60">
+                            <table className="w-full text-left text-[11px]">
+                              <thead className="bg-gray-100 text-gray-700 border-b border-gray-200 sticky top-0">
+                                <tr>
+                                  {headers.map((h: string, hIdx: number) => (
+                                    <th key={hIdx} className="px-2.5 py-1.5 font-semibold">
+                                      {h || `Col ${hIdx + 1}`}
+                                    </th>
                                   ))}
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                {rowObjects.slice(0, 15).map((row: any, rIdx: number) => (
+                                  <tr key={rIdx} className="hover:bg-gray-50">
+                                    {headers.map((h: string, cIdx: number) => (
+                                      <td key={cIdx} className="px-2.5 py-1.5 text-gray-800 truncate max-w-xs">
+                                        {String(row[h] ?? '')}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      )
+                    })
                   ) : (
                     <div className="p-8 text-center text-xs text-gray-400">No HTML tables detected on this page.</div>
                   )}
@@ -1190,33 +1201,34 @@ export default function WebScraperWorkspace({
               {analyzeActiveSubTab === 'lists' && (
                 <div className="space-y-3">
                   {analyzeResult.lists && analyzeResult.lists.length > 0 ? (
-                    analyzeResult.lists.map((lst: any, idx: number) => (
-                      <div key={idx} className="border border-gray-200 rounded-xl p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-gray-800 text-xs">
-                            Repeated Structure #{idx + 1} ({lst.items?.length || 0} items)
-                          </span>
-                          <button
-                            onClick={() => {
-                              const rows = lst.items.map((it: any) =>
-                                typeof it === 'string' ? { Item: it } : it
-                              )
-                              handleSendToCleaning(`List from ${analyzeResult.domain || 'Site'}`, rows)
-                            }}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold cursor-pointer"
-                          >
-                            <FileSpreadsheet size={12} /> Send to Data Cleaning
-                          </button>
+                    analyzeResult.lists.map((lst: any, idx: number) => {
+                      const items = lst.rows || lst.items || []
+                      return (
+                        <div key={idx} className="border border-gray-200 rounded-xl p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-gray-800 text-xs">
+                              {lst.name || `Repeated Structure #${idx + 1}`} ({items.length} items)
+                            </span>
+                            <button
+                              onClick={() => {
+                                const rows = items.map((it: any) => (typeof it === 'string' ? { Item: it } : it))
+                                handleSendToCleaning(`List from ${analyzeResult.domain || 'Site'}`, rows)
+                              }}
+                              className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold cursor-pointer"
+                            >
+                              <FileSpreadsheet size={12} /> Send to Data Cleaning
+                            </button>
+                          </div>
+                          <div className="bg-gray-50 rounded-lg p-2 max-h-48 overflow-y-auto space-y-1 text-xs">
+                            {items.slice(0, 10).map((it: any, iIdx: number) => (
+                              <div key={iIdx} className="text-gray-700 truncate border-b border-gray-200/50 pb-1">
+                                {typeof it === 'string' ? it : it.Title || JSON.stringify(it)}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div className="bg-gray-50 rounded-lg p-2 max-h-48 overflow-y-auto space-y-1 text-xs">
-                          {lst.items?.slice(0, 10).map((it: any, iIdx: number) => (
-                            <div key={iIdx} className="text-gray-700 truncate border-b border-gray-200/50 pb-1">
-                              {typeof it === 'string' ? it : JSON.stringify(it)}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))
+                      )
+                    })
                   ) : (
                     <div className="p-8 text-center text-xs text-gray-400">No repeated card/list patterns detected.</div>
                   )}
@@ -1226,33 +1238,50 @@ export default function WebScraperWorkspace({
               {/* Sub-tab 4: Links */}
               {analyzeActiveSubTab === 'links' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  <div className="border border-gray-200 rounded-xl p-3 space-y-2">
-                    <span className="font-bold text-gray-700 block">
-                      Internal Links ({analyzeResult.links?.internal?.length || 0})
-                    </span>
-                    <div className="max-h-60 overflow-y-auto space-y-1.5">
-                      {analyzeResult.links?.internal?.slice(0, 30).map((l: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between text-[11px] border-b border-gray-100 pb-1">
-                          <span className="truncate max-w-[200px] text-gray-800">{l.text || l.href}</span>
-                          <span className="text-gray-400 font-mono text-[10px]">{l.href}</span>
+                  {(() => {
+                    const linksArr = Array.isArray(analyzeResult.links) ? analyzeResult.links : []
+                    const internal = Array.isArray(analyzeResult.links?.internal)
+                      ? analyzeResult.links.internal
+                      : linksArr.filter((l: any) => l.Type === 'Internal')
+                    const external = Array.isArray(analyzeResult.links?.external)
+                      ? analyzeResult.links.external
+                      : linksArr.filter((l: any) => l.Type === 'External')
+                    return (
+                      <>
+                        <div className="border border-gray-200 rounded-xl p-3 space-y-2">
+                          <span className="font-bold text-gray-700 block">
+                            Internal Links ({internal.length})
+                          </span>
+                          <div className="max-h-60 overflow-y-auto space-y-1.5">
+                            {internal.slice(0, 30).map((l: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between text-[11px] border-b border-gray-100 pb-1 gap-2">
+                                <span className="truncate max-w-[200px] text-gray-800">{l.Anchor || l.text || l.URL || l.href}</span>
+                                <a href={l.URL || l.href} target="_blank" rel="noreferrer" className="text-gray-500 font-mono text-[10px] truncate max-w-[180px] hover:text-indigo-600">
+                                  {l.URL || l.href}
+                                </a>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  <div className="border border-gray-200 rounded-xl p-3 space-y-2">
-                    <span className="font-bold text-gray-700 block">
-                      External Outbound Links ({analyzeResult.links?.external?.length || 0})
-                    </span>
-                    <div className="max-h-60 overflow-y-auto space-y-1.5">
-                      {analyzeResult.links?.external?.slice(0, 30).map((l: any, idx: number) => (
-                        <div key={idx} className="flex items-center justify-between text-[11px] border-b border-gray-100 pb-1">
-                          <span className="truncate max-w-[200px] text-gray-800">{l.text || l.href}</span>
-                          <span className="text-indigo-600 font-mono text-[10px] truncate max-w-[150px]">{l.href}</span>
+                        <div className="border border-gray-200 rounded-xl p-3 space-y-2">
+                          <span className="font-bold text-gray-700 block">
+                            External Outbound Links ({external.length})
+                          </span>
+                          <div className="max-h-60 overflow-y-auto space-y-1.5">
+                            {external.slice(0, 30).map((l: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between text-[11px] border-b border-gray-100 pb-1 gap-2">
+                                <span className="truncate max-w-[200px] text-gray-800">{l.Anchor || l.text || l.URL || l.href}</span>
+                                <a href={l.URL || l.href} target="_blank" rel="noreferrer" className="text-indigo-600 font-mono text-[10px] truncate max-w-[180px]">
+                                  {l.URL || l.href}
+                                </a>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
+                      </>
+                    )
+                  })()}
                 </div>
               )}
 

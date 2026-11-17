@@ -28,12 +28,12 @@ export const previewSite = async (req, res, next) => {
 // POST /api/v1/scrape/analyze
 export const analyzeUrl = async (req, res, next) => {
   try {
-    const { url } = req.body;
+    const { url, recipe } = req.body;
     if (!url) {
       return res.status(400).json({ success: false, message: 'URL is required.' });
     }
 
-    const data = await analyzeAnyUrl(url);
+    const data = await analyzeAnyUrl(url, recipe || null);
     res.json({ success: true, data });
   } catch (err) {
     next(err);

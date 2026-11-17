@@ -402,11 +402,23 @@ Return JSON matching:
 }
 
 /**
- * Scrape Any URL: Auto-detect
+ * Scrape Any URL: Auto-detect (optionally run a provided recipe)
  */
-export async function analyzeAnyUrl(url) {
+export async function analyzeAnyUrl(url, recipe = null) {
   const { html, finalUrl } = await safeFetchHtml(url);
   const data = extractPageData(html, finalUrl);
+
+  let recipeResult = null;
+  if (recipe && recipe.rowSelector && Array.isArray(recipe.fields)) {
+    try {
+      const testRecipe = recipeSchema.parse({
+        rowSelector: recipe.rowSelector,
+        fields: recipe.fields,
+        nextPageSelector: recipe.nextPageSelector || '',
+      });
+      recipeResult = runRecipe(html, testRecipe, finalUrl);
+    } catch {}
+  }
 
   return {
     url: finalUrl,
@@ -439,6 +451,8 @@ export async function analyzeAnyUrl(url) {
     tables: data.tables,
     lists: data.lists,
     links: data.links,
+    recipeRows: recipeResult?.rows || [],
+    recipeNextUrl: recipeResult?.nextUrl || '',
     contacts: {
       emails: data.emails,
       phones: data.phones || [],
