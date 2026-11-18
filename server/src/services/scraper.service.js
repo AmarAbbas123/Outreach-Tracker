@@ -839,6 +839,7 @@ export async function processScrapeJob(jobId) {
 
     const insertedRows = [];
     let currentRowIdx = 0;
+    const rowIdxCounter = { value: 0 }; // thread-safe counter for parallel tasks
 
     // Process tasks: 3 parallel workers, polite per-task handling
     const batchSize = 3;
@@ -926,7 +927,7 @@ export async function processScrapeJob(jobId) {
                   });
                   insertedRows.push({
                     dataset: dataset._id,
-                    index: currentRowIdx++,
+                    index: rowIdxCounter.value++,
                     cells,
                     original: { ...cells },
                     isDeleted: false,
@@ -995,7 +996,7 @@ export async function processScrapeJob(jobId) {
 
               insertedRows.push({
                 dataset: dataset._id,
-                index: currentRowIdx++,
+                index: rowIdxCounter.value++,
                 cells,
                 original: { ...cells },
                 isDeleted: false,
@@ -1051,7 +1052,7 @@ export async function processScrapeJob(jobId) {
               job.counts.failed += 1;
             }
           } finally {
-            task.resultRowIndex = currentRowIdx;
+            task.resultRowIndex = rowIdxCounter.value;
             await task.save();
             job.counts.done += 1;
           }

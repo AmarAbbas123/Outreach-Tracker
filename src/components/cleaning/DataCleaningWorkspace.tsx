@@ -28,6 +28,28 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as XLSX from 'xlsx'
 import api from '../../api/client'
 
+// ─── Utilities ───────────────────────────────────────────────────────────────
+
+/**
+ * Client-side normalizeDomain: strips protocol, www, paths and returns
+ * a clean root domain (e.g. "https://www.example.com/page" → "example.com").
+ * Mirrors the server-side util so cleaning ops work without an API round-trip.
+ */
+function normalizeDomain(raw: string): string {
+  if (!raw || typeof raw !== 'string') return ''
+  let v = raw.trim()
+  if (!v) return ''
+  // Strip protocol
+  v = v.replace(/^https?:\/\//i, '')
+  // Strip www.
+  v = v.replace(/^www\./i, '')
+  // Keep only the host part (drop path, query, hash)
+  v = v.split('/')[0].split('?')[0].split('#')[0].toLowerCase().trim()
+  // Basic validity check
+  if (!v.includes('.') || v.length < 3) return ''
+  return v
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface DatasetColumn {

@@ -33,7 +33,7 @@ import {
   Info,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import api from '../../api/client'
+import api, { getAccessToken } from '../../api/client'
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -201,7 +201,7 @@ export default function WebScraperWorkspace({
     if (!activeJobId) return
 
     const baseURL = (api.defaults.baseURL || '').replace(/\/$/, '')
-    const token = (api.defaults.headers.common as any)?.Authorization?.replace(/^Bearer\s+/i, '') || ''
+    const token = getAccessToken() || (api.defaults.headers.common as any)?.Authorization?.replace(/^Bearer\s+/i, '') || ''
     const streamUrl = token
       ? `${baseURL}/scrape/jobs/${activeJobId}/events?token=${encodeURIComponent(token)}`
       : `${baseURL}/scrape/jobs/${activeJobId}/events`
