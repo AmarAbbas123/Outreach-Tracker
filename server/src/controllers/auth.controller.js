@@ -206,18 +206,19 @@ export const devResetPassword = async (req, res, next) => {
 
     const existing = await User.findOne({ email: email.toLowerCase().trim() });
     if (!existing) {
-      // Create new workspace + user
-      const workspace = new Workspace({ name: `${email.split('@')[0]}'s Workspace`, owner: null });
-      await workspace.save();
+      // Create user first to get _id, then workspace
       const newUser = new User({
         name: email.split('@')[0],
         email: email.toLowerCase().trim(),
         passwordHash,
         role: 'owner',
-        workspace: workspace._id,
+        timezone: 'UTC',
+        signature: '',
+        followUpDays: 3,
       });
-      workspace.owner = newUser._id;
+      const workspace = new Workspace({ name: `${newUser.name}'s Workspace`, owner: newUser._id });
       await workspace.save();
+      newUser.workspace = workspace._id;
       await newUser.save();
       return res.json({
         success: true,
