@@ -6,6 +6,7 @@ import {
   logout,
   forgotPassword,
   resetPassword,
+  devResetPassword,
   getMe,
   updateMe,
 } from '../controllers/auth.controller.js';
@@ -25,6 +26,7 @@ router.post('/refresh', refresh);
 router.post('/logout', logout);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+router.post('/dev-reset', devResetPassword); // DEV ONLY — disabled in production
 
 router.get('/me', requireAuth, getMe);
 router.put('/me', requireAuth, validate(updateProfileSchema), updateMe);

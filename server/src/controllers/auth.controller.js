@@ -177,6 +177,69 @@ export const resetPassword = async (req, res) => {
   });
 };
 
+/**
+ * DEV ONLY: Reset or create any user's password directly.
+ * POST /api/v1/auth/dev-reset  { email, newPassword, secret: "dev-reset-2024" }
+ * Disabled automatically in production (NODE_ENV !== 'development').
+ */
+export const devResetPassword = async (req, res, next) => {
+  if (process.env.NODE_ENV !== 'development') {
+    return res.status(404).json({ success: false, message: 'Not found' });
+  }
+  try {
+    const { email, newPassword, secret } = req.body;
+    if (secret !== 'dev-reset-2024') {
+      return res.status(403).json({ success: false, message: 'Invalid secret' });
+    }
+    if (!email || !newPassword || newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'email and newPassword (min 6 chars) required',
+      });
+    }
+
+    // Show all existing users in response for convenience
+    const allUsers = await User.find({}, 'email name').lean();
+
+    const salt = await bcrypt.genSalt(12);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!existing) {
+      // Create new workspace + user
+      const workspace = new Workspace({ name: `${email.split('@')[0]}'s Workspace`, owner: null });
+      await workspace.save();
+      const newUser = new User({
+        name: email.split('@')[0],
+        email: email.toLowerCase().trim(),
+        passwordHash,
+        role: 'owner',
+        workspace: workspace._id,
+      });
+      workspace.owner = newUser._id;
+      await workspace.save();
+      await newUser.save();
+      return res.json({
+        success: true,
+        action: 'created',
+        message: `New user created: ${email}`,
+        allUsers: allUsers.map((u) => u.email),
+      });
+    }
+
+    existing.passwordHash = passwordHash;
+    await existing.save();
+    return res.json({
+      success: true,
+      action: 'reset',
+      message: `Password reset for: ${email}`,
+      allUsers: allUsers.map((u) => u.email),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getMe = async (req, res) => {
   return res.json({
     success: true,
