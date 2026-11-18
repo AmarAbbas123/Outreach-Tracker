@@ -383,11 +383,15 @@ Return JSON matching:
 
   for (const model of CANDIDATE_MODELS) {
     try {
-      const res = await client.models.generateContent({
+      const aiCall = client.models.generateContent({
         model,
         contents: prompt,
         config: { responseMimeType: 'application/json' },
       });
+      const timeout = new Promise((_, rej) =>
+        setTimeout(() => rej(new Error('AI timeout after 30s')), 30000)
+      );
+      const res = await Promise.race([aiCall, timeout]);
       const parsed = JSON.parse(res.text || '{}');
       if (Array.isArray(parsed.emails)) {
         return parsed.emails.map((e) => ({
@@ -508,11 +512,15 @@ Return valid JSON with this exact structure:
 
   for (const model of CANDIDATE_MODELS) {
     try {
-      const res = await client.models.generateContent({
+      const aiCall = client.models.generateContent({
         model,
         contents: prompt,
         config: { responseMimeType: 'application/json' },
       });
+      const timeout = new Promise((_, rej) =>
+        setTimeout(() => rej(new Error('AI timeout')), 25000)
+      );
+      const res = await Promise.race([aiCall, timeout]);
       const parsed = JSON.parse(res.text || '{}');
       if (Array.isArray(parsed.rows) && parsed.rows.length > 0) {
         return parsed.rows;
@@ -596,8 +604,8 @@ export async function describeWithAI({ url, instruction, columnNames = [] }) {
   const pageTitle = $('title').text().trim();
   const headings = $('h1, h2, h3').map((_, el) => $(el).text().trim()).get().slice(0, 15).join(' | ');
   const keyLinks = $('a[href]').map((_, el) => `${$(el).text().trim()} (${$(el).attr('href')})`).get().filter((l) => l.length > 5 && !l.startsWith('#')).slice(0, 30).join('\n');
-  const sampleHtml = $('body').html()?.slice(0, 30000) || '';
-  const textSample = $('body').text().replace(/\s+/g, ' ').slice(0, 15000);
+  const sampleHtml = $('body').html()?.slice(0, 20000) || '';
+  const textSample = $('body').text().replace(/\s+/g, ' ').slice(0, 12000);
 
   const client = getAIClient();
   if (!client) {
@@ -642,11 +650,15 @@ Return valid JSON with this exact structure:
 
   for (const model of CANDIDATE_MODELS) {
     try {
-      const res = await client.models.generateContent({
+      const aiCall = client.models.generateContent({
         model,
         contents: prompt,
         config: { responseMimeType: 'application/json' },
       });
+      const timeout = new Promise((_, rej) =>
+        setTimeout(() => rej(new Error('AI timeout after 30s')), 30000)
+      );
+      const res = await Promise.race([aiCall, timeout]);
 
       const parsed = JSON.parse(res.text || '{}');
       if (parsed.nextPageSelector === null) parsed.nextPageSelector = '';

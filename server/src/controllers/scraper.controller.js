@@ -18,7 +18,7 @@ export const previewSite = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'URL or domain is required.' });
     }
 
-    const result = await scrapeProspectSite(url, { maxPagesPerSite: 3, useAI: true });
+    const result = await scrapeProspectSite(url, { maxPagesPerSite: 5, useAI: true });
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
