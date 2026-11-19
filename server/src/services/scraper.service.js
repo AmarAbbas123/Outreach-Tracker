@@ -54,7 +54,7 @@ const BROWSER_USER_AGENT =
  * Safe fetch with SSRF check, robots check, timeout, browser UA, size limits,
  * and automatic protocol fallbacks.
  */
-export async function safeFetchHtml(inputUrl, { ignoreRobots = false, timeoutMs = 8000 } = {}) {
+export async function safeFetchHtml(inputUrl, { ignoreRobots = false, timeoutMs = 15000 } = {}) {
   async function fetchCandidate(urlToFetch) {
     const safeUrl = await assertSafeUrl(urlToFetch);
     const targetUrl = safeUrl.href;
@@ -68,34 +68,40 @@ export async function safeFetchHtml(inputUrl, { ignoreRobots = false, timeoutMs 
       }
     }
 
-    // Direct fetch with modern browser headers for maximum compatibility & speed
-    const res = await fetch(targetUrl, {
-      headers: {
-        'User-Agent': BROWSER_USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
-      },
-      signal: AbortSignal.timeout(timeoutMs),
-      redirect: 'follow',
-    });
+    // Direct fetch with modern browser headers and explicitly managed AbortController
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(new Error(`Fetch timed out after ${timeoutMs}ms`)), timeoutMs);
 
-    if (!res.ok) {
-      throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
+    try {
+      const res = await fetch(targetUrl, {
+        headers: {
+          'User-Agent': BROWSER_USER_AGENT,
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"Windows"',
+        },
+        signal: controller.signal,
+        redirect: 'follow',
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
+      }
+
+      // Final destination check on redirects
+      await assertSafeUrl(res.url);
+
+      // Buffer page up to 10MB
+      const rawText = await res.text();
+      const maxChars = 10 * 1024 * 1024;
+      const html = rawText.length > maxChars ? rawText.slice(0, maxChars) : rawText;
+
+      return { html, finalUrl: res.url };
+    } finally {
+      clearTimeout(timer);
     }
-
-    // Final destination check on redirects
-    await assertSafeUrl(res.url);
-
-    // Buffer page up to 10MB
-    const buffer = await res.arrayBuffer();
-    const maxBytes = 10 * 1024 * 1024;
-    const activeBuffer = buffer.byteLength > maxBytes ? buffer.slice(0, maxBytes) : buffer;
-
-    const html = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true }).decode(activeBuffer);
-    return { html, finalUrl: res.url };
   }
 
   const trimmed = String(inputUrl || '').trim();
@@ -144,7 +150,7 @@ export async function safeFetchHtml(inputUrl, { ignoreRobots = false, timeoutMs 
  */
 export async function scrapeProspectSite(domainOrUrl, options = {}) {
   const deadline = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Site scrape timeout after 35s')), 35000)
+    setTimeout(() => reject(new Error('Site scrape timeout after 45s')), 45000)
   );
 
   return Promise.race([_doScrapeProspectSite(domainOrUrl, options), deadline]);
@@ -178,7 +184,7 @@ async function _doScrapeProspectSite(domainOrUrl, options = {}) {
     }
   }
 
-  const maxPages = Math.max(1, Math.min(Number(options.maxPagesPerSite) || 5, 20));
+  const maxPages = Math.max(1, Math.min(Number(options.maxPagesPerSite) || 8, 20));
   const allEmails = [...homeResult.emails];
   const allPhones = [...(homeResult.phones || [])];
   const allAddresses = [...(homeResult.addresses || [])];
@@ -204,11 +210,17 @@ async function _doScrapeProspectSite(domainOrUrl, options = {}) {
   const standardPaths = [
     '/contact',
     '/contact-us',
+    '/get-in-touch',
     '/about',
     '/about-us',
+    '/team',
+    '/our-team',
+    '/leadership',
+    '/people',
+    '/services',
+    '/our-services',
     '/write-for-us',
     '/guest-post',
-    '/team',
   ];
 
   for (const path of standardPaths) {
@@ -218,14 +230,22 @@ async function _doScrapeProspectSite(domainOrUrl, options = {}) {
     }
   }
 
-  // Visit extra pages up to maxPages limit with fast 5s timeout
-  for (const pageUrl of subpagesToVisit) {
-    if (pagesVisited.length >= maxPages) break;
-    if (pagesVisited.includes(pageUrl)) continue;
+  // Visit extra pages up to maxPages limit in parallel batches of 3
+  const targetSubpages = subpagesToVisit.filter((u) => !pagesVisited.includes(u));
+  const subpageBatchSize = 3;
 
-    try {
-      await new Promise((r) => setTimeout(r, 200));
-      const { html, finalUrl } = await safeFetchHtml(pageUrl, { timeoutMs: 5000, ignoreRobots: true });
+  for (let b = 0; b < targetSubpages.length; b += subpageBatchSize) {
+    if (pagesVisited.length >= maxPages) break;
+    const batch = targetSubpages.slice(b, b + subpageBatchSize);
+
+    const batchResults = await Promise.allSettled(
+      batch.map((pUrl) => safeFetchHtml(pUrl, { timeoutMs: 6000, ignoreRobots: true }))
+    );
+
+    for (const res of batchResults) {
+      if (res.status !== 'fulfilled') continue;
+      const { html, finalUrl } = res.value;
+      if (pagesVisited.includes(finalUrl)) continue;
       pagesVisited.push(finalUrl);
 
       const subData = extractPageData(html, finalUrl);
@@ -272,7 +292,7 @@ async function _doScrapeProspectSite(domainOrUrl, options = {}) {
         homeResult.guestPostPageUrl = subData.guestPostPageUrl;
         homeResult.hasGuestPostPage = true;
       }
-    } catch {}
+    }
   }
 
   // AI Contact Extraction Fallback if 0 emails found
@@ -442,25 +462,139 @@ export async function analyzeAnyUrl(url, recipe = null) {
 }
 
 /**
+ * Detect if an instruction targets a specific subpage type (e.g. /team, /services, /blog)
+ * and find the best internal subpage link on the current page.
+ */
+export function findRelevantSubpage(html, originUrl, instruction) {
+  if (!html || !instruction) return null;
+  const instLower = instruction.toLowerCase();
+
+  const patterns = [
+    {
+      regex: /\b(team|members?|staff|people|founders?|leadership|executives?|employees?|directors?)\b/i,
+      primaryMatch: /\b(team|our-team|our_team|leadership|people|staff|management|executives?)\b/i,
+      secondaryMatch: /\b(about-us|about|who-we-are)\b/i,
+    },
+    {
+      regex: /\b(services?|solutions?|offerings?|what we do|capabilities)\b/i,
+      primaryMatch: /\b(services?|our-services?|our_services?|solutions?)\b/i,
+      secondaryMatch: /\b(what-we-do|capabilities|offerings?)\b/i,
+    },
+    {
+      regex: /\b(blogs?|posts?|articles?|news|insights?|resources?)\b/i,
+      primaryMatch: /\b(blogs?|posts?|articles?)\b/i,
+      secondaryMatch: /\b(news|insights?|resources?)\b/i,
+    },
+    {
+      regex: /\b(contacts?|support|reach us|locations?)\b/i,
+      primaryMatch: /\b(contact|contact-us|contact_us)\b/i,
+      secondaryMatch: /\b(reach-us|support|locations?)\b/i,
+    },
+    {
+      regex: /\b(pric(ing|e)|plans?|packages?|rates?)\b/i,
+      primaryMatch: /\b(pricing|plans?|packages?)\b/i,
+      secondaryMatch: /\b(rates?|cost)\b/i,
+    },
+    {
+      regex: /\b(portfolio|projects?|case stud(y|ies)|works?|clients?)\b/i,
+      primaryMatch: /\b(portfolio|case-studies|projects?|our-work)\b/i,
+      secondaryMatch: /\b(works?|clients?)\b/i,
+    },
+    {
+      regex: /\b(careers?|jobs?|openings?)\b/i,
+      primaryMatch: /\b(careers?|jobs?|openings?)\b/i,
+      secondaryMatch: /\b(work-with-us)\b/i,
+    },
+  ];
+
+  let activeMatch = null;
+  for (const p of patterns) {
+    if (p.regex.test(instLower)) {
+      activeMatch = p;
+      break;
+    }
+  }
+
+  if (!activeMatch) return null;
+
+  try {
+    const origin = new URL(originUrl).origin;
+    const $ = cheerio.load(html);
+    const candidates = [];
+
+    $('a[href]').each((_, el) => {
+      const href = ($(el).attr('href') || '').trim();
+      const text = $(el).text().replace(/\s+/g, ' ').trim().toLowerCase();
+      if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('javascript:')) return;
+
+      try {
+        const fullUrl = new URL(href, origin);
+        if (fullUrl.origin !== origin) return;
+        const pathname = fullUrl.pathname.toLowerCase();
+        if (pathname === '/' || pathname === '') return;
+
+        let score = 0;
+        if (activeMatch.primaryMatch?.test(pathname)) score += 30;
+        if (activeMatch.primaryMatch?.test(text)) score += 20;
+        if (activeMatch.secondaryMatch?.test(pathname)) score += 10;
+        if (activeMatch.secondaryMatch?.test(text)) score += 5;
+
+        if (score > 0) {
+          candidates.push({ url: fullUrl.href, score, pathname });
+        }
+      } catch {}
+    });
+
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => b.score - a.score);
+      const best = candidates[0].url;
+      if (best.replace(/\/$/, '') !== originUrl.replace(/\/$/, '')) {
+        return best;
+      }
+    }
+  } catch {}
+
+  return null;
+}
+
+/**
  * Generic Universal Extractor — combines smart Cheerio element parsing with Gemini AI.
+ * Strips navigation/menus/headers so menus are never extracted as records.
  * If AI is busy/unavailable, falls back gracefully to detected DOM structures so the user ALWAYS gets data.
  */
 async function extractWithAIGeneric(html, finalUrl, instruction) {
-  const $ = cheerio.load(html);
-  $('script, style, svg, noscript, iframe, link, meta, [style*="display:none"]').remove();
+  // Strip navigation, menus, header, footer, aside, scripts, and styles
+  const clean$ = cheerio.load(html);
+  clean$(
+    'nav, header, footer, aside, [role="navigation"], .menu, .navbar, .nav, .site-header, .site-footer, .footer-widgets, #masthead, #footer, .copyright, script, style, svg, noscript, iframe, link, meta, [style*="display:none"]'
+  ).remove();
 
-  const pageTitle = $('title').text().trim();
-  const headings = $('h1, h2, h3, h4').map((_, el) => $(el).text().trim()).get().filter(Boolean).slice(0, 15).join(' | ');
-  const bodyText = $('body').text().replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 6000);
+  const pageTitle = clean$('title').text().trim() || cheerio.load(html)('title').text().trim();
+  const headings = clean$('h1, h2, h3, h4').map((_, el) => clean$(el).text().trim()).get().filter(Boolean).slice(0, 15).join(' | ');
+  const bodyText = clean$('body').text().replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 7000);
 
-  // Auto-detect structured cards / tables via Cheerio as guaranteed fallback
+  // Helper to test if a row is just a navigation menu item
+  const isNavOrGeneric = (text) => {
+    if (!text || typeof text !== 'string') return true;
+    return /^(home|about|about us|services?|our services?|contact|contact us|blog|careers?|privacy policy|terms|terms of service|terms & conditions|disclaimer|copyright.*|menu|navigation|skip to content)$/i.test(text.trim());
+  };
+
+  // Auto-detect structured cards / tables via Cheerio as guaranteed fallback (excluding nav)
   const pageData = extractPageData(html, finalUrl);
   const fallbackRows = [];
+  const rawCandidateRows = [];
 
   if (Array.isArray(pageData.tables) && pageData.tables.length > 0 && pageData.tables[0].rows?.length > 0) {
-    fallbackRows.push(...pageData.tables[0].rows.slice(0, 30));
+    rawCandidateRows.push(...pageData.tables[0].rows.slice(0, 30));
   } else if (Array.isArray(pageData.lists) && pageData.lists.length > 0 && pageData.lists[0].rows?.length > 0) {
-    fallbackRows.push(...pageData.lists[0].rows.slice(0, 30));
+    rawCandidateRows.push(...pageData.lists[0].rows.slice(0, 30));
+  }
+
+  for (const r of rawCandidateRows) {
+    const title = r.Title || r.Name || r['Service Name'] || '';
+    if (!isNavOrGeneric(title)) {
+      fallbackRows.push(r);
+    }
   }
 
   const client = getAIClient();
@@ -474,6 +608,11 @@ Headings: ${headings}
 Page Content:
 ${bodyText}
 
+CRITICAL RULES:
+1. Do NOT extract site navigation links, sitemap links, or footer links (e.g. "Home", "About Us", "Services", "Portfolio", "Blog", "Contact Us", "Terms", "Privacy Policy", or copyrights).
+2. Extract ONLY the actual business records requested (e.g., if asked for services, extract specific services like "Custom Software Development", "Managed IT Services" with their descriptions; if asked for team members, extract actual people with their names and job titles/roles).
+3. If no matching records exist on this page, return { "rows": [] }. Do NOT make up records or substitute navigation links.
+
 Extract matching items as a JSON array of objects with descriptive column names (e.g. Name, Description, Link, etc.).
 Return ONLY JSON:
 {
@@ -482,7 +621,7 @@ Return ONLY JSON:
   ]
 }`;
 
-    for (const model of CANDIDATE_MODELS.slice(0, 2)) {
+    for (const model of CANDIDATE_MODELS) {
       try {
         const aiCall = client.models.generateContent({
           model,
@@ -492,14 +631,20 @@ Return ONLY JSON:
         aiCall.catch(() => {});
         let timer = null;
         const timeoutP = new Promise((_, rej) => {
-          timer = setTimeout(() => rej(new Error('AI timeout')), 8000);
+          timer = setTimeout(() => rej(new Error('AI timeout')), 10000);
         });
         const res = await Promise.race([aiCall, timeoutP]);
         clearTimeout(timer);
         const rawText = (res.text || '').replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
         const parsed = JSON.parse(rawText || '{}');
         if (Array.isArray(parsed.rows) && parsed.rows.length > 0) {
-          return parsed.rows;
+          const filteredRows = parsed.rows.filter((r) => {
+            const val = r.Name || r.Title || r['Service Name'] || '';
+            return !isNavOrGeneric(val);
+          });
+          if (filteredRows.length > 0) {
+            return filteredRows;
+          }
         }
       } catch (err) {
         console.warn(`Model ${model} failed for extractWithAIGeneric: ${err.message}`);
@@ -507,7 +652,7 @@ Return ONLY JSON:
     }
   }
 
-  // Graceful fallback to Cheerio detected cards/tables
+  // Graceful fallback to Cheerio detected cards/tables (filtered)
   if (fallbackRows.length > 0) {
     return fallbackRows;
   }
@@ -526,7 +671,7 @@ Return ONLY JSON:
  * Scrape Any URL: Describe It (AI Recipe Generation)
  */
 export async function describeWithAI({ url, instruction, columnNames = [] }) {
-  const { html, finalUrl } = await safeFetchHtml(url, { ignoreRobots: true, timeoutMs: 8000 });
+  const { html, finalUrl } = await safeFetchHtml(url, { ignoreRobots: true, timeoutMs: 15000 });
   const $ = cheerio.load(html);
 
   const rawText = $('body').text().trim();
@@ -541,7 +686,28 @@ export async function describeWithAI({ url, instruction, columnNames = [] }) {
     );
   }
 
-  const rows = await extractWithAIGeneric(html, finalUrl, instruction);
+  // 1. Check if a relevant subpage should be visited based on instruction (e.g. /team, /services, /blog)
+  const targetSubpage = findRelevantSubpage(html, finalUrl, instruction);
+  let rows = [];
+
+  if (targetSubpage) {
+    try {
+      const subRes = await safeFetchHtml(targetSubpage, { ignoreRobots: true, timeoutMs: 15000 });
+      const subRows = await extractWithAIGeneric(subRes.html, subRes.finalUrl, instruction);
+      // Check if subRows are valid data and not the generic 1-row page fallback
+      if (subRows && subRows.length > 0 && !(subRows.length === 1 && subRows[0].Summary)) {
+        rows = subRows;
+      }
+    } catch (err) {
+      console.warn(`Subpage navigation to ${targetSubpage} failed, falling back to main page:`, err.message);
+    }
+  }
+
+  // 2. Extract from primary page if no subpage rows found
+  if (rows.length === 0) {
+    rows = await extractWithAIGeneric(html, finalUrl, instruction);
+  }
+
   const fields =
     rows.length > 0
       ? Object.keys(rows[0]).map((k) => ({ name: k, selector: '', attr: 'text' }))
@@ -677,7 +843,7 @@ export async function processScrapeJob(jobId) {
           const executeTask = async () => {
             if ((job.inputType === 'any_url' || job.instruction) && (job.recipe || job.instruction)) {
               // Instruction / Recipe Mode
-              const { html, finalUrl } = await safeFetchHtml(task.url, { timeoutMs: 8000 });
+              const { html, finalUrl } = await safeFetchHtml(task.url, { timeoutMs: 10000 });
               task.pagesVisited = [finalUrl];
               let rows = [];
 
@@ -689,7 +855,24 @@ export async function processScrapeJob(jobId) {
               }
 
               if (rows.length === 0 && job.instruction) {
-                rows = await extractWithAIGeneric(html, finalUrl, job.instruction);
+                // Check if a relevant subpage should be visited based on instruction (e.g. /team, /services, /blog)
+                const targetSubpage = findRelevantSubpage(html, finalUrl, job.instruction);
+                if (targetSubpage) {
+                  try {
+                    const subRes = await safeFetchHtml(targetSubpage, { ignoreRobots: true, timeoutMs: 10000 });
+                    task.pagesVisited.push(subRes.finalUrl);
+                    const subRows = await extractWithAIGeneric(subRes.html, subRes.finalUrl, job.instruction);
+                    if (subRows && subRows.length > 0 && !(subRows.length === 1 && subRows[0].Summary)) {
+                      rows = subRows;
+                    }
+                  } catch (err) {
+                    console.warn(`Subpage navigation to ${targetSubpage} failed in task:`, err.message);
+                  }
+                }
+
+                if (rows.length === 0) {
+                  rows = await extractWithAIGeneric(html, finalUrl, job.instruction);
+                }
               }
 
               if (rows.length > 0) {

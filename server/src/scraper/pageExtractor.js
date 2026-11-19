@@ -234,13 +234,26 @@ export function extractPageData(html, pageUrl) {
     '.content li',
   ];
 
+  const navExclusion = 'nav, nav *, header, header *, footer, footer *, aside, aside *, [role="navigation"], [role="navigation"] *, .menu, .menu *, .navbar, .navbar *, .nav, .nav *, .menu-item, .menu-item *, #masthead, #masthead *, #footer, #footer *';
+
   candidateSelectors.forEach((sel) => {
     if (lists.length > 0) return;
-    const items = $(sel).not('nav *, header *, footer *');
+    const items = $(sel).not(navExclusion);
     if (items.length >= 2 && items.length <= 500) {
       const listRows = [];
       items.each((_, el) => {
+        // Exclude if element itself is located inside any navigation container
+        if ($(el).closest('nav, header, footer, aside, [role="navigation"], .menu, .navbar, .nav, #masthead, #footer').length > 0) {
+          return;
+        }
+
         const text = $(el).find('h2, h3, h4, .title, strong').first().text().replace(/\s+/g, ' ').trim() || $(el).text().replace(/\s+/g, ' ').trim().slice(0, 100);
+        
+        // Strictly filter out site navigation links (Home, About Us, Services, Blog, Contact, Privacy, etc.)
+        if (/^(home|about|about us|services?|our services?|contact|contact us|blog|careers?|privacy policy|terms|terms of service|terms & conditions|disclaimer|copyright.*|menu|navigation)$/i.test(text)) {
+          return;
+        }
+
         const link = $(el).find('a[href]').first().attr('href') || '';
         let fullLink = '';
         if (link) {
@@ -266,7 +279,7 @@ export function extractPageData(html, pageUrl) {
         }
       });
 
-      if (listRows.length >= 3) {
+      if (listRows.length >= 2) {
         lists.push({
           id: `list_${sel.replace(/[^a-z0-9]/gi, '_')}`,
           name: `Detected ${sel} Cards (${listRows.length} items)`,

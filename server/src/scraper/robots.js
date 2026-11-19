@@ -11,7 +11,7 @@ export async function isAllowed(pageUrl, userAgent = 'OutreachTracker-Bot/1.0 (+
       try {
         const res = await fetch(robotsUrl, {
           headers: { 'User-Agent': userAgent },
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(3000),
         });
         if (res.status >= 500) {
           parser = 'deny';
