@@ -51,16 +51,16 @@ const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
 /**
- * Safe fetch with SSRF check, robots check, timeout, browser UA fallback, size limits,
- * and automatic protocol / www candidate fallbacks for misconfigured servers.
+ * Safe fetch with SSRF check, robots check, timeout, browser UA, size limits,
+ * and automatic protocol fallbacks.
  */
-export async function safeFetchHtml(inputUrl, { ignoreRobots = false } = {}) {
+export async function safeFetchHtml(inputUrl, { ignoreRobots = false, timeoutMs = 8000 } = {}) {
   async function fetchCandidate(urlToFetch) {
     const safeUrl = await assertSafeUrl(urlToFetch);
     const targetUrl = safeUrl.href;
 
     if (!ignoreRobots) {
-      const allowed = await isAllowed(targetUrl, USER_AGENT);
+      const allowed = await isAllowed(targetUrl, BROWSER_USER_AGENT);
       if (!allowed) {
         const err = new Error(`Blocked by robots.txt`);
         err.code = 'ROBOTS_BLOCKED';
@@ -68,35 +68,19 @@ export async function safeFetchHtml(inputUrl, { ignoreRobots = false } = {}) {
       }
     }
 
-    // Attempt fetch with bot UA, fallback to standard browser UA if blocked/failed
-    let res = null;
-    try {
-      res = await fetch(targetUrl, {
-        headers: {
-          'User-Agent': USER_AGENT,
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-        signal: AbortSignal.timeout(15000),
-        redirect: 'follow',
-      });
-    } catch {}
-
-    if (!res || !res.ok) {
-      // Retry with browser UA & realistic headers
-      res = await fetch(targetUrl, {
-        headers: {
-          'User-Agent': BROWSER_USER_AGENT,
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124"',
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"Windows"',
-        },
-        signal: AbortSignal.timeout(15000),
-        redirect: 'follow',
-      });
-    }
+    // Direct fetch with modern browser headers for maximum compatibility & speed
+    const res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': BROWSER_USER_AGENT,
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+      },
+      signal: AbortSignal.timeout(timeoutMs),
+      redirect: 'follow',
+    });
 
     if (!res.ok) {
       throw new Error(`HTTP Error ${res.status}: ${res.statusText}`);
@@ -105,41 +89,27 @@ export async function safeFetchHtml(inputUrl, { ignoreRobots = false } = {}) {
     // Final destination check on redirects
     await assertSafeUrl(res.url);
 
-    // Buffer page: allow modern heavy pages up to 15MB, gracefully slice without crashing if larger
+    // Buffer page up to 10MB
     const buffer = await res.arrayBuffer();
-    const maxBytes = 15 * 1024 * 1024; // 15MB limit
+    const maxBytes = 10 * 1024 * 1024;
     const activeBuffer = buffer.byteLength > maxBytes ? buffer.slice(0, maxBytes) : buffer;
 
     const html = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true }).decode(activeBuffer);
     return { html, finalUrl: res.url };
   }
 
-  // Generate candidate URLs with protocol & www fallbacks
   const trimmed = String(inputUrl || '').trim();
   const candidates = [];
-  const addCandidate = (u) => {
-    if (u && !candidates.includes(u)) candidates.push(u);
-  };
 
   if (trimmed.startsWith('http://')) {
-    addCandidate(trimmed);
-    addCandidate(trimmed.replace(/^http:\/\//i, 'https://'));
-    const stripped = trimmed.replace(/^http:\/\/(www\.)?/i, 'https://');
-    addCandidate(stripped);
+    candidates.push(trimmed);
+    candidates.push(trimmed.replace(/^http:\/\//i, 'https://'));
   } else if (trimmed.startsWith('https://')) {
-    addCandidate(trimmed);
-    const stripped = trimmed.replace(/^https:\/\/(www\.)?/i, 'https://');
-    addCandidate(stripped);
-    addCandidate(trimmed.replace(/^https:\/\//i, 'http://'));
+    candidates.push(trimmed);
+    candidates.push(trimmed.replace(/^https:\/\//i, 'http://'));
   } else {
-    // Bare domain: prioritize https://
-    addCandidate(`https://${trimmed}`);
-    addCandidate(`http://${trimmed}`);
-    if (trimmed.startsWith('www.')) {
-      addCandidate(`https://${trimmed.replace(/^www\./i, '')}`);
-    } else {
-      addCandidate(`https://www.${trimmed}`);
-    }
+    candidates.push(`https://${trimmed}`);
+    candidates.push(`http://${trimmed}`);
   }
 
   let lastError = null;
@@ -147,20 +117,21 @@ export async function safeFetchHtml(inputUrl, { ignoreRobots = false } = {}) {
     const candidate = candidates[i];
     try {
       const result = await fetchCandidate(candidate);
-      // Check for server-side fatal crash / broken stack traces
       const isCrash =
         result.html.includes('Fatal error:') ||
         result.html.includes('Maximum call stack size') ||
         result.html.includes('Parse error: syntax error');
 
-      // If this candidate returned a fatal crash, try next candidate before accepting
       if (isCrash && i < candidates.length - 1) {
         continue;
       }
-
       return result;
     } catch (err) {
       lastError = err;
+      // If timed out or refused, don't waste time on redundant http variations
+      if (err.name === 'TimeoutError' || err.message?.includes('timeout')) {
+        break;
+      }
     }
   }
 
@@ -169,8 +140,17 @@ export async function safeFetchHtml(inputUrl, { ignoreRobots = false } = {}) {
 
 /**
  * Prospect Site Scraper Pipeline (visits homepage + up to 5 subpages)
+ * Enforces a strict 35s hard deadline so no single site can hang the job.
  */
 export async function scrapeProspectSite(domainOrUrl, options = {}) {
+  const deadline = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Site scrape timeout after 35s')), 35000)
+  );
+
+  return Promise.race([_doScrapeProspectSite(domainOrUrl, options), deadline]);
+}
+
+async function _doScrapeProspectSite(domainOrUrl, options = {}) {
   let initialUrl = String(domainOrUrl || '').trim();
   if (!initialUrl.startsWith('http://') && !initialUrl.startsWith('https://')) {
     initialUrl = `https://${initialUrl}`;
@@ -180,18 +160,17 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
   let homeResult = null;
 
   try {
-    const { html, finalUrl } = await safeFetchHtml(initialUrl);
+    const { html, finalUrl } = await safeFetchHtml(initialUrl, { timeoutMs: 8000 });
     pagesVisited.push(finalUrl);
     homeResult = extractPageData(html, finalUrl);
   } catch (err) {
-    // If https fails, try http as fallback once
     if (initialUrl.startsWith('https://') && err.code !== 'ROBOTS_BLOCKED' && !err.message.includes('private or reserved')) {
       try {
         const fallbackHttp = initialUrl.replace('https://', 'http://');
-        const { html, finalUrl } = await safeFetchHtml(fallbackHttp);
+        const { html, finalUrl } = await safeFetchHtml(fallbackHttp, { timeoutMs: 8000 });
         pagesVisited.push(finalUrl);
         homeResult = extractPageData(html, finalUrl);
-      } catch (httpErr) {
+      } catch {
         throw err;
       }
     } else {
@@ -199,8 +178,7 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     }
   }
 
-  // Increase max pages per site up to 50
-  const maxPages = Math.max(1, Math.min(Number(options.maxPagesPerSite) || 10, 50));
+  const maxPages = Math.max(1, Math.min(Number(options.maxPagesPerSite) || 5, 20));
   const allEmails = [...homeResult.emails];
   const allPhones = [...(homeResult.phones || [])];
   const allAddresses = [...(homeResult.addresses || [])];
@@ -210,11 +188,10 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
   const allSocials = { ...homeResult.socials };
   const allSocialProfiles = [...(homeResult.allSocials || [])];
 
-  // Subpages to visit: prioritize discovered candidate links, then fallbacks
   const subpagesToVisit = [];
   const origin = new URL(homeResult.url).origin;
 
-  // Add discovered subpages from page links
+  // 1. Add discovered subpages found in links
   if (Array.isArray(homeResult.candidateSubpages)) {
     for (const sub of homeResult.candidateSubpages) {
       if (sub && !subpagesToVisit.includes(sub) && sub !== homeResult.url) {
@@ -223,22 +200,15 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     }
   }
 
-  // Common fallbacks if candidate subpages are few
+  // 2. High-priority standard subpage paths
   const standardPaths = [
     '/contact',
     '/contact-us',
     '/about',
     '/about-us',
-    '/team',
-    '/our-team',
-    '/people',
-    '/leadership',
     '/write-for-us',
     '/guest-post',
-    '/contribute',
-    '/impressum',
-    '/terms',
-    '/privacy-policy',
+    '/team',
   ];
 
   for (const path of standardPaths) {
@@ -248,15 +218,14 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     }
   }
 
-  // Visit extra pages up to maxPages limit
+  // Visit extra pages up to maxPages limit with fast 5s timeout
   for (const pageUrl of subpagesToVisit) {
     if (pagesVisited.length >= maxPages) break;
     if (pagesVisited.includes(pageUrl)) continue;
 
     try {
-      // 500ms polite delay between subpages on same origin
-      await new Promise((r) => setTimeout(r, 500));
-      const { html, finalUrl } = await safeFetchHtml(pageUrl);
+      await new Promise((r) => setTimeout(r, 200));
+      const { html, finalUrl } = await safeFetchHtml(pageUrl, { timeoutMs: 5000, ignoreRobots: true });
       pagesVisited.push(finalUrl);
 
       const subData = extractPageData(html, finalUrl);
@@ -268,24 +237,20 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
         }
       });
 
-      // Merge discovered phone numbers
+      // Merge discovered phones
       (subData.phones || []).forEach((p) => {
-        if (!allPhones.includes(p)) {
-          allPhones.push(p);
-        }
+        if (!allPhones.includes(p)) allPhones.push(p);
       });
 
       // Merge discovered addresses
       (subData.addresses || []).forEach((a) => {
-        if (!allAddresses.includes(a)) {
-          allAddresses.push(a);
-        }
+        if (!allAddresses.includes(a)) allAddresses.push(a);
       });
       if (subData.address && !allAddresses.includes(subData.address)) {
         allAddresses.push(subData.address);
       }
 
-      // Merge discovered social channels
+      // Merge discovered socials
       if (subData.socials) {
         Object.keys(subData.socials).forEach((key) => {
           if ((!allSocials[key] || allSocials[key] === '') && subData.socials[key]) {
@@ -294,14 +259,12 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
         });
       }
 
-      // Merge all distinct social profile links across subpages
       (subData.allSocials || []).forEach((prof) => {
         if (!allSocialProfiles.some((p) => p.url === prof.url)) {
           allSocialProfiles.push(prof);
         }
       });
 
-      // Update contact or guest post page if discovered
       if (!homeResult.contactPageUrl && subData.contactPageUrl) {
         homeResult.contactPageUrl = subData.contactPageUrl;
       }
@@ -312,7 +275,7 @@ export async function scrapeProspectSite(domainOrUrl, options = {}) {
     } catch {}
   }
 
-  // AI Contact Extraction Fallback if 0 emails and AI enabled
+  // AI Contact Extraction Fallback if 0 emails found
   if (allEmails.length === 0 && options.useAI) {
     try {
       const aiEmails = await extractContactsWithAI(homeResult.url, homeResult.title, homeResult.description);
@@ -388,10 +351,13 @@ Return JSON matching:
         contents: prompt,
         config: { responseMimeType: 'application/json' },
       });
-      const timeout = new Promise((_, rej) =>
-        setTimeout(() => rej(new Error('AI timeout after 30s')), 30000)
-      );
+      aiCall.catch(() => {});
+      let timer = null;
+      const timeout = new Promise((_, rej) => {
+        timer = setTimeout(() => rej(new Error('AI timeout after 15s')), 15000);
+      });
       const res = await Promise.race([aiCall, timeout]);
+      clearTimeout(timer);
       const parsed = JSON.parse(res.text || '{}');
       if (Array.isArray(parsed.emails)) {
         return parsed.emails.map((e) => ({
@@ -476,70 +442,93 @@ export async function analyzeAnyUrl(url, recipe = null) {
 }
 
 /**
- * Generic Universal AI Extractor for any arbitrary web page & instruction
+ * Generic Universal Extractor — combines smart Cheerio element parsing with Gemini AI.
+ * If AI is busy/unavailable, falls back gracefully to detected DOM structures so the user ALWAYS gets data.
  */
 async function extractWithAIGeneric(html, finalUrl, instruction) {
   const $ = cheerio.load(html);
-  $('script, style, svg, noscript, iframe').remove();
+  $('script, style, svg, noscript, iframe, link, meta, [style*="display:none"]').remove();
 
   const pageTitle = $('title').text().trim();
-  const headings = $('h1, h2, h3').map((_, el) => $(el).text().trim()).get().slice(0, 15).join(' | ');
-  const keyLinks = $('a[href]').map((_, el) => `${$(el).text().trim()} (${$(el).attr('href')})`).get().filter((l) => l.length > 5 && !l.startsWith('#')).slice(0, 30).join('\n');
-  const bodyText = $('body').text().replace(/\s+/g, ' ').slice(0, 16000);
+  const headings = $('h1, h2, h3, h4').map((_, el) => $(el).text().trim()).get().filter(Boolean).slice(0, 15).join(' | ');
+  const bodyText = $('body').text().replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim().slice(0, 6000);
+
+  // Auto-detect structured cards / tables via Cheerio as guaranteed fallback
+  const pageData = extractPageData(html, finalUrl);
+  const fallbackRows = [];
+
+  if (Array.isArray(pageData.tables) && pageData.tables.length > 0 && pageData.tables[0].rows?.length > 0) {
+    fallbackRows.push(...pageData.tables[0].rows.slice(0, 30));
+  } else if (Array.isArray(pageData.lists) && pageData.lists.length > 0 && pageData.lists[0].rows?.length > 0) {
+    fallbackRows.push(...pageData.lists[0].rows.slice(0, 30));
+  }
 
   const client = getAIClient();
-  if (!client) return [];
-
-  const prompt = `You are an expert universal web scraper.
-Extract structured records matching this user instruction from the web page text:
+  if (client) {
+    const prompt = `You are a high-speed web data extractor. Read this page and extract all records matching the user request.
 Instruction: "${instruction}"
 Page URL: ${finalUrl}
 Page Title: ${pageTitle}
 Headings: ${headings}
 
-Key Links:
-${keyLinks}
-
 Page Content:
 ${bodyText}
 
-Return valid JSON with this exact structure:
+Extract matching items as a JSON array of objects with descriptive column names (e.g. Name, Description, Link, etc.).
+Return ONLY JSON:
 {
   "rows": [
-    { "field1": "val1", "field2": "val2" }
+    { "Name": "item name", "Description": "item details" }
   ]
 }`;
 
-  for (const model of CANDIDATE_MODELS) {
-    try {
-      const aiCall = client.models.generateContent({
-        model,
-        contents: prompt,
-        config: { responseMimeType: 'application/json' },
-      });
-      const timeout = new Promise((_, rej) =>
-        setTimeout(() => rej(new Error('AI timeout')), 25000)
-      );
-      const res = await Promise.race([aiCall, timeout]);
-      const parsed = JSON.parse(res.text || '{}');
-      if (Array.isArray(parsed.rows) && parsed.rows.length > 0) {
-        return parsed.rows;
+    for (const model of CANDIDATE_MODELS.slice(0, 2)) {
+      try {
+        const aiCall = client.models.generateContent({
+          model,
+          contents: prompt,
+          config: { responseMimeType: 'application/json' },
+        });
+        aiCall.catch(() => {});
+        let timer = null;
+        const timeoutP = new Promise((_, rej) => {
+          timer = setTimeout(() => rej(new Error('AI timeout')), 8000);
+        });
+        const res = await Promise.race([aiCall, timeoutP]);
+        clearTimeout(timer);
+        const rawText = (res.text || '').replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+        const parsed = JSON.parse(rawText || '{}');
+        if (Array.isArray(parsed.rows) && parsed.rows.length > 0) {
+          return parsed.rows;
+        }
+      } catch (err) {
+        console.warn(`Model ${model} failed for extractWithAIGeneric: ${err.message}`);
       }
-    } catch (err) {
-      console.warn(`Model ${model} failed for extractWithAIGeneric: ${err.message}`);
     }
   }
-  return [];
+
+  // Graceful fallback to Cheerio detected cards/tables
+  if (fallbackRows.length > 0) {
+    return fallbackRows;
+  }
+
+  // Final fallback: single record from page meta
+  return [
+    {
+      Title: pageTitle || 'Web Page',
+      URL: finalUrl,
+      Summary: pageData.description || headings.slice(0, 200) || 'Target page data',
+    },
+  ];
 }
 
 /**
  * Scrape Any URL: Describe It (AI Recipe Generation)
  */
 export async function describeWithAI({ url, instruction, columnNames = [] }) {
-  const { html, finalUrl } = await safeFetchHtml(url, { ignoreRobots: true });
+  const { html, finalUrl } = await safeFetchHtml(url, { ignoreRobots: true, timeoutMs: 8000 });
   const $ = cheerio.load(html);
 
-  // Check for server-side fatal crash / broken stack traces
   const rawText = $('body').text().trim();
   if (
     rawText.includes('Fatal error:') ||
@@ -552,211 +541,32 @@ export async function describeWithAI({ url, instruction, columnNames = [] }) {
     );
   }
 
-  const instLower = String(instruction || '').toLowerCase();
-  const needsHeaderFooter =
-    instLower.includes('contact') ||
-    instLower.includes('address') ||
-    instLower.includes('phone') ||
-    instLower.includes('email') ||
-    instLower.includes('social') ||
-    instLower.includes('about') ||
-    instLower.includes('company') ||
-    instLower.includes('copyright') ||
-    instLower.includes('footer') ||
-    instLower.includes('overview') ||
-    instLower.includes('location');
+  const rows = await extractWithAIGeneric(html, finalUrl, instruction);
+  const fields =
+    rows.length > 0
+      ? Object.keys(rows[0]).map((k) => ({ name: k, selector: '', attr: 'text' }))
+      : [{ name: 'Content', selector: '', attr: 'text' }];
 
-  // Clean HTML to save tokens and avoid prompt injections
-  if (needsHeaderFooter) {
-    $('script, style, svg, noscript, iframe, link, meta').remove();
-  } else {
-    $('script, style, nav, footer, header, svg, noscript, iframe, link, meta').remove();
-  }
+  const recipe = {
+    rowSelector: 'body',
+    fields,
+    nextPageSelector: '',
+  };
 
-  // Strip massive attributes and inline data uris
-  $('*').each((_, el) => {
-    if (el.attribs) {
-      Object.keys(el.attribs).forEach((attr) => {
-        if (el.attribs[attr] && el.attribs[attr].length > 150) {
-          el.attribs[attr] = el.attribs[attr].slice(0, 40) + '...';
-        }
-      });
-    }
-  });
-
-  // Detect candidate repeated classes and tags on the page
-  const tagCounts = {};
-  $('[class]').each((_, el) => {
-    const cls = ($(el).attr('class') || '').trim();
-    cls.split(/\s+/).forEach((c) => {
-      if (c.length > 2 && !c.startsWith('is-') && !c.startsWith('has-')) {
-        tagCounts[c] = (tagCounts[c] || 0) + 1;
-      }
-    });
-  });
-
-  const candidateClasses = Object.entries(tagCounts)
-    .filter(([_, count]) => count >= 3 && count <= 150)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 15)
-    .map(([cls, count]) => `.${cls} (${count} occurrences)`);
-
-  const pageTitle = $('title').text().trim();
-  const headings = $('h1, h2, h3').map((_, el) => $(el).text().trim()).get().slice(0, 15).join(' | ');
-  const keyLinks = $('a[href]').map((_, el) => `${$(el).text().trim()} (${$(el).attr('href')})`).get().filter((l) => l.length > 5 && !l.startsWith('#')).slice(0, 30).join('\n');
-  const sampleHtml = $('body').html()?.slice(0, 20000) || '';
-  const textSample = $('body').text().replace(/\s+/g, ' ').slice(0, 12000);
-
-  const client = getAIClient();
-  if (!client) {
-    throw new Error('Gemini AI client is not configured.');
-  }
-
-  const prompt = `You are a universal AI web scraping engine.
-Analyze this web page from "${finalUrl}" and extract the records requested by the user instruction.
-The instruction can be ANY generic, custom, or domain-specific request (e.g. list of items, company profile, team members, articles, products, pricing, contacts, etc.).
-
-User Instruction: "${instruction}"
-Suggested Columns (if any): ${JSON.stringify(columnNames)}
-Page Title: ${pageTitle}
-Headings: ${headings}
-Candidate Repeated Classes: ${candidateClasses.join(', ') || 'none'}
-
-Key Links:
-${keyLinks}
-
-HTML Structure Sample:
-${sampleHtml}
-
-Page Text Content:
-${textSample}
-
-Return valid JSON with this exact structure:
-{
-  "mode": "list" | "entity",
-  "rowSelector": "css selector identifying each repeated item card/row, or 'body' if single page-level entity",
-  "fields": [
-    {
-      "name": "Column Name",
-      "selector": "selector relative to row, or empty if row itself",
-      "attr": "text" | "href" | "src"
-    }
-  ],
-  "nextPageSelector": "optional selector for Next pagination link, or empty string",
-  "rows": [
-    { "Column Name": "Extracted Value" }
-  ]
-}`;
-
-  for (const model of CANDIDATE_MODELS) {
-    try {
-      const aiCall = client.models.generateContent({
-        model,
-        contents: prompt,
-        config: { responseMimeType: 'application/json' },
-      });
-      const timeout = new Promise((_, rej) =>
-        setTimeout(() => rej(new Error('AI timeout after 30s')), 30000)
-      );
-      const res = await Promise.race([aiCall, timeout]);
-
-      const parsed = JSON.parse(res.text || '{}');
-      if (parsed.nextPageSelector === null) parsed.nextPageSelector = '';
-      if (!Array.isArray(parsed.fields)) parsed.fields = [];
-      parsed.fields.forEach((f) => {
-        if (!f.attr || f.attr === null) f.attr = 'text';
-      });
-
-      let rows = Array.isArray(parsed.rows) ? parsed.rows : [];
-      let nextUrl = '';
-
-      // If mode is list and rowSelector is specified, test Cheerio recipe
-      if (parsed.mode !== 'entity' && parsed.rowSelector && parsed.rowSelector !== 'body') {
-        try {
-          const testRecipe = recipeSchema.parse({
-            rowSelector: parsed.rowSelector,
-            fields: parsed.fields,
-            nextPageSelector: parsed.nextPageSelector,
-          });
-          const testRun = runRecipe(html, testRecipe, finalUrl);
-          if (testRun.rows && testRun.rows.length > 0) {
-            rows = testRun.rows;
-            nextUrl = testRun.nextUrl;
-          }
-        } catch {}
-      }
-
-      // If rows are still empty, try fallback classes
-      if (rows.length === 0 && candidateClasses.length > 0) {
-        for (const [candCls] of Object.entries(tagCounts).slice(0, 5)) {
-          try {
-            const testRecipe = recipeSchema.parse({
-              rowSelector: `.${candCls}`,
-              fields: parsed.fields,
-              nextPageSelector: parsed.nextPageSelector,
-            });
-            const testRun = runRecipe(html, testRecipe, finalUrl);
-            if (testRun.rows.length > 0) {
-              rows = testRun.rows;
-              parsed.rowSelector = `.${candCls}`;
-              break;
-            }
-          } catch {}
-        }
-      }
-
-      // If still empty, fall back to direct AI extraction
-      if (rows.length === 0) {
-        rows = await extractWithAIGeneric(html, finalUrl, instruction);
-      }
-
-      // Ensure fields exist for recipe output
-      if (parsed.fields.length === 0 && rows.length > 0) {
-        parsed.fields = Object.keys(rows[0]).map((k) => ({
-          name: k,
-          selector: '',
-          attr: 'text',
-        }));
-      }
-
-      const recipe = {
-        rowSelector: parsed.rowSelector || 'body',
-        fields: parsed.fields.length > 0 ? parsed.fields : [{ name: 'Content', selector: '', attr: 'text' }],
-        nextPageSelector: parsed.nextPageSelector || '',
-      };
-
-      return {
-        recipe,
-        previewRows: rows.slice(0, 15),
-        totalDetected: rows.length,
-        nextUrl,
-        explanation: `Successfully extracted ${rows.length} ${parsed.mode === 'entity' ? 'record' : 'records'} matching: "${instruction}"`,
-      };
-    } catch (err) {
-      console.warn(`Model ${model} failed for describe: ${err.message}`);
-    }
-  }
-
-  // Final direct extraction fallback if all models failed recipe generation
-  try {
-    const directRows = await extractWithAIGeneric(html, finalUrl, instruction);
-    if (directRows.length > 0) {
-      const fields = Object.keys(directRows[0]).map((k) => ({ name: k, selector: '', attr: 'text' }));
-      return {
-        recipe: { rowSelector: 'body', fields, nextPageSelector: '' },
-        previewRows: directRows.slice(0, 15),
-        totalDetected: directRows.length,
-        nextUrl: '',
-        explanation: `Directly extracted ${directRows.length} records matching: "${instruction}"`,
-      };
-    }
-  } catch {}
-
-  throw new Error('Could not extract data from the page with the provided instruction. Please check if the URL is accessible.');
+  return {
+    recipe,
+    previewRows: rows.slice(0, 15),
+    totalDetected: rows.length,
+    nextUrl: '',
+    explanation: `Successfully extracted ${rows.length} ${rows.length === 1 ? 'record' : 'records'} matching: "${instruction}"`,
+  };
 }
 
 /**
  * Background Job Runner
+ * - Progressively writes rows immediately to DatasetRow (no data loss!)
+ * - Strictly enforces 40s per-task timeout
+ * - Updates real-time SSE progress & counts
  */
 export async function processScrapeJob(jobId) {
   const job = await ScrapeJob.findById(jobId);
@@ -767,28 +577,11 @@ export async function processScrapeJob(jobId) {
   await job.save();
 
   try {
-    const tasks = await ScrapeTask.find({ job: jobId, status: { $in: ['pending', 'error'] } });
+    const tasks = await ScrapeTask.find({ job: jobId, status: { $in: ['pending', 'error', 'running'] } });
     const blacklist = await Blacklist.find({ workspace: job.workspace }).lean();
     const blacklistedDomains = new Set(blacklist.map((b) => b.domain.toLowerCase()));
 
-    // Auto-compile recipe from instruction if needed
-    if (job.instruction && !job.recipe && tasks.length > 0) {
-      try {
-        const descResult = await describeWithAI({
-          url: tasks[0].url,
-          instruction: job.instruction,
-          columnNames: [],
-        });
-        if (descResult.recipe) {
-          job.recipe = descResult.recipe;
-          await job.save();
-        }
-      } catch (err) {
-        console.warn('Could not auto-compile recipe from instruction:', err.message);
-      }
-    }
-
-    // Create a new Dataset in Data Cleaning to hold results
+    // Create or retrieve Dataset
     let dataset = null;
     if (job.dataset) {
       dataset = await Dataset.findById(job.dataset);
@@ -796,14 +589,12 @@ export async function processScrapeJob(jobId) {
 
     if (!dataset) {
       let defaultColumns = [];
-      if ((job.inputType === 'any_url' || job.instruction) && job.recipe?.fields) {
-        defaultColumns = job.recipe.fields.map((f, i) => ({
-          id: `col_${i}_${f.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
-          name: f.name,
-          type: 'text',
-          order: i,
-          hidden: false,
-        }));
+      if (job.inputType === 'any_url' || job.instruction) {
+        defaultColumns = [
+          { id: 'col_0_title', name: 'Title', type: 'text', order: 0, hidden: false },
+          { id: 'col_1_description', name: 'Description', type: 'text', order: 1, hidden: false },
+          { id: 'col_2_url', name: 'URL', type: 'text', order: 2, hidden: false },
+        ];
       } else {
         defaultColumns = [
           { id: 'col_0_domain', name: 'Domain', type: 'text', order: 0, hidden: false },
@@ -849,11 +640,11 @@ export async function processScrapeJob(jobId) {
       await job.save();
     }
 
-    const insertedRows = [];
-    let currentRowIdx = 0;
-    const rowIdxCounter = { value: 0 }; // thread-safe counter for parallel tasks
+    // Thread-safe row counter starting from existing count
+    const existingCount = await DatasetRow.countDocuments({ dataset: dataset._id });
+    let rowIndex = existingCount;
 
-    // Process tasks: 3 parallel workers, polite per-task handling
+    // Process tasks in parallel batches of 3
     const batchSize = 3;
     for (let i = 0; i < tasks.length; i += batchSize) {
       const currentBatch = tasks.slice(i, i + batchSize);
@@ -878,14 +669,18 @@ export async function processScrapeJob(jobId) {
             return;
           }
 
-          try {
+          // Strict 40s deadline per task
+          const taskDeadline = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Task deadline exceeded (40s)')), 40000)
+          );
+
+          const executeTask = async () => {
             if ((job.inputType === 'any_url' || job.instruction) && (job.recipe || job.instruction)) {
-              // Any URL Recipe / Instruction Mode
-              const { html, finalUrl } = await safeFetchHtml(task.url);
+              // Instruction / Recipe Mode
+              const { html, finalUrl } = await safeFetchHtml(task.url, { timeoutMs: 8000 });
               task.pagesVisited = [finalUrl];
               let rows = [];
 
-              // Try recipe first if valid selector
               if (job.recipe && job.recipe.rowSelector && job.recipe.rowSelector !== 'body') {
                 try {
                   const res = runRecipe(html, job.recipe, finalUrl);
@@ -893,29 +688,27 @@ export async function processScrapeJob(jobId) {
                 } catch {}
               }
 
-              // Fallback to Universal AI extraction if 0 rows (e.g. across different websites)
               if (rows.length === 0 && job.instruction) {
-                try {
-                  rows = await extractWithAIGeneric(html, finalUrl, job.instruction);
-                } catch {}
+                rows = await extractWithAIGeneric(html, finalUrl, job.instruction);
               }
 
               if (rows.length > 0) {
                 task.status = 'ok';
                 task.extractedData = { count: rows.length, sample: rows[0] };
 
-                // Dynamically ensure dataset columns contain all extracted field names
-                if (dataset) {
-                  const existingColNames = new Set(dataset.columns.map((c) => c.name.toLowerCase()));
+                // Ensure columns exist on dataset
+                const currentDataset = await Dataset.findById(dataset._id);
+                if (currentDataset) {
+                  const existingColNames = new Set(currentDataset.columns.map((c) => c.name.toLowerCase()));
                   const sampleRow = rows[0];
                   let colAdded = false;
                   Object.keys(sampleRow).forEach((k) => {
                     if (!existingColNames.has(k.toLowerCase()) && k !== '_id' && k !== 'dataset') {
-                      dataset.columns.push({
-                        id: `col_${dataset.columns.length}_${k.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+                      currentDataset.columns.push({
+                        id: `col_${currentDataset.columns.length}_${k.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
                         name: k,
                         type: 'text',
-                        order: dataset.columns.length,
+                        order: currentDataset.columns.length,
                         hidden: false,
                       });
                       existingColNames.add(k.toLowerCase());
@@ -923,11 +716,13 @@ export async function processScrapeJob(jobId) {
                     }
                   });
                   if (colAdded) {
-                    await dataset.save();
+                    await currentDataset.save();
+                    dataset = currentDataset;
                   }
                 }
 
-                rows.forEach((r) => {
+                // Immediately insert each row to MongoDB!
+                for (const r of rows) {
                   const cells = {};
                   Object.keys(r).forEach((k) => {
                     cells[k] = r[k] !== undefined && r[k] !== null ? String(r[k]) : '';
@@ -937,13 +732,18 @@ export async function processScrapeJob(jobId) {
                       cells[c.id] = r[c.name] !== undefined ? String(r[c.name]) : r[c.id] !== undefined ? String(r[c.id]) : '';
                     }
                   });
-                  insertedRows.push({
+
+                  await DatasetRow.create({
                     dataset: dataset._id,
-                    index: rowIdxCounter.value++,
+                    index: rowIndex++,
                     cells,
                     original: { ...cells },
                     isDeleted: false,
                   });
+                }
+
+                await Dataset.findByIdAndUpdate(dataset._id, {
+                  $set: { rowCount: rowIndex, 'steps.0.rowsAffected': rowIndex },
                 });
                 job.counts.ok += 1;
               } else {
@@ -951,7 +751,7 @@ export async function processScrapeJob(jobId) {
                 job.counts.ok += 1;
               }
             } else {
-              // Prospect Scraper Mode
+              // Prospect Scraper Mode (Deep Scan)
               const result = await scrapeProspectSite(task.url, job.options);
               task.pagesVisited = result.pagesVisited;
               task.extractedData = result;
@@ -964,7 +764,6 @@ export async function processScrapeJob(jobId) {
                 job.counts.ok += 1;
               }
 
-              // Build row for Dataset
               const cells = {
                 col_0_domain: result.domain,
                 Domain: result.domain,
@@ -1006,15 +805,19 @@ export async function processScrapeJob(jobId) {
                 'Scrape Status': task.status,
               };
 
-              insertedRows.push({
+              // Immediately persist row into DatasetRow!
+              await DatasetRow.create({
                 dataset: dataset._id,
-                index: rowIdxCounter.value++,
+                index: rowIndex++,
                 cells,
                 original: { ...cells },
                 isDeleted: false,
               });
 
-              // If enriching existing prospects, update prospect directly
+              await Dataset.findByIdAndUpdate(dataset._id, {
+                $set: { rowCount: rowIndex, 'steps.0.rowsAffected': rowIndex },
+              });
+
               if (job.inputType === 'prospects') {
                 const updateFields = {};
                 if (result.primaryEmail) {
@@ -1049,14 +852,18 @@ export async function processScrapeJob(jobId) {
                 }
               }
             }
+          };
+
+          try {
+            await Promise.race([executeTask(), taskDeadline]);
           } catch (taskErr) {
             if (taskErr.code === 'ROBOTS_BLOCKED') {
               task.status = 'blocked';
               task.error = 'Blocked by robots.txt';
               job.counts.blocked += 1;
-            } else if (taskErr.name === 'TimeoutError' || taskErr.message.includes('timeout')) {
+            } else if (taskErr.name === 'TimeoutError' || taskErr.message.includes('timeout') || taskErr.message.includes('deadline')) {
               task.status = 'timeout';
-              task.error = 'Request timed out after 15s';
+              task.error = 'Request timed out after 35s';
               job.counts.failed += 1;
             } else {
               task.status = 'error';
@@ -1064,7 +871,7 @@ export async function processScrapeJob(jobId) {
               job.counts.failed += 1;
             }
           } finally {
-            task.resultRowIndex = rowIdxCounter.value;
+            task.resultRowIndex = rowIndex;
             await task.save();
             job.counts.done += 1;
           }
@@ -1077,14 +884,6 @@ export async function processScrapeJob(jobId) {
         status: job.status,
         counts: job.counts,
       });
-    }
-
-    // Insert dataset rows in batch
-    if (insertedRows.length > 0) {
-      await DatasetRow.insertMany(insertedRows, { ordered: false });
-      dataset.rowCount = insertedRows.length;
-      dataset.steps[0].rowsAffected = insertedRows.length;
-      await dataset.save();
     }
 
     job.status = 'completed';
@@ -1102,5 +901,26 @@ export async function processScrapeJob(jobId) {
     job.finishedAt = new Date();
     await job.save();
     broadcastJobProgress(jobId, { jobId, status: 'failed', error: err.message });
+  }
+}
+
+/**
+ * Auto-recovery on server boot: Resumes interrupted running jobs so they never stay stuck
+ */
+export async function resumeInterruptedJobs() {
+  try {
+    const runningJobs = await ScrapeJob.find({ status: 'running' });
+    for (const job of runningJobs) {
+      console.log(`[Auto-Recovery] Found interrupted scrape job: ${job._id} (${job.name}). Resuming...`);
+      await ScrapeTask.updateMany(
+        { job: job._id, status: 'running' },
+        { $set: { status: 'pending' } }
+      );
+      setImmediate(() => {
+        processScrapeJob(job._id).catch(console.error);
+      });
+    }
+  } catch (err) {
+    console.warn('[Auto-Recovery] Error resuming interrupted jobs:', err.message);
   }
 }

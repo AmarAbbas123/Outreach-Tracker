@@ -220,26 +220,40 @@ export const retryFailedTasks = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Job not found.' });
     }
 
-    const failedTasks = await ScrapeTask.find({ job: job._id, status: { $in: ['error', 'timeout'] } });
-    if (failedTasks.length === 0) {
-      return res.json({ success: true, message: 'No failed tasks to retry.' });
+    const tasksToRetry = await ScrapeTask.find({
+      job: job._id,
+      status: { $in: ['error', 'timeout', 'running'] },
+    });
+
+    if (tasksToRetry.length === 0) {
+      // Check if there are still pending tasks that never ran
+      const pendingCount = await ScrapeTask.countDocuments({ job: job._id, status: 'pending' });
+      if (pendingCount > 0) {
+        job.status = 'running';
+        await job.save();
+        setImmediate(() => {
+          processScrapeJob(job._id).catch(console.error);
+        });
+        return res.json({ success: true, data: { retryingCount: pendingCount, message: 'Resumed pending tasks.' } });
+      }
+      return res.json({ success: true, message: 'No failed or stuck tasks to retry.' });
     }
 
     await ScrapeTask.updateMany(
-      { job: job._id, status: { $in: ['error', 'timeout'] } },
+      { job: job._id, status: { $in: ['error', 'timeout', 'running'] } },
       { $set: { status: 'pending', error: '' } }
     );
 
-    job.status = 'queued';
+    job.status = 'running';
     job.counts.failed = 0;
-    job.counts.done = Math.max(0, job.counts.done - failedTasks.length);
+    job.counts.done = Math.max(0, job.counts.done - tasksToRetry.length);
     await job.save();
 
     setImmediate(() => {
       processScrapeJob(job._id).catch(console.error);
     });
 
-    res.json({ success: true, data: { retryingCount: failedTasks.length } });
+    res.json({ success: true, data: { retryingCount: tasksToRetry.length } });
   } catch (err) {
     next(err);
   }

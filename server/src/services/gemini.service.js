@@ -15,7 +15,12 @@ export const getAIClient = () => {
   return aiClient;
 };
 
-export const CANDIDATE_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-lite'];
+export const CANDIDATE_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.6-flash',
+  'gemma-4-31b-it',
+  'gemini-3.8-flash',
+];
 
 /**
  * Plans data cleaning operations from a plain-language prompt using Gemini with multi-model fallback

@@ -215,24 +215,29 @@ export function extractPageData(html, pageUrl) {
     }
   });
 
-  // 8. Auto-detect Repeated Lists / Cards
+  // 8. Auto-detect Repeated Lists / Cards (exclude nav/header/footer menus)
   const lists = [];
   const candidateSelectors = [
     'article',
     '.card',
+    '.service-card',
+    '.service-item',
+    '.product-card',
     '.item',
     '.post',
     '.profile',
     '.team-member',
     '.directory-item',
     '.listing',
-    'li',
+    'main li',
+    'section li',
+    '.content li',
   ];
 
   candidateSelectors.forEach((sel) => {
     if (lists.length > 0) return;
-    const items = $(sel);
-    if (items.length >= 3 && items.length <= 500) {
+    const items = $(sel).not('nav *, header *, footer *');
+    if (items.length >= 2 && items.length <= 500) {
       const listRows = [];
       items.each((_, el) => {
         const text = $(el).find('h2, h3, h4, .title, strong').first().text().replace(/\s+/g, ' ').trim() || $(el).text().replace(/\s+/g, ' ').trim().slice(0, 100);
@@ -251,7 +256,7 @@ export function extractPageData(html, pageUrl) {
           } catch {}
         }
 
-        if (text) {
+        if (text && text.length > 3) {
           listRows.push({
             Title: text,
             Link: fullLink,

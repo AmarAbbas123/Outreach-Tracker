@@ -303,7 +303,7 @@ export default function WebScraperWorkspace({
       let domain = ''
       try {
         domain = new URL(describeUrl.startsWith('http') ? describeUrl : `https://${describeUrl}`).hostname
-      } catch {}
+      } catch { }
 
       await api.post('/scrape/recipes', {
         name: saveRecipeName.trim(),
@@ -463,7 +463,7 @@ export default function WebScraperWorkspace({
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete job.')
     }
-  }
+  }/*  */
 
   // Delete Recipe
   const handleDeleteRecipe = async (id: string) => {
@@ -516,31 +516,28 @@ export default function WebScraperWorkspace({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab('analyze')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'analyze'
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${activeTab === 'analyze'
                 ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Eye size={13} /> Live Analyze & Preview
           </button>
           <button
             onClick={() => setActiveTab('describe')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'describe'
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${activeTab === 'describe'
                 ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Sparkles size={13} /> Describe with AI (Cheerio Recipe)
           </button>
           <button
             onClick={() => setActiveTab('jobs')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'jobs'
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${activeTab === 'jobs'
                 ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Layers size={13} /> Scrape Jobs
             <span className="px-1.5 py-0.2 bg-gray-200 text-gray-700 rounded-full text-[10px]">
@@ -549,11 +546,10 @@ export default function WebScraperWorkspace({
           </button>
           <button
             onClick={() => setActiveTab('recipes')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-              activeTab === 'recipes'
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${activeTab === 'recipes'
                 ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Code size={13} /> Saved Recipes
             <span className="px-1.5 py-0.2 bg-gray-200 text-gray-700 rounded-full text-[10px]">
@@ -587,18 +583,16 @@ export default function WebScraperWorkspace({
                 <button
                   type="button"
                   onClick={() => setAnalyzeMode('prospect')}
-                  className={`px-3 py-1.5 rounded-md font-medium transition-all ${
-                    analyzeMode === 'prospect' ? 'bg-white text-indigo-700 shadow-2xs font-semibold' : 'text-gray-600'
-                  }`}
+                  className={`px-3 py-1.5 rounded-md font-medium transition-all ${analyzeMode === 'prospect' ? 'bg-white text-indigo-700 shadow-2xs font-semibold' : 'text-gray-600'
+                    }`}
                 >
                   Prospect Deep Scan
                 </button>
                 <button
                   type="button"
                   onClick={() => setAnalyzeMode('any')}
-                  className={`px-3 py-1.5 rounded-md font-medium transition-all ${
-                    analyzeMode === 'any' ? 'bg-white text-indigo-700 shadow-2xs font-semibold' : 'text-gray-600'
-                  }`}
+                  className={`px-3 py-1.5 rounded-md font-medium transition-all ${analyzeMode === 'any' ? 'bg-white text-indigo-700 shadow-2xs font-semibold' : 'text-gray-600'
+                    }`}
                 >
                   Auto-Detect Elements
                 </button>
@@ -747,11 +741,10 @@ export default function WebScraperWorkspace({
               <div className="flex items-center gap-1 border-b border-gray-200 pb-2 overflow-x-auto text-xs">
                 <button
                   onClick={() => setAnalyzeActiveSubTab('contacts')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold cursor-pointer ${
-                    analyzeActiveSubTab === 'contacts'
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold cursor-pointer ${analyzeActiveSubTab === 'contacts'
                       ? 'bg-indigo-50 text-indigo-700'
                       : 'text-gray-500 hover:text-gray-800'
-                  }`}
+                    }`}
                 >
                   <Mail size={13} /> Contacts & Socials
                   <span className="px-1.5 py-0.2 bg-gray-200 rounded-full text-[10px]">
@@ -761,11 +754,10 @@ export default function WebScraperWorkspace({
                 {analyzeResult.tables && (
                   <button
                     onClick={() => setAnalyzeActiveSubTab('tables')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold cursor-pointer ${
-                      analyzeActiveSubTab === 'tables'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold cursor-pointer ${analyzeActiveSubTab === 'tables'
                         ? 'bg-indigo-50 text-indigo-700'
                         : 'text-gray-500 hover:text-gray-800'
-                    }`}
+                      }`}
                   >
                     <TableIcon size={13} /> Tables
                     <span className="px-1.5 py-0.2 bg-gray-200 rounded-full text-[10px]">
@@ -776,11 +768,10 @@ export default function WebScraperWorkspace({
                 {analyzeResult.lists && (
                   <button
                     onClick={() => setAnalyzeActiveSubTab('lists')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold cursor-pointer ${
-                      analyzeActiveSubTab === 'lists'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold cursor-pointer ${analyzeActiveSubTab === 'lists'
                         ? 'bg-indigo-50 text-indigo-700'
                         : 'text-gray-500 hover:text-gray-800'
-                    }`}
+                      }`}
                   >
                     <ListIcon size={13} /> Lists & Cards
                     <span className="px-1.5 py-0.2 bg-gray-200 rounded-full text-[10px]">
@@ -791,11 +782,10 @@ export default function WebScraperWorkspace({
                 {analyzeResult.links && (
                   <button
                     onClick={() => setAnalyzeActiveSubTab('links')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold cursor-pointer ${
-                      analyzeActiveSubTab === 'links'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold cursor-pointer ${analyzeActiveSubTab === 'links'
                         ? 'bg-indigo-50 text-indigo-700'
                         : 'text-gray-500 hover:text-gray-800'
-                    }`}
+                      }`}
                   >
                     <Link2 size={13} /> Links
                     <span className="px-1.5 py-0.2 bg-gray-200 rounded-full text-[10px]">
@@ -808,11 +798,10 @@ export default function WebScraperWorkspace({
                 {analyzeResult.structuredData && (
                   <button
                     onClick={() => setAnalyzeActiveSubTab('schema')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold cursor-pointer ${
-                      analyzeActiveSubTab === 'schema'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-semibold cursor-pointer ${analyzeActiveSubTab === 'schema'
                         ? 'bg-indigo-50 text-indigo-700'
                         : 'text-gray-500 hover:text-gray-800'
-                    }`}
+                      }`}
                   >
                     <Code size={13} /> JSON-LD Schema
                     <span className="px-1.5 py-0.2 bg-gray-200 rounded-full text-[10px]">
@@ -1564,15 +1553,14 @@ export default function WebScraperWorkspace({
                         <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-bold text-gray-900 text-sm">{job.name}</h4>
                           <span
-                            className={`px-2 py-0.5 text-[10px] rounded font-semibold uppercase ${
-                              job.status === 'completed'
+                            className={`px-2 py-0.5 text-[10px] rounded font-semibold uppercase ${job.status === 'completed'
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : job.status === 'running'
-                                ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 animate-pulse'
-                                : job.status === 'failed'
-                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                                : 'bg-gray-100 text-gray-700 border border-gray-200'
-                            }`}
+                                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 animate-pulse'
+                                  : job.status === 'failed'
+                                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                    : 'bg-gray-100 text-gray-700 border border-gray-200'
+                              }`}
                           >
                             {job.status}
                           </span>
@@ -1655,13 +1643,12 @@ export default function WebScraperWorkspace({
 
                       <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                         <div
-                          className={`h-full transition-all duration-500 rounded-full ${
-                            job.status === 'completed'
+                          className={`h-full transition-all duration-500 rounded-full ${job.status === 'completed'
                               ? 'bg-emerald-500'
                               : job.status === 'failed'
-                              ? 'bg-rose-500'
-                              : 'bg-indigo-600'
-                          }`}
+                                ? 'bg-rose-500'
+                                : 'bg-indigo-600'
+                            }`}
                           style={{ width: `${percent}%` }}
                         />
                       </div>
@@ -1788,11 +1775,10 @@ export default function WebScraperWorkspace({
                   <button
                     type="button"
                     onClick={() => setNewJobMode('prospect')}
-                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
-                      newJobMode === 'prospect'
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${newJobMode === 'prospect'
                         ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold'
                         : 'border-gray-200 hover:bg-gray-50 text-gray-600'
-                    }`}
+                      }`}
                   >
                     <div className="font-bold flex items-center gap-1.5 text-xs">
                       <Mail size={13} className="text-indigo-600" /> Prospect Scan
@@ -1805,11 +1791,10 @@ export default function WebScraperWorkspace({
                   <button
                     type="button"
                     onClick={() => setNewJobMode('instruction')}
-                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
-                      newJobMode === 'instruction'
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${newJobMode === 'instruction'
                         ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold'
                         : 'border-gray-200 hover:bg-gray-50 text-gray-600'
-                    }`}
+                      }`}
                   >
                     <div className="font-bold flex items-center gap-1.5 text-xs">
                       <Sparkles size={13} className="text-indigo-600" /> AI Instruction
@@ -1822,11 +1807,10 @@ export default function WebScraperWorkspace({
                   <button
                     type="button"
                     onClick={() => setNewJobMode('recipe')}
-                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
-                      newJobMode === 'recipe'
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${newJobMode === 'recipe'
                         ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 font-semibold'
                         : 'border-gray-200 hover:bg-gray-50 text-gray-600'
-                    }`}
+                      }`}
                   >
                     <div className="font-bold flex items-center gap-1.5 text-xs">
                       <Code size={13} className="text-indigo-600" /> Saved Recipe
@@ -2027,17 +2011,16 @@ export default function WebScraperWorkspace({
                         <td className="px-3 py-2 font-mono text-[11px] text-gray-900">{t.domain || t.url}</td>
                         <td className="px-3 py-2">
                           <span
-                            className={`px-2 py-0.5 text-[10px] rounded font-semibold uppercase ${
-                              t.status === 'ok'
+                            className={`px-2 py-0.5 text-[10px] rounded font-semibold uppercase ${t.status === 'ok'
                                 ? 'bg-emerald-50 text-emerald-700'
                                 : t.status === 'no_contact'
-                                ? 'bg-gray-100 text-gray-700'
-                                : t.status === 'blocked'
-                                ? 'bg-amber-50 text-amber-700'
-                                : t.status === 'error' || t.status === 'timeout'
-                                ? 'bg-rose-50 text-rose-700'
-                                : 'bg-blue-50 text-blue-700'
-                            }`}
+                                  ? 'bg-gray-100 text-gray-700'
+                                  : t.status === 'blocked'
+                                    ? 'bg-amber-50 text-amber-700'
+                                    : t.status === 'error' || t.status === 'timeout'
+                                      ? 'bg-rose-50 text-rose-700'
+                                      : 'bg-blue-50 text-blue-700'
+                              }`}
                           >
                             {t.status}
                           </span>
