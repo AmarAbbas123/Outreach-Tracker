@@ -558,6 +558,137 @@ export function findRelevantSubpage(html, originUrl, instruction) {
 }
 
 /**
+ * Autonomous AI Link Decider:
+ * Given user instruction and HTML of the current page, extracts all internal links
+ * and asks Gemini AI to make an autonomous decision on which subpage(s) contains
+ * the requested data (even if not in our predefined patterns, e.g. "what we do", "case studies", "tech stack", "certifications").
+ */
+export async function resolveTargetPagesWithAI(html, originUrl, instruction) {
+  if (!html || !instruction) return [];
+  const origin = new URL(originUrl).origin;
+  const $ = cheerio.load(html);
+
+  // 1. Fast heuristic rule-based check
+  const ruleMatch = findRelevantSubpage(html, originUrl, instruction);
+  const instLower = instruction.toLowerCase();
+
+  // If ruleMatch is found and instruction is specific (like team or blogs), use it directly
+  const isGenericOrCustom =
+    instLower.includes('other') ||
+    instLower.includes('what we do') ||
+    instLower.includes('overview') ||
+    instLower.includes('detail') ||
+    instLower.includes('about') ||
+    !ruleMatch;
+
+  if (ruleMatch && !isGenericOrCustom) {
+    return [ruleMatch];
+  }
+
+  // 2. Collect internal links with their text and titles
+  const linkCandidates = [];
+  const seenUrls = new Set();
+
+  $('a[href]').each((_, el) => {
+    const href = ($(el).attr('href') || '').trim();
+    const text = $(el).text().replace(/\s+/g, ' ').trim();
+    const title = ($(el).attr('title') || '').trim();
+    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('javascript:')) return;
+
+    try {
+      const fullUrl = new URL(href, origin);
+      if (fullUrl.origin !== origin) return;
+      const cleanHref = fullUrl.href.replace(/#.*$/, '');
+      if (cleanHref === originUrl.replace(/#.*$/, '')) return;
+
+      if (!seenUrls.has(cleanHref)) {
+        seenUrls.add(cleanHref);
+        const label = [text, title].filter(Boolean).join(' - ');
+        if (label.length >= 2 || fullUrl.pathname.length > 2) {
+          linkCandidates.push({
+            url: cleanHref,
+            path: fullUrl.pathname,
+            label: label.slice(0, 80),
+          });
+        }
+      }
+    } catch {}
+  });
+
+  if (linkCandidates.length === 0) {
+    return ruleMatch ? [ruleMatch] : [];
+  }
+
+  // 3. Let Gemini AI autonomously decide which page on this website best satisfies the user query
+  const client = getAIClient();
+  if (client) {
+    const prompt = `You are an autonomous web scraping agent.
+User wants to extract: "${instruction}"
+Current Page: ${originUrl}
+
+Available subpages on this website:
+${linkCandidates.slice(0, 45).map((l) => `- URL: ${l.url} | Anchor/Title: "${l.label}"`).join('\n')}
+
+Decide autonomously:
+1. Which subpage URL is most likely to contain the exact data requested in "${instruction}"?
+2. If the current page itself is already the best place, return "CURRENT_PAGE".
+3. You may optionally pick a second best URL if the requested data might span multiple pages.
+
+Return ONLY JSON:
+{
+  "bestUrl": "https://..." or "CURRENT_PAGE",
+  "secondaryUrl": "https://..." or null,
+  "reason": "short explanation"
+}`;
+
+    for (const model of CANDIDATE_MODELS.slice(0, 2)) {
+      try {
+        const aiCall = client.models.generateContent({
+          model,
+          contents: prompt,
+          config: { responseMimeType: 'application/json' },
+        });
+        aiCall.catch(() => {});
+        let timer = null;
+        const timeoutP = new Promise((_, rej) => {
+          timer = setTimeout(() => rej(new Error('AI link decision timeout')), 7000);
+        });
+        const res = await Promise.race([aiCall, timeoutP]);
+        clearTimeout(timer);
+
+        const rawText = (res.text || '').replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+        const parsed = JSON.parse(rawText || '{}');
+        const selectedUrls = [];
+
+        if (parsed.bestUrl && parsed.bestUrl !== 'CURRENT_PAGE' && parsed.bestUrl.startsWith('http')) {
+          selectedUrls.push(parsed.bestUrl);
+        }
+        if (
+          parsed.secondaryUrl &&
+          parsed.secondaryUrl !== 'CURRENT_PAGE' &&
+          parsed.secondaryUrl.startsWith('http') &&
+          !selectedUrls.includes(parsed.secondaryUrl)
+        ) {
+          selectedUrls.push(parsed.secondaryUrl);
+        }
+
+        if (selectedUrls.length > 0) {
+          return selectedUrls;
+        }
+        if (parsed.bestUrl === 'CURRENT_PAGE') {
+          return [];
+        }
+      } catch (err) {
+        console.warn(`Model ${model} failed for resolveTargetPagesWithAI:`, err.message);
+      }
+    }
+  }
+
+  // Fallback to rule match
+  return ruleMatch ? [ruleMatch] : [];
+}
+
+/**
  * Generic Universal Extractor — combines smart Cheerio element parsing with Gemini AI.
  * Strips navigation/menus/headers so menus are never extracted as records.
  * If AI is busy/unavailable, falls back gracefully to detected DOM structures so the user ALWAYS gets data.
@@ -591,7 +722,7 @@ async function extractWithAIGeneric(html, finalUrl, instruction) {
   }
 
   for (const r of rawCandidateRows) {
-    const title = r.Title || r.Name || r['Service Name'] || '';
+    const title = r.Title || r.Name || r['Service Name'] || r.Topic || '';
     if (!isNavOrGeneric(title)) {
       fallbackRows.push(r);
     }
@@ -599,8 +730,10 @@ async function extractWithAIGeneric(html, finalUrl, instruction) {
 
   const client = getAIClient();
   if (client) {
-    const prompt = `You are a high-speed web data extractor. Read this page and extract all records matching the user request.
-Instruction: "${instruction}"
+    const prompt = `You are an autonomous, intelligent web data extractor.
+Read this page and extract all records matching the user request.
+
+User Instruction: "${instruction}"
 Page URL: ${finalUrl}
 Page Title: ${pageTitle}
 Headings: ${headings}
@@ -608,16 +741,19 @@ Headings: ${headings}
 Page Content:
 ${bodyText}
 
-CRITICAL RULES:
-1. Do NOT extract site navigation links, sitemap links, or footer links (e.g. "Home", "About Us", "Services", "Portfolio", "Blog", "Contact Us", "Terms", "Privacy Policy", or copyrights).
-2. Extract ONLY the actual business records requested (e.g., if asked for services, extract specific services like "Custom Software Development", "Managed IT Services" with their descriptions; if asked for team members, extract actual people with their names and job titles/roles).
-3. If no matching records exist on this page, return { "rows": [] }. Do NOT make up records or substitute navigation links.
+AUTONOMOUS EXTRACTION RULES:
+1. NEVER extract site navigation menu items or sitemap links (such as "Home", "About Us", "Services", "Portfolio", "Blog", "Contact Us", "Terms", "Privacy Policy", or copyrights).
+2. Make your own intelligent decision on the best column names and data structure based on the user's instruction:
+   - If user asks for "what we do", company details, or overview: Extract structured records representing core business capabilities, offerings, vision/mission, operations, or key company facts (e.g. columns: "Topic" or "Capability", "Details", "Key Highlights").
+   - If user asks for team members: Extract actual people (columns: "Name", "Role" / "Title", "Bio").
+   - If user asks for services/products: Extract distinct service or product offerings (columns: "Name", "Description", "Key Features").
+   - If user asks for custom details (e.g. pricing, testimonials, case studies, technologies, locations, certifications): Extract all matching entities with appropriate descriptive columns.
+3. If no matching records exist on this page, return { "rows": [] }. Do not hallucinate or substitute navigation menus.
 
-Extract matching items as a JSON array of objects with descriptive column names (e.g. Name, Description, Link, etc.).
 Return ONLY JSON:
 {
   "rows": [
-    { "Name": "item name", "Description": "item details" }
+    { "Title": "item title or topic", "Description": "item details" }
   ]
 }`;
 
@@ -639,7 +775,7 @@ Return ONLY JSON:
         const parsed = JSON.parse(rawText || '{}');
         if (Array.isArray(parsed.rows) && parsed.rows.length > 0) {
           const filteredRows = parsed.rows.filter((r) => {
-            const val = r.Name || r.Title || r['Service Name'] || '';
+            const val = r.Name || r.Title || r['Service Name'] || r.Topic || r.Capability || '';
             return !isNavOrGeneric(val);
           });
           if (filteredRows.length > 0) {
@@ -686,17 +822,18 @@ export async function describeWithAI({ url, instruction, columnNames = [] }) {
     );
   }
 
-  // 1. Check if a relevant subpage should be visited based on instruction (e.g. /team, /services, /blog)
-  const targetSubpage = findRelevantSubpage(html, finalUrl, instruction);
+  // 1. Autonomous AI Link Decision: discover the most relevant subpage(s) for the query
+  const targetSubpages = await resolveTargetPagesWithAI(html, finalUrl, instruction);
   let rows = [];
 
-  if (targetSubpage) {
+  for (const targetSubpage of targetSubpages) {
     try {
       const subRes = await safeFetchHtml(targetSubpage, { ignoreRobots: true, timeoutMs: 15000 });
       const subRows = await extractWithAIGeneric(subRes.html, subRes.finalUrl, instruction);
       // Check if subRows are valid data and not the generic 1-row page fallback
       if (subRows && subRows.length > 0 && !(subRows.length === 1 && subRows[0].Summary)) {
-        rows = subRows;
+        rows.push(...subRows);
+        break; // Successfully got rich data from the AI-chosen subpage!
       }
     } catch (err) {
       console.warn(`Subpage navigation to ${targetSubpage} failed, falling back to main page:`, err.message);
@@ -855,15 +992,16 @@ export async function processScrapeJob(jobId) {
               }
 
               if (rows.length === 0 && job.instruction) {
-                // Check if a relevant subpage should be visited based on instruction (e.g. /team, /services, /blog)
-                const targetSubpage = findRelevantSubpage(html, finalUrl, job.instruction);
-                if (targetSubpage) {
+                // Autonomous AI Link Decision: discover the most relevant subpage(s) for the query
+                const targetSubpages = await resolveTargetPagesWithAI(html, finalUrl, job.instruction);
+                for (const targetSubpage of targetSubpages) {
                   try {
-                    const subRes = await safeFetchHtml(targetSubpage, { ignoreRobots: true, timeoutMs: 10000 });
+                    const subRes = await safeFetchHtml(targetSubpage, { ignoreRobots: true, timeoutMs: 15000 });
                     task.pagesVisited.push(subRes.finalUrl);
                     const subRows = await extractWithAIGeneric(subRes.html, subRes.finalUrl, job.instruction);
                     if (subRows && subRows.length > 0 && !(subRows.length === 1 && subRows[0].Summary)) {
-                      rows = subRows;
+                      rows.push(...subRows);
+                      break;
                     }
                   } catch (err) {
                     console.warn(`Subpage navigation to ${targetSubpage} failed in task:`, err.message);
