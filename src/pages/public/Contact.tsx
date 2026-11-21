@@ -11,56 +11,59 @@ import {
   HelpCircle,
   ChevronDown,
   Sparkles,
-  ShieldAlert,
+  ShieldCheck,
+  Building,
+  Check,
+  ArrowRight,
 } from 'lucide-react'
 
 const contactMethods = [
   {
     icon: Mail,
-    title: 'Email Us',
-    description: 'Direct email for sales, demos, or general inquiries.',
+    title: 'Customer Support',
+    description: 'Direct email for account setup, scraper queries, or general assistance.',
     contact: 'support@outreachtracker.io',
     action: 'mailto:support@outreachtracker.io',
   },
   {
     icon: MessageSquare,
-    title: 'Sales & Enterprise',
-    description: 'Looking for custom agency plans or high-volume API limits?',
+    title: 'Enterprise & Agency Sales',
+    description: 'Looking for high-volume custom crawling plans or API limits?',
     contact: 'sales@outreachtracker.io',
     action: 'mailto:sales@outreachtracker.io',
   },
   {
-    icon: MapPin,
-    title: 'Global Headquarters',
-    description: 'Operating globally with core presence in:',
-    contact: 'San Francisco, CA & London, UK',
+    icon: Clock,
+    title: 'Response SLA',
+    description: 'Average resolution time for priority tickets:',
+    contact: '< 2 Hours (24/7 coverage)',
     action: '#',
   },
   {
-    icon: Clock,
-    title: 'Response Time',
-    description: 'Our customer success team responds within:',
-    contact: '< 2 Hours (24/7 on weekdays)',
-    action: '#',
+    icon: ShieldCheck,
+    title: 'Security & Compliance',
+    description: 'For vulnerability disclosures and crawler whitelisting requests:',
+    contact: 'security@outreachtracker.io',
+    action: 'mailto:security@outreachtracker.io',
   },
 ]
 
 const faqs = [
   {
-    q: 'How does the AI Web Scraper find verified contacts?',
-    a: 'Our crawler scans target websites, autonomously explores relevant subpages (like /about, /team, or /contact), and extracts public email addresses, phone numbers, and social profiles while respecting robots.txt politeness and SSRF safety.',
+    q: 'How does the Autonomous AI Web Scraper find decision-maker emails?',
+    a: 'Our crawler scans your target domain, autonomously traverses internal subpages (such as /team, /editorial, /about-us, or /contact), and extracts verified business emails and phone numbers. It filters out generic addresses like support@ or info@ when direct decision-makers are available.',
   },
   {
-    q: 'Can I import my existing Excel or CSV spreadsheets?',
-    a: 'Yes! You can upload any CSV or XLSX file into our AI Data Cleaning Studio. You can then standardize columns, merge duplicates, and transform data using natural language prompts.',
+    q: 'Can I upload and clean my existing Excel or CSV spreadsheets?',
+    a: 'Yes! The AI Data Cleaning Studio lets you upload any CSV or XLSX file. You can normalize names, remove domain blacklists, format titles, and standardize data using plain English prompts like "Capitalize names and extract clean domains".',
   },
   {
-    q: 'Do you offer a free trial or starter plan?',
-    a: 'Yes, our Free Starter Plan lets you explore the platform, run up to 50 scrape queries, and track link prospects without entering any credit card information.',
+    q: 'Is there a free trial or starter plan available?',
+    a: 'Yes, our Free Starter Plan allows you to discover prospects, run up to 50 AI scraper queries, and test pipeline workflows with zero credit card required.',
   },
   {
-    q: 'Can multiple team members collaborate on the same client campaign?',
-    a: 'Absolutely. Pro and Agency plans support multi-user workspaces with role-based access, client segregations, and shared email templates.',
+    q: 'How does continuous won-link verification work?',
+    a: 'Once a prospect reaches the "Link Live" stage in your pipeline, our background verification engine periodically crawls the target publication URL to confirm that your backlink and designated anchor text remain active and DoFollow.',
   },
 ]
 
@@ -68,13 +71,13 @@ export default function Contact() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    subject: '',
+    company: '',
     inquiryType: 'sales',
     message: '',
   })
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [openFaq, setOpenFaq] = useState<number | null>(0)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,54 +87,63 @@ export default function Contact() {
     setTimeout(() => {
       setSubmitting(false)
       setSubmitted(true)
-    }, 800)
+    }, 700)
   }
 
   return (
-    <div className="bg-white">
+    <div className="bg-slate-50 text-slate-900 selection:bg-indigo-500 selection:text-white">
       {/* ─── Hero Section ────────────────────────────────────────────────────── */}
-      <section className="relative py-20 bg-gradient-to-b from-indigo-50/70 via-white to-white overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-100/40 rounded-full blur-3xl opacity-60" />
-          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-100/40 rounded-full blur-3xl opacity-60" />
+      <section className="relative pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden">
+        {/* Ambient background decoration */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[450px] bg-gradient-to-b from-indigo-200/40 via-purple-100/20 to-transparent blur-[120px] -z-10" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#64748b0d_1px,transparent_1px),linear-gradient(to_bottom,#64748b0d_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_20%,#000_70%,transparent_100%)]" />
         </div>
 
         <div className="relative container mx-auto px-6 max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-xs md:text-sm font-semibold px-4 py-1.5 rounded-full mb-6 border border-indigo-200 shadow-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 border border-slate-200 shadow-sm text-xs font-semibold text-slate-800 mb-8 backdrop-blur-md">
             <Sparkles className="w-4 h-4 text-indigo-600" />
-            We’d Love to Hear From You
+            <span>Connect with our specialists</span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-4 tracking-tight">
-            Get in touch with the{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
-              OutreachTracker team
+          <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-950 tracking-tight leading-[1.1] mb-6">
+            We are here to help you{' '}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+              scale your outreach.
             </span>
           </h1>
 
-          <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Have questions about our AI Web Scraper, Data Cleaning Studio, or Enterprise pricing? Reach out to us anytime.
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+            Have questions about autonomous AI scraping, enterprise API limits, or migrating your agency from spreadsheets? We typically respond within two hours.
           </p>
         </div>
       </section>
 
       {/* ─── Contact Info Cards ──────────────────────────────────────────────── */}
-      <section className="py-6 bg-white">
-        <div className="container mx-auto px-6 max-w-6xl">
+      <section className="py-6">
+        <div className="container mx-auto px-6 max-w-7xl">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {contactMethods.map((m) => {
               const Icon = m.icon
               return (
                 <div
                   key={m.title}
-                  className="bg-gray-50/80 p-6 rounded-2xl border border-gray-100 hover:border-indigo-100 hover:bg-white hover:shadow-md transition-all"
+                  className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col justify-between"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-4">
-                    <Icon className="w-5 h-5" />
+                  <div>
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center mb-4">
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <h3 className="font-bold text-slate-950 text-base mb-1">{m.title}</h3>
+                    <p className="text-slate-500 text-xs mb-4 leading-relaxed">{m.description}</p>
                   </div>
-                  <h3 className="font-bold text-gray-900 text-base mb-1">{m.title}</h3>
-                  <p className="text-gray-500 text-xs mb-3">{m.description}</p>
-                  <p className="text-sm font-semibold text-indigo-600 break-words">{m.contact}</p>
+                  <a
+                    href={m.action}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-700 break-words flex items-center gap-1 group"
+                  >
+                    <span>{m.contact}</span>
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </a>
                 </div>
               )
             })}
@@ -139,207 +151,213 @@ export default function Contact() {
         </div>
       </section>
 
-      {/* ─── Main Form & Details ──────────────────────────────────────────────── */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-6 max-w-6xl">
+      {/* ─── Main Form & FAQ Section ─────────────────────────────────────────── */}
+      <section className="py-20">
+        <div className="container mx-auto px-6 max-w-7xl">
           <div className="grid lg:grid-cols-12 gap-12 items-start">
             {/* Left: Contact Form */}
-            <div className="lg:col-span-7 bg-white p-8 md:p-10 rounded-3xl border border-gray-200 shadow-sm">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Send us a direct message</h2>
-              <p className="text-gray-500 text-sm mb-8">
-                Fill out the form below and an outreach specialist will reply within 2 business hours.
+            <div className="lg:col-span-7 bg-white p-8 md:p-12 rounded-3xl border border-slate-200/90 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-2xl font-bold text-slate-950">Send us a direct message</h2>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Online & Active
+                </span>
+              </div>
+              <p className="text-slate-500 text-sm mb-8">
+                Fill in the details below and an outreach specialist will reply promptly.
               </p>
 
               {submitted ? (
-                <div className="p-8 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-4">
-                  <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-8 h-8" />
+                <div className="p-8 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-center animate-in fade-in">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-4 shadow-md shadow-emerald-500/20">
+                    <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h3 className="text-xl font-bold text-emerald-900">Message Delivered!</h3>
-                  <p className="text-emerald-700 text-sm max-w-md mx-auto">
-                    Thank you for reaching out, <strong>{formData.name || 'there'}</strong>. We have received your inquiry regarding <strong>{formData.inquiryType}</strong> and will follow up shortly at <strong>{formData.email}</strong>.
+                  <h3 className="text-lg font-bold text-emerald-950 mb-1">Message Received!</h3>
+                  <p className="text-sm text-emerald-800 mb-6 max-w-md mx-auto">
+                    Thank you, <strong>{formData.name || 'there'}</strong>. We have received your inquiry regarding{' '}
+                    <span className="font-semibold">{formData.inquiryType}</span> and our team will reply to{' '}
+                    <span className="underline font-semibold">{formData.email}</span> shortly.
                   </p>
                   <button
                     onClick={() => {
                       setSubmitted(false)
-                      setFormData({ name: '', email: '', subject: '', inquiryType: 'sales', message: '' })
+                      setFormData({
+                        name: '',
+                        email: '',
+                        company: '',
+                        inquiryType: 'sales',
+                        message: '',
+                      })
                     }}
-                    className="mt-4 inline-block text-xs font-semibold text-emerald-800 bg-white border border-emerald-300 px-4 py-2 rounded-lg hover:bg-emerald-50"
+                    className="inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-semibold text-xs transition-colors"
                   >
                     Send another message
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Inquiry Type Selector */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      How can we help you?
+                    </label>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {[
+                        { id: 'sales', label: 'Agency / Sales' },
+                        { id: 'support', label: 'Technical Help' },
+                        { id: 'partnership', label: 'Partnership' },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, inquiryType: t.id })}
+                          className={`py-2.5 px-3 rounded-xl text-xs font-semibold border transition-all text-center ${
+                            formData.inquiryType === t.id
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                        Your Name *
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Your Name <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="text"
                         required
+                        placeholder="Sarah Jenkins"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Sarah Connor"
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                        Work Email *
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Work Email <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="email"
                         required
+                        placeholder="sarah@agency.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="sarah@company.com"
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                        Inquiry Topic
-                      </label>
-                      <select
-                        value={formData.inquiryType}
-                        onChange={(e) => setFormData({ ...formData, inquiryType: e.target.value })}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
-                      >
-                        <option value="sales">Sales & Product Demo</option>
-                        <option value="support">Technical Support</option>
-                        <option value="billing">Billing & Agency Plans</option>
-                        <option value="feedback">Feature Request / Feedback</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                        Subject *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.subject}
-                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                        placeholder="e.g. Scraper volume requirements"
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                      How Can We Help? *
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Company / Agency Name (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="LinkForge Media"
+                      value={formData.company}
+                      onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Message <span className="text-rose-500">*</span>
                     </label>
                     <textarea
-                      rows={5}
                       required
+                      rows={5}
+                      placeholder="Tell us about your team size, outreach goals, or specific questions about the AI Scraper..."
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      placeholder="Tell us about your outreach targets, domain volume, or technical questions..."
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all resize-y"
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-100 disabled:opacity-50"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-900 text-white py-3.5 px-6 rounded-xl font-bold text-sm shadow-md transition-all disabled:opacity-50"
                   >
                     {submitting ? (
-                      'Sending message...'
+                      <span>Sending message...</span>
                     ) : (
                       <>
-                        Send Message <Send className="w-4 h-4" />
+                        <Send className="w-4 h-4" />
+                        <span>Submit Message</span>
                       </>
                     )}
                   </button>
+
+                  <p className="text-[11px] text-slate-400 text-center">
+                    We respect your privacy. No spam or third-party marketing, ever.
+                  </p>
                 </form>
               )}
             </div>
 
-            {/* Right: Guarantee & Direct Contacts */}
+            {/* Right: FAQs and Direct Booking */}
             <div className="lg:col-span-5 space-y-6">
-              <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 text-white p-8 rounded-3xl shadow-md">
-                <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-3 py-1 rounded-full mb-4">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Live Operational Status
-                </div>
-                <h3 className="text-xl font-bold mb-3">All Crawling & AI Services Operational</h3>
-                <p className="text-indigo-200 text-sm leading-relaxed mb-6">
-                  Our crawler clusters, DNS resolution servers, and Gemini extraction pipelines are actively running with 99.98% historical uptime.
-                </p>
-                <div className="border-t border-indigo-800/80 pt-4 text-xs text-indigo-300 flex justify-between">
-                  <span>Current API Latency: <strong>48ms</strong></span>
-                  <span>Active Scrape Tasks: <strong>Healthy</strong></span>
+              {/* Instant Workspace Card */}
+              <div className="bg-gradient-to-br from-indigo-900 to-slate-950 text-white p-8 rounded-3xl border border-indigo-900/60 shadow-xl relative overflow-hidden">
+                <div className="relative z-10">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center mb-4">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">Want to test it right now?</h3>
+                  <p className="text-slate-300 text-xs leading-relaxed mb-6">
+                    You do not need to wait for a demo call. Jump directly into our free sandbox and run your first 50 live scrape queries today.
+                  </p>
+                  <Link
+                    to="/signup"
+                    className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all"
+                  >
+                    <span>Launch Free Account</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
               </div>
 
-              <div className="bg-gray-50 p-8 rounded-3xl border border-gray-200 space-y-4">
-                <h4 className="font-bold text-gray-900 text-base">Why Contact Us?</h4>
-                <ul className="space-y-3 text-sm text-gray-600">
-                  <li className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                    Custom scraping recipe consultation for tricky javascript sites
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                    Dedicated IP pools and high-volume limits for link agencies
-                  </li>
-                  <li className="flex items-start gap-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-                    Assistance importing historical spreadsheets and campaigns
-                  </li>
-                </ul>
+              {/* Interactive Accordion FAQs */}
+              <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
+                <h3 className="text-base font-bold text-slate-950 mb-2 flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-indigo-600" />
+                  <span>Frequently Asked Questions</span>
+                </h3>
+
+                <div className="divide-y divide-slate-100">
+                  {faqs.map((faq, index) => {
+                    const isOpen = openFaq === index
+                    return (
+                      <div key={faq.q} className="py-3">
+                        <button
+                          type="button"
+                          onClick={() => setOpenFaq(isOpen ? null : index)}
+                          className="w-full flex items-center justify-between text-left gap-3 text-xs font-bold text-slate-800 hover:text-indigo-600 transition-colors"
+                        >
+                          <span>{faq.q}</span>
+                          <ChevronDown
+                            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
+                              isOpen ? 'rotate-180 text-indigo-600' : ''
+                            }`}
+                          />
+                        </button>
+                        {isOpen && (
+                          <p className="mt-2 text-xs text-slate-500 leading-relaxed animate-in fade-in">
+                            {faq.a}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Frequently Asked Questions ───────────────────────────────────────── */}
-      <section className="py-20 bg-gray-50 border-t border-gray-100">
-        <div className="container mx-auto px-6 max-w-4xl">
-          <div className="text-center mb-12">
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-wider">
-              FAQ
-            </span>
-            <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 mt-3">
-              Frequently Asked Questions
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {faqs.map((faq, idx) => {
-              const isOpen = openFaq === idx
-              return (
-                <div
-                  key={faq.q}
-                  className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden transition-all"
-                >
-                  <button
-                    onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="w-full px-6 py-5 flex items-center justify-between text-left font-bold text-gray-900 hover:text-indigo-600 transition-colors"
-                  >
-                    <span>{faq.q}</span>
-                    <ChevronDown
-                      className={`w-5 h-5 text-gray-400 transition-transform ${
-                        isOpen ? 'rotate-180 text-indigo-600' : ''
-                      }`}
-                    />
-                  </button>
-                  {isOpen && (
-                    <div className="px-6 pb-5 text-sm text-gray-600 leading-relaxed border-t border-gray-50 pt-3">
-                      {faq.a}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
           </div>
         </div>
       </section>

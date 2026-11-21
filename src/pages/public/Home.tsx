@@ -2,83 +2,106 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   KanbanSquare,
-  Mail,
-  BellRing,
   Sparkles,
-  MessageSquare,
-  BarChart3,
   ArrowRight,
   CheckCircle2,
-  Globe,
-  Link2,
   Table,
   Zap,
   Search,
   Bot,
   Filter,
   Layers,
-  ChevronRight,
   Star,
   ShieldCheck,
+  Check,
+  Globe,
+  Database,
+  Terminal,
+  Activity,
+  ChevronRight,
+  ExternalLink,
+  Users,
+  Clock,
+  Send,
+  Sliders,
+  Compass,
 } from 'lucide-react'
 
-// ─── Stats ────────────────────────────────────────────────────────────────────
+// ─── Metrics ──────────────────────────────────────────────────────────────────
 const stats = [
-  { value: '12M+', label: 'Pages Scanned Autonomously' },
-  { value: '99.4%', label: 'Verified Contact Accuracy' },
-  { value: '40%', label: 'Higher Reply Rate' },
-  { value: '45k+', label: 'Live Backlinks Monitored' },
+  { value: '12M+', label: 'Pages Scanned Autonomously', change: '+38% this month' },
+  { value: '99.4%', label: 'Verified Contact Accuracy', change: 'Zero bounce guarantee' },
+  { value: '3.8x', label: 'Faster Pipeline Throughput', change: 'Vs. manual spreadsheets' },
+  { value: '45,000+', label: 'High-DR Backlinks Won', change: 'Actively monitored daily' },
 ]
 
-// ─── Trusted brands ───────────────────────────────────────────────────────────
-const companies = ['LinkForge', 'SERPify Media', 'BacklinkHQ', 'OutrankMedia', 'RankPilot Pro', 'SEOVelocity']
-
-// ─── The 3 Unified Workspaces ──────────────────────────────────────────────────
+// ─── Workspaces ───────────────────────────────────────────────────────────────
 const workspaces = [
   {
     id: 'scraper',
-    badge: 'Workspace 1',
+    badge: 'Workspace 01',
     title: 'Autonomous Web Scraper Engine',
+    subtitle: 'Deep crawling with AI decision link routing',
     description:
-      'Input any target website or domain. Our crawler autonomously navigates deep subpages (/team, /about, /services), finds verified decision-maker emails and phones, and extracts custom structured data.',
-    icon: Search,
-    color: 'from-blue-600 to-indigo-600',
+      'Give it any domain or URL list. OutreachTracker’s autonomous crawler detects target pages (/about, /team, /leadership, /services), bypasses boilerplate noise, and extracts verified decision-maker emails, direct phones, and custom fields.',
     features: [
-      'Autonomous subpage auto-navigation (/our-team, /services, /case-studies)',
-      'Verified business email, phone, and social profile extraction',
-      'Free-form natural language extraction recipes powered by Gemini AI',
-      'Strict SSRF protection, politeness limits, and robots.txt compliance',
+      'Autonomous subpage auto-navigation (/team, /editorial, /contact)',
+      'Verified direct email & LinkedIn profile discovery',
+      'Free-form natural language extraction recipes with Gemini AI',
+      'Built-in politeness, rate-limiting & SSRF protection',
     ],
   },
   {
-    id: 'cleaning',
-    badge: 'Workspace 2',
+    id: 'cleaner',
+    badge: 'Workspace 02',
     title: 'AI Data Cleaning Studio',
+    subtitle: 'Natural language spreadsheet transformations',
     description:
-      'Never wrestle with messy spreadsheets again. Clean, normalize, and transform raw rows using plain English commands with an interactive formula bar and instant preview.',
-    icon: Table,
-    color: 'from-purple-600 to-indigo-600',
+      'Stop wasting hours cleaning messy CSVs in Excel. Type what you want in plain English into the formula bar: split full names, remove generic email domains, format phone numbers, and deduplicate with instant side-by-side previews.',
     features: [
-      'Plain-language AI formula bar: "Capitalize names", "Extract clean domain"',
-      'Automated deduplication and domain blacklist screening',
-      'One-click export directly into verified outreach campaigns',
-      'Non-destructive transformations with step-by-step history',
+      'Plain-English AI formula bar: "Split first and last name, fix casing"',
+      'Instant non-destructive preview before committing edits',
+      'Automated domain deduplication & blacklist screening',
+      'One-click export directly to active outreach campaigns',
     ],
   },
   {
-    id: 'pipeline',
-    badge: 'Workspace 3',
+    id: 'crm',
+    badge: 'Workspace 03',
     title: 'Outreach CRM & Backlink Tracker',
+    subtitle: '8-stage visual pipeline with live link monitoring',
     description:
-      'Manage outreach campaigns across an 8-stage drag & drop kanban board. Send personalized sequence templates, schedule follow-ups, and verify live won backlinks.',
-    icon: KanbanSquare,
-    color: 'from-emerald-600 to-teal-600',
+      'Move prospects from initial pitch to live verified link. Use dynamic template tags ({{name}}, {{company}}, {{domain}}), automated follow-up reminders, and automatic link crawler verification that alerts you if a link is removed.',
     features: [
-      'Visual 8-stage Kanban board (New → Pitched → In Negotiation → Link Live)',
-      'Smart personalized email templates with dynamic {{name}} and {{domain}} tags',
-      'Automated follow-up reminders so no warm lead goes cold',
-      'Continuous won-link status verification and cost-per-link ROI reporting',
+      '8-stage visual Kanban: New → Pitched → In Negotiation → Link Live',
+      'Personalized sequence templates with real-time preview',
+      'Automated smart follow-up task scheduling',
+      'Continuous won-link status verification & cost-per-link metrics',
     ],
+  },
+]
+
+// ─── Comparison Data ──────────────────────────────────────────────────────────
+const comparisonPoints = [
+  {
+    feature: 'Finding Decision Makers',
+    oldWay: 'Manual Google searching, clicking through 10 pages per website, guessing emails',
+    outreachWay: 'Autonomous crawler visits /team & /about, extracting verified emails in seconds',
+  },
+  {
+    feature: 'Data Normalization',
+    oldWay: 'Writing complex VLOOKUPs, regex formulas, or copy-pasting line-by-line',
+    outreachWay: 'Natural language AI formula bar: "Clean company names and capitalize properly"',
+  },
+  {
+    feature: 'Outreach Pipeline',
+    oldWay: 'Scattered across messy Google Sheets, email client drafts, and sticky notes',
+    outreachWay: 'Unified 8-stage drag-and-drop Kanban with automatic follow-up reminders',
+  },
+  {
+    feature: 'Backlink Verification',
+    oldWay: 'Manually checking URLs monthly to see if partners kept your anchor link alive',
+    outreachWay: 'Automated 24/7 crawler monitoring that verifies link status and anchor tags',
   },
 ]
 
@@ -86,317 +109,531 @@ const workspaces = [
 const testimonials = [
   {
     quote:
-      'OutreachTracker replaced three disconnected subscriptions for our agency. The AI Scraper finding team members and the Data Cleaning studio saved us over 15 hours every week.',
+      'OutreachTracker replaced Hunter, Google Sheets, and our custom scrapers. The AI Scraper discovering team members and the cleaning studio saved our agency over 15 hours every single week.',
     name: 'Sarah Jenkins',
-    role: 'Head of SEO, LinkForge Digital',
-    initials: 'SJ',
+    role: 'Head of SEO',
+    company: 'LinkForge Media',
+    rating: 5,
+    metrics: '+320% links won',
   },
   {
     quote:
-      'Being able to write a prompt like "extract services and key details" and watching the AI autonomously navigate the site and build the spreadsheet is magical. Nothing else comes close.',
+      'Writing an instruction like "find the editor-in-chief and their email" and having OutreachTracker automatically route through the site and build my outreach table is pure magic.',
     name: 'Marcus Delgado',
-    role: 'Growth Director, SERPify',
-    initials: 'MD',
+    role: 'Director of Growth',
+    company: 'SERPify Marketing',
+    rating: 5,
+    metrics: '99.4% email accuracy',
   },
   {
     quote:
-      'We went from tracking deals in messy Google Sheets to closing 45+ high-DR links a month. The won-links verification ensures we never lose what we paid for.',
+      'The 8-stage Kanban and won-links verification gives our clients complete transparency. We closed 62 high-DR guest posts last month without dropping a single ball.',
     name: 'Priya Raman',
-    role: 'Founder, BacklinkHQ Agency',
-    initials: 'PR',
+    role: 'Founder & CEO',
+    company: 'BacklinkHQ Agency',
+    rating: 5,
+    metrics: '62 won links/mo',
   },
 ]
 
 export default function Home() {
-  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState(0)
-  const currentWorkspace = workspaces[activeWorkspaceTab]
+  const [activeTab, setActiveTab] = useState<'scraper' | 'cleaner' | 'crm'>('scraper')
 
   return (
-    <div className="bg-white">
+    <div className="bg-slate-50 text-slate-900 selection:bg-indigo-500 selection:text-white">
       {/* ─── Hero Section ────────────────────────────────────────────────────── */}
-      <section className="relative pt-20 pb-24 md:pt-28 md:pb-32 bg-gradient-to-b from-indigo-50/70 via-white to-white overflow-hidden">
-        {/* Subtle decorative glow */}
-        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-indigo-100/60 rounded-full blur-3xl opacity-70" />
-          <div className="absolute top-1/3 left-1/4 w-[450px] h-[450px] bg-purple-100/50 rounded-full blur-3xl opacity-60" />
+      <section className="relative pt-12 pb-24 md:pt-20 md:pb-32 overflow-hidden">
+        {/* Ambient background decoration */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-to-b from-indigo-200/40 via-purple-100/20 to-transparent blur-[120px] -z-10" />
+          <div className="absolute top-40 right-10 w-96 h-96 bg-indigo-300/20 rounded-full blur-[100px] -z-10" />
+          <div className="absolute top-60 left-10 w-80 h-80 bg-violet-200/30 rounded-full blur-[90px] -z-10" />
+          {/* Subtle background grid pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#64748b0d_1px,transparent_1px),linear-gradient(to_bottom,#64748b0d_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_20%,#000_70%,transparent_100%)]" />
         </div>
 
-        <div className="relative container mx-auto px-6 max-w-6xl text-center">
-          {/* Top Pill */}
-          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-xs md:text-sm font-semibold px-4 py-1.5 rounded-full mb-6 border border-indigo-200/80 shadow-sm hover:bg-indigo-100/80 transition-colors">
-            <Sparkles className="w-4 h-4 text-indigo-600" />
-            <span>The All-In-One AI Outreach & Web Scraping Engine</span>
-          </div>
-
-          {/* Main Headline */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 leading-[1.1] mb-6 tracking-tight max-w-5xl mx-auto">
-            Discover verified prospects, clean data, and{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600">
-              win high-value backlinks
-            </span>
-          </h1>
-
-          {/* Subtext */}
-          <p className="text-lg md:text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-            Eliminate messy spreadsheets and disconnected point tools. OutreachTracker unifies autonomous AI web scraping, intelligent spreadsheet cleaning, and high-conversion outreach pipelines in one workspace.
-          </p>
-
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-            <Link
-              to="/signup"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300"
-            >
-              Start Free Trial <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              to="/features"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-gray-300 bg-white text-gray-700 px-8 py-4 rounded-xl font-bold hover:bg-gray-50 transition-colors shadow-sm"
-            >
-              Explore All Workspaces
-            </Link>
-          </div>
-
-          <p className="text-xs md:text-sm text-gray-400 font-medium">
-            No credit card required · 50 free prospect scrapes included · Cancel anytime
-          </p>
-
-          {/* Interactive Workspace Preview Mockup */}
-          <div className="mt-14 max-w-5xl mx-auto bg-white rounded-3xl border border-gray-200/80 shadow-2xl p-4 md:p-6 text-left relative overflow-hidden">
-            {/* Top Browser Bar */}
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-5">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-red-400" />
-                <span className="w-3 h-3 rounded-full bg-amber-400" />
-                <span className="w-3 h-3 rounded-full bg-emerald-400" />
-                <span className="ml-3 text-xs font-mono text-gray-400 bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
-                  app.outreachtracker.io/prospects
-                </span>
-              </div>
-              <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200/70 px-3 py-1 rounded-full">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                AI Scraper Engine Active
-              </div>
-            </div>
-
-            {/* Mockup Workspace Tabs */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-              {workspaces.map((ws, idx) => {
-                const Icon = ws.icon
-                const isActive = activeWorkspaceTab === idx
-                return (
-                  <button
-                    key={ws.id}
-                    onClick={() => setActiveWorkspaceTab(idx)}
-                    className={`flex items-center gap-3 p-3.5 rounded-xl text-left border transition-all ${
-                      isActive
-                        ? 'bg-indigo-50/70 border-indigo-200 text-indigo-900 shadow-sm'
-                        : 'bg-gray-50/70 border-transparent text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        isActive ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-200 text-gray-600'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold uppercase tracking-wider text-indigo-600">{ws.badge}</div>
-                      <div className="text-xs font-semibold text-gray-900 line-clamp-1">{ws.title}</div>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Active Workspace Showcase Card */}
-            <div className="bg-gradient-to-tr from-gray-900 to-indigo-950 text-white p-6 md:p-8 rounded-2xl shadow-inner">
-              <div className="grid md:grid-cols-12 gap-8 items-center">
-                <div className="md:col-span-7 space-y-4">
-                  <div className="inline-block text-xs font-bold text-indigo-300 bg-indigo-900/60 border border-indigo-700/80 px-3 py-1 rounded-full">
-                    {currentWorkspace.badge}: {currentWorkspace.title}
-                  </div>
-                  <h3 className="text-2xl md:text-3xl font-extrabold text-white leading-snug">
-                    {currentWorkspace.title}
-                  </h3>
-                  <p className="text-indigo-200 text-sm leading-relaxed">
-                    {currentWorkspace.description}
-                  </p>
-                  <ul className="space-y-2.5 pt-2">
-                    {currentWorkspace.features.map((feat) => (
-                      <li key={feat} className="flex items-center gap-2 text-xs md:text-sm text-indigo-100">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="md:col-span-5 bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/10 space-y-3 font-mono text-xs text-indigo-100">
-                  <div className="text-indigo-300 font-bold border-b border-white/10 pb-2 flex items-center justify-between">
-                    <span>LIVE PIPELINE SNAPSHOT</span>
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">200 OK</span>
-                  </div>
-                  <div>Target: <span className="text-amber-300">visualsoft-inc.com</span></div>
-                  <div>Subpage Detected: <span className="text-emerald-300">/our-team/</span></div>
-                  <div>Decision Maker: <span className="text-white font-semibold">Muhammad Rafiq (CEO)</span></div>
-                  <div>Verified Contact: <span className="text-cyan-300">contact@visualsoft-inc.com</span></div>
-                  <div>Phone: <span className="text-white">+92 321 5265188</span></div>
-                  <div>Status: <span className="text-emerald-400 font-bold">READY TO ENRICH →</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Stats Bar ────────────────────────────────────────────────────────── */}
-      <section className="py-12 bg-indigo-900 text-white">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-indigo-800/80">
-            {stats.map((s) => (
-              <div key={s.label} className="pt-4 md:pt-0">
-                <div className="text-3xl md:text-4xl font-extrabold text-indigo-200 mb-1">{s.value}</div>
-                <div className="text-indigo-300 text-xs md:text-sm font-medium">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Social Proof ─────────────────────────────────────────────────────── */}
-      <section className="py-10 bg-gray-50 border-y border-gray-100">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 flex-wrap text-center">
-            <span className="text-xs md:text-sm text-gray-500 font-medium">
-              Trusted by high-growth outreach teams & SEO agencies:
-            </span>
-            {companies.map((name) => (
-              <span
-                key={name}
-                className="bg-white border border-gray-200 text-gray-700 text-xs md:text-sm font-semibold px-4 py-1.5 rounded-full shadow-sm"
-              >
-                {name}
+        <div className="relative container mx-auto px-6 max-w-7xl">
+          {/* Top Announcement Pill */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/90 border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-md hover:border-indigo-300 transition-all cursor-pointer group">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-600"></span>
               </span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Problem vs Solution ─────────────────────────────────────────────── */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            {/* The Old Way */}
-            <div className="bg-red-50/50 p-8 rounded-3xl border border-red-100">
-              <span className="inline-block text-xs font-bold text-red-600 bg-red-100 px-3 py-1 rounded-full uppercase tracking-wider mb-4">
-                The Old Fragile Way
+              <span className="text-xs font-semibold text-slate-800">
+                OutreachTracker 2.0 Engine Live
               </span>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">
-                Manual spreadsheets, disconnected tools, and lost leads
-              </h2>
-              <ul className="space-y-4">
-                {[
-                  'Scraping URLs into CSVs, then manually hunting for emails in separate apps',
-                  'Messy columns with broken formats, missing domains, and duplicate contacts',
-                  'Accidentally pitching the same website twice because blacklists are not synced',
-                  'Forgotten follow-ups causing hot link-building opportunities to go cold',
-                  'Zero real visibility into backlink ROI and whether won links stay live',
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
-                    <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0 font-bold text-xs mt-0.5">✕</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* The OutreachTracker Way */}
-            <div className="bg-emerald-50/50 p-8 rounded-3xl border border-emerald-100">
-              <span className="inline-block text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full uppercase tracking-wider mb-4">
-                The OutreachTracker Engine
+              <span className="text-slate-300">|</span>
+              <span className="text-xs font-medium text-indigo-600 group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                Autonomous Link Intelligence <ArrowRight className="w-3 h-3" />
               </span>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">
-                Autonomous scraping, clean sheets, and guaranteed delivery
-              </h2>
-              <ul className="space-y-4">
-                {[
-                  'Autonomous AI web scraping crawls subpages and pulls verified emails & phones',
-                  'AI Data Cleaning Studio normalizes spreadsheets using plain English prompts',
-                  'Workspace-level duplicate and blacklist detection prevents embarrassing repeat emails',
-                  'Automatic follow-up tasks and schedule alerts guarantee no prospect is missed',
-                  'Live Backlink Tracker continuously verifies that your won links remain active',
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-sm text-gray-700">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ─── How It Works (3 Steps) ───────────────────────────────────────────── */}
-      <section className="py-24 bg-gray-50 border-t border-gray-100">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-wider">
-              Simple 3-Step Flow
-            </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mt-3 mb-4">
-              From raw website to closed backlink
-            </h2>
-            <p className="text-gray-600 text-base">
-              A frictionless path engineered for maximum efficiency.
+          {/* Headline */}
+          <div className="text-center max-w-4xl mx-auto mb-8">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-slate-950 tracking-tight leading-[1.08] mb-6">
+              The autonomous engine for{' '}
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-800">
+                high-authority outreach
+              </span>{' '}
+              & link building.
+            </h1>
+            <p className="text-lg sm:text-xl text-slate-600 font-normal leading-relaxed max-w-2xl mx-auto">
+              Replace messy spreadsheets, manual scraping, and lost leads. Unify autonomous AI web crawling, natural-language data cleaning, and high-conversion CRM pipelines.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-2xl border border-gray-200/80 shadow-sm relative">
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-lg mb-6">
-                1
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Autonomous Discovery</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Paste your target domains or use AI instructions. The engine crawls deep subpages, finds verified decision-makers, and indexes company data.
-              </p>
-            </div>
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
+            <Link
+              to="/signup"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-slate-950 hover:bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold text-base shadow-xl shadow-slate-950/15 hover:shadow-indigo-500/10 transition-all hover:-translate-y-0.5"
+            >
+              <Sparkles className="w-5 h-5 text-indigo-400" />
+              <span>Start Free Workspace</span>
+              <ArrowRight className="w-4 h-4 ml-1" />
+            </Link>
+            <Link
+              to="/features"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 px-7 py-4 rounded-2xl font-semibold text-base border border-slate-200/90 shadow-sm transition-all hover:border-slate-300"
+            >
+              <span>Explore Features</span>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </Link>
+          </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-gray-200/80 shadow-sm relative">
-              <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 font-bold flex items-center justify-center text-lg mb-6">
-                2
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Clean in AI Studio</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Type instructions like "Capitalize names and extract clean domain" to prepare flawless, personalized outreach data in seconds.
-              </p>
+          {/* Social Proof Mini Bar */}
+          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs sm:text-sm font-medium text-slate-500 mb-16">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <span>No credit card required</span>
             </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <span>50 free scrape queries</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              <span>99.4% verified accuracy</span>
+            </div>
+          </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-gray-200/80 shadow-sm relative">
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 font-bold flex items-center justify-center text-lg mb-6">
-                3
+          {/* ─── Interactive Hero Application Mockup ────────────────────────────── */}
+          <div className="relative mx-auto max-w-6xl">
+            {/* Glowing frame backdrop */}
+            <div className="absolute -inset-1.5 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-indigo-500/20 rounded-3xl blur-xl opacity-70" />
+
+            <div className="relative rounded-2xl bg-white border border-slate-200/80 shadow-2xl shadow-indigo-950/10 overflow-hidden">
+              {/* Browser bar top */}
+              <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                  <div className="ml-3 hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-800 text-[11px] font-mono text-slate-400">
+                    <span className="text-emerald-400">https://</span>
+                    <span>outreachtracker.io/app/workspace</span>
+                  </div>
+                </div>
+
+                {/* Workspace preview switcher */}
+                <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl">
+                  <button
+                    onClick={() => setActiveTab('scraper')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      activeTab === 'scraper'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    AI Web Scraper
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('cleaner')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      activeTab === 'cleaner'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    AI Data Cleaner
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('crm')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      activeTab === 'crm'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Outreach Pipeline
+                  </button>
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Outreach & Win Links</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Move prospects through your visual pipeline, send dynamic sequence templates, and track live verified backlinks in real time.
-              </p>
+
+              {/* Mockup Canvas */}
+              <div className="p-6 md:p-8 bg-slate-50/60 min-h-[420px] flex flex-col justify-between">
+                {activeTab === 'scraper' && (
+                  <div className="space-y-5 animate-in fade-in duration-300">
+                    {/* Live URL input bar */}
+                    <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+                          <Globe className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs text-slate-400 font-mono">Target Domain</div>
+                          <div className="text-sm font-semibold text-slate-900 truncate">
+                            https://techcrunch.com
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200/60">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Autonomous Routing Active
+                        </span>
+                        <div className="bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5">
+                          <Bot className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>Gemini Deep Scan</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* AI Autonomous Navigation Log */}
+                    <div className="bg-slate-900 text-slate-300 rounded-xl p-3.5 font-mono text-xs border border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Terminal className="w-4 h-4 text-indigo-400" />
+                        <span className="text-slate-400">Navigated subpages:</span>
+                        <span className="text-indigo-300 bg-slate-800 px-2 py-0.5 rounded">/staff</span>
+                        <span className="text-indigo-300 bg-slate-800 px-2 py-0.5 rounded">/about</span>
+                        <span className="text-indigo-300 bg-slate-800 px-2 py-0.5 rounded">/leadership</span>
+                      </div>
+                      <span className="text-emerald-400 font-semibold">14 Decision Makers Extracted</span>
+                    </div>
+
+                    {/* Extracted Leads Table Mock */}
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                          <tr>
+                            <th className="py-2.5 px-4">Contact Person</th>
+                            <th className="py-2.5 px-4">Role / Title</th>
+                            <th className="py-2.5 px-4">Verified Email</th>
+                            <th className="py-2.5 px-4">Confidence</th>
+                            <th className="py-2.5 px-4 text-right">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-medium">
+                          <tr className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-900">Sarah Miller</td>
+                            <td className="py-3 px-4 text-slate-600">Senior Tech Editor</td>
+                            <td className="py-3 px-4 text-indigo-600 font-mono">sarah.m@techcrunch.com</td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200">
+                                99.8% Verified
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span className="text-slate-500 hover:text-indigo-600 cursor-pointer font-semibold">
+                                + Push to CRM
+                              </span>
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-900">David Vance</td>
+                            <td className="py-3 px-4 text-slate-600">VP of Editorial Content</td>
+                            <td className="py-3 px-4 text-indigo-600 font-mono">d.vance@techcrunch.com</td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200">
+                                98.4% Verified
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span className="text-slate-500 hover:text-indigo-600 cursor-pointer font-semibold">
+                                + Push to CRM
+                              </span>
+                            </td>
+                          </tr>
+                          <tr className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-3 px-4 font-semibold text-slate-900">Marcus Sterling</td>
+                            <td className="py-3 px-4 text-slate-600">Head of Brand Partnerships</td>
+                            <td className="py-3 px-4 text-indigo-600 font-mono">marcus@techcrunch.com</td>
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200">
+                                100% Direct MX
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <span className="text-slate-500 hover:text-indigo-600 cursor-pointer font-semibold">
+                                + Push to CRM
+                              </span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'cleaner' && (
+                  <div className="space-y-5 animate-in fade-in duration-300">
+                    {/* Natural language formula bar */}
+                    <div className="bg-white p-3.5 rounded-xl border border-indigo-200 shadow-sm flex items-center gap-3">
+                      <div className="px-2.5 py-1 bg-indigo-600 text-white rounded-md text-xs font-mono font-bold">
+                        fx AI
+                      </div>
+                      <input
+                        type="text"
+                        readOnly
+                        value="Capitalize first & last names, extract clean root domain, and filter out free Yahoo/Gmail addresses"
+                        className="w-full text-xs font-medium text-slate-800 bg-transparent outline-none"
+                      />
+                      <button className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold shrink-0">
+                        Apply AI Rule
+                      </button>
+                    </div>
+
+                    {/* Before vs After grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-white p-4 rounded-xl border border-slate-200">
+                        <div className="text-xs font-bold uppercase tracking-wider text-rose-500 mb-2 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-rose-500" />
+                          Messy Raw CSV (Before)
+                        </div>
+                        <div className="space-y-2 text-xs font-mono text-slate-500">
+                          <div className="p-2 bg-slate-50 rounded">john DOE | HTTPS://WWW.Acme-Corp.COM/blog | john123@gmail.com</div>
+                          <div className="p-2 bg-slate-50 rounded">SARAH | https://cloudscale.io/team?id=9 | sarah@cloudscale.io</div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm bg-gradient-to-br from-white to-emerald-50/20">
+                        <div className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          Normalized & Ready (After)
+                        </div>
+                        <div className="space-y-2 text-xs font-mono text-slate-800">
+                          <div className="p-2 bg-emerald-50/60 rounded border border-emerald-200/50 flex justify-between">
+                            <span>John Doe</span>
+                            <span className="text-slate-400">acme-corp.com</span>
+                            <span className="text-rose-500 line-through">Filtered Gmail</span>
+                          </div>
+                          <div className="p-2 bg-emerald-50/60 rounded border border-emerald-200/50 flex justify-between">
+                            <span className="font-semibold text-emerald-700">Sarah Jenkins</span>
+                            <span className="text-indigo-600">cloudscale.io</span>
+                            <span className="text-emerald-600">sarah@cloudscale.io</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'crm' && (
+                  <div className="space-y-5 animate-in fade-in duration-300">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-700">Campaign:</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-200">
+                          SaaS Backlink Outreach Q4
+                        </span>
+                      </div>
+                      <span className="text-xs font-medium text-slate-500">
+                        Target: 50 Won Links • Progress: 38/50 (76%)
+                      </span>
+                    </div>
+
+                    {/* Kanban Columns Preview */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="bg-white p-3 rounded-xl border border-slate-200">
+                        <div className="text-xs font-bold text-slate-700 mb-2 flex items-center justify-between">
+                          <span>Contact Pitched</span>
+                          <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px]">12</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/60 text-xs space-y-1">
+                          <div className="font-semibold text-slate-900">TechTarget Review</div>
+                          <div className="text-slate-500 text-[11px]">Follow-up due tomorrow</div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-3 rounded-xl border border-indigo-200 shadow-sm">
+                        <div className="text-xs font-bold text-indigo-600 mb-2 flex items-center justify-between">
+                          <span>In Negotiation</span>
+                          <span className="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded text-[10px]">5</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-indigo-50/50 border border-indigo-100 text-xs space-y-1">
+                          <div className="font-semibold text-slate-900">SearchEngineJournal</div>
+                          <div className="text-indigo-600 text-[11px]">Guest post draft approved</div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-3 rounded-xl border border-emerald-200 shadow-sm">
+                        <div className="text-xs font-bold text-emerald-600 mb-2 flex items-center justify-between">
+                          <span>Link Live (Verified)</span>
+                          <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded text-[10px]">38</span>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-emerald-50/50 border border-emerald-200/60 text-xs space-y-1">
+                          <div className="font-semibold text-slate-900">HubSpot Marketing Blog</div>
+                          <div className="text-emerald-700 font-bold text-[11px] flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> DR 92 • DoFollow Live
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bottom status strip */}
+                <div className="pt-4 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>Real-time crawler & AI extraction active</span>
+                  </div>
+                  <Link
+                    to="/signup"
+                    className="text-indigo-600 font-semibold hover:text-indigo-700 inline-flex items-center gap-1"
+                  >
+                    Open Live Demo in your workspace <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── Testimonials ─────────────────────────────────────────────────────── */}
-      <section className="py-24 bg-white">
+      {/* ─── Metrics Strip ────────────────────────────────────────────────────── */}
+      <section className="py-16 bg-white border-y border-slate-200/80">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            {stats.map((stat) => (
+              <div key={stat.label} className="p-4 rounded-2xl">
+                <div className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-950 tracking-tight mb-2">
+                  {stat.value}
+                </div>
+                <div className="text-sm font-bold text-slate-800 mb-1">{stat.label}</div>
+                <div className="text-xs font-medium text-emerald-600 flex items-center gap-1">
+                  <span>✓</span> {stat.change}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── The 3 Unified Workspaces (Bento Section) ─────────────────────────── */}
+      <section className="py-24 bg-slate-50">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-4 border border-indigo-200/60">
+              Complete Link Acquisition Stack
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-950 tracking-tight mb-4">
+              Three workspaces. One unified platform.
+            </h2>
+            <p className="text-slate-600 text-base sm:text-lg">
+              No more exporting CSVs from scraper tools, pasting into spreadsheets, and emailing from personal inboxes.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {workspaces.map((ws) => (
+              <div
+                key={ws.id}
+                className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all flex flex-col justify-between group"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                      {ws.badge}
+                    </span>
+                    <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
+                      {ws.id === 'scraper' && <Search className="w-5 h-5 text-indigo-400" />}
+                      {ws.id === 'cleaner' && <Table className="w-5 h-5 text-purple-400" />}
+                      {ws.id === 'crm' && <KanbanSquare className="w-5 h-5 text-emerald-400" />}
+                    </div>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">{ws.title}</h3>
+                  <div className="text-xs font-semibold text-indigo-600 mb-4">{ws.subtitle}</div>
+                  <p className="text-slate-600 text-sm leading-relaxed mb-6">{ws.description}</p>
+
+                  <div className="space-y-3 pt-4 border-t border-slate-100">
+                    {ws.features.map((feat) => (
+                      <div key={feat} className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
+                        <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-8 mt-6 border-t border-slate-100">
+                  <Link
+                    to="/signup"
+                    className="inline-flex items-center gap-2 text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors"
+                  >
+                    <span>Launch this workspace</span>
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Old Way vs OutreachTracker (Comparison Matrix) ──────────────────── */}
+      <section className="py-24 bg-white border-t border-slate-200/80">
         <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-wider">
-              Testimonials
-            </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mt-3 mb-4">
-              Loved by outreach leaders worldwide
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-950 tracking-tight mb-4">
+              Stop stitching 5 different tools together
+            </h2>
+            <p className="text-slate-600 text-base sm:text-lg">
+              Here is how traditional manual outreach compares to our autonomous pipeline engine.
+            </p>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 overflow-hidden shadow-lg bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-12 bg-slate-900 text-white p-4 sm:p-6 font-bold text-sm tracking-wider uppercase">
+              <div className="md:col-span-3 text-slate-400">Workflow Step</div>
+              <div className="md:col-span-4 text-rose-400">Traditional Messy Approach</div>
+              <div className="md:col-span-5 text-emerald-400">The OutreachTracker Way</div>
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              {comparisonPoints.map((item) => (
+                <div key={item.feature} className="grid grid-cols-1 md:grid-cols-12 p-6 gap-4 items-center">
+                  <div className="md:col-span-3 font-bold text-slate-900 text-sm">
+                    {item.feature}
+                  </div>
+                  <div className="md:col-span-4 text-xs sm:text-sm text-slate-500 bg-rose-50/50 p-3 rounded-xl border border-rose-100">
+                    <span className="font-semibold text-rose-700 block mb-1">✕ Pain Point</span>
+                    {item.oldWay}
+                  </div>
+                  <div className="md:col-span-5 text-xs sm:text-sm text-slate-800 bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 font-medium">
+                    <span className="font-semibold text-emerald-700 block mb-1">✓ Autonomous Fix</span>
+                    {item.outreachWay}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Social Proof & Testimonials ──────────────────────────────────────── */}
+      <section className="py-24 bg-slate-50">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-4 border border-emerald-200/60">
+              Verified User Results
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-950 tracking-tight mb-4">
+              Loved by SEO agencies & link acquisition specialists
             </h2>
           </div>
 
@@ -404,23 +641,35 @@ export default function Home() {
             {testimonials.map((t) => (
               <div
                 key={t.name}
-                className="bg-gray-50/80 p-8 rounded-2xl border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow"
+                className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between"
               >
-                <div className="space-y-4">
-                  <div className="flex gap-1 text-amber-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400" />
-                    ))}
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex text-amber-400">
+                      {[...Array(t.rating)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400" />
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                      {t.metrics}
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-700 italic leading-relaxed">"{t.quote}"</p>
+
+                  <p className="text-slate-700 text-sm leading-relaxed mb-6 font-medium">
+                    "{t.quote}"
+                  </p>
                 </div>
-                <div className="pt-6 mt-6 border-t border-gray-200/60 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-bold text-sm flex items-center justify-center">
-                    {t.initials}
+
+                <div className="pt-4 border-t border-slate-100 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                    {t.name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')}
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-900 text-sm">{t.name}</h4>
-                    <p className="text-gray-500 text-xs">{t.role}</p>
+                    <div className="font-bold text-slate-900 text-sm">{t.name}</div>
+                    <div className="text-xs text-slate-500">{t.role} • {t.company}</div>
                   </div>
                 </div>
               </div>
@@ -429,27 +678,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── Bottom CTA ───────────────────────────────────────────────────────── */}
-      <section className="py-20 bg-indigo-600 text-white text-center relative overflow-hidden">
-        <div className="container mx-auto px-6 max-w-4xl relative z-10">
-          <h2 className="text-3xl md:text-4xl font-extrabold mb-4">
-            Start closing more high-quality backlinks today
+      {/* ─── Bottom CTA Banner ────────────────────────────────────────────────── */}
+      <section className="py-20 bg-slate-950 text-white relative overflow-hidden">
+        {/* Ambient glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[350px] bg-gradient-to-r from-indigo-600/30 via-purple-600/20 to-indigo-600/30 blur-[140px] pointer-events-none rounded-full" />
+
+        <div className="relative container mx-auto px-6 max-w-5xl text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-900/60 border border-indigo-700/60 text-indigo-300 text-xs font-semibold mb-6">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            Zero Setup Required • Instant Scraping & Outreach
+          </div>
+
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-6 leading-tight">
+            Ready to scale your outreach and win authority links?
           </h2>
-          <p className="text-indigo-100 text-base md:text-lg mb-8 max-w-2xl mx-auto">
-            Join hundreds of forward-thinking SEOs, agencies, and growth teams who trust OutreachTracker.
+
+          <p className="text-slate-300 text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
+            Join over 1,200 SEO directors, outreach specialists, and agencies discovering verified prospects and managing pipelines with OutreachTracker.
           </p>
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to="/signup"
-              className="bg-white text-indigo-700 px-8 py-4 rounded-xl font-bold hover:bg-indigo-50 transition-colors shadow-lg text-sm md:text-base"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-bold text-base shadow-xl shadow-indigo-600/30 transition-all hover:-translate-y-0.5"
             >
-              Get Started for Free →
+              <span>Get Started Free Today</span>
+              <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
-              to="/pricing"
-              className="bg-indigo-700/80 text-white border border-indigo-400/50 px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 transition-colors text-sm md:text-base"
+              to="/contact"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 px-7 py-4 rounded-2xl font-semibold text-base border border-slate-800 transition-all"
             >
-              View Pricing & Plans
+              <span>Talk to Enterprise Sales</span>
             </Link>
           </div>
         </div>

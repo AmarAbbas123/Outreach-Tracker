@@ -11,39 +11,46 @@ import {
   BarChart4,
   HeartHandshake,
   CheckCircle2,
+  Lock,
+  Layers,
+  Terminal,
 } from 'lucide-react'
 
 const stats = [
-  { value: '12M+', label: 'Web Pages Scanned' },
-  { value: '99.4%', label: 'Verified Contact Accuracy' },
+  { value: '12M+', label: 'Pages Autonomously Scanned' },
+  { value: '99.4%', label: 'Contact Verification Rate' },
   { value: '1,200+', label: 'Active Link-Building Teams' },
-  { value: '45,000+', label: 'High-Authority Backlinks Won' },
+  { value: '45,000+', label: 'High-DR Backlinks Verified' },
 ]
 
 const values = [
   {
     icon: Target,
     title: 'Precision Over Volume',
+    badge: 'Core Philosophy',
     description:
-      'Spamming thousands of irrelevent blogs destroys your domain reputation. We build AI tools that identify the exact right contacts, verified emails, and relevant opportunities.',
+      'Mass-spamming irrelevant blogs destroys your sender reputation and wastes client budget. We build AI systems that pinpoint verified decision-makers, editors, and relevant editorial partners.',
   },
   {
     icon: Cpu,
     title: 'Autonomous Intelligence',
+    badge: 'AI Architecture',
     description:
-      'From following internal team subpages to dynamically structuring complex company details, our scraper and AI cleaning studio make intelligent decisions so you don’t have to.',
+      'From discovering internal team subpages to dynamically structuring unformatted text, our crawler makes intelligent choices in real-time so your team does not have to click manually.',
   },
   {
     icon: ShieldCheck,
     title: 'Polite & Ethical Crawling',
+    badge: 'Infrastructure',
     description:
-      'We respect robots.txt compliance, apply strict SSRF protections, and honor server rate-limits. We believe high-performance outreach must be built on sustainable, respectful standards.',
+      'We respect robots.txt compliance, apply strict SSRF protections, and honor polite server rate-limits. We believe high-performance outreach must be built on respectful, sustainable standards.',
   },
   {
     icon: Zap,
     title: 'Zero Spreadsheet Friction',
+    badge: 'Product Design',
     description:
-      'Copying and pasting rows between Google Sheets, Hunter, and Gmail is a thing of the past. One unified platform brings scraping, data cleaning, and email pipelines under one roof.',
+      'Copying and pasting rows between Hunter, Google Sheets, and personal Gmail accounts leads to dropped balls. One unified workspace brings scraping, cleaning, and outreach under one roof.',
   },
 ]
 
@@ -51,189 +58,124 @@ const teamMembers = [
   {
     name: 'Maseeh Ullah',
     role: 'Founder & Chief Architect',
-    bio: 'Full-stack systems engineer and automation architect with 7+ years building enterprise scrapers and growth data engines.',
-    avatar: 'MU',
+    bio: 'Systems engineer with deep expertise in autonomous web crawling, resilient queue architectures, and high-conversion SaaS outreach workflows.',
+    initials: 'MU',
   },
   {
     name: 'Elena Rostova',
     role: 'Head of AI & NLP',
-    bio: 'Former ML researcher specializing in large language model extraction, semantic classification, and structured schema synthesis.',
-    avatar: 'ER',
+    bio: 'Former machine learning engineer specialized in LLM semantic extraction, structured JSON synthesis, and entity classification.',
+    initials: 'ER',
   },
   {
     name: 'David Vance',
     role: 'VP of Product & SEO',
-    bio: 'Ex-agency outreach director who scaled organic link acquisition across 400+ SaaS and e-commerce brands.',
-    avatar: 'DV',
+    bio: 'Ex-agency outreach director who scaled organic link acquisition across 400+ SaaS, media, and e-commerce brands globally.',
+    initials: 'DV',
   },
   {
     name: 'Aisha Al-Mansoor',
     role: 'Lead Infrastructure Engineer',
-    bio: 'Distributed systems expert focused on resilient web crawling, high-throughput queue architectures, and database persistence.',
-    avatar: 'AA',
+    bio: 'Distributed systems architect focused on SSRF security, high-throughput workers, and sub-second database persistence.',
+    initials: 'AA',
   },
 ]
 
 const milestones = [
   {
     year: '2024',
-    title: 'The Frustration With Spreadsheets',
-    description: 'Frustrated by broken CSV imports, disconnected outreach tools, and missed follow-ups, our founders started prototyping a unified outreach database.',
+    title: 'The Frustration With Disconnected Spreadsheets',
+    description:
+      'Frustrated by broken CSV imports, scattered Google Sheets, and missed follow-ups, our founding team began engineering the first unified outreach database prototype.',
   },
   {
     year: '2025',
-    title: 'Autonomous AI Scraper & Cleaner',
-    description: 'We launched the AI Web Scraper Engine capable of discovering deep subpages and cleaning raw spreadsheets using natural language instructions.',
+    title: 'Autonomous AI Scraper & Formula Cleaner',
+    description:
+      'We introduced deep subpage auto-navigation (/team, /about) and natural-language spreadsheet cleaning powered by Gemini AI, cutting lead preparation time by 80%.',
   },
   {
     year: '2026',
     title: 'OutreachTracker 2.0 Global Scale',
-    description: 'Now powering link-building agencies, SaaS growth teams, and enterprise outreach specialists across 42 countries worldwide.',
+    description:
+      'Now powering over 1,200 SEO directors, agencies, and link acquisition specialists across 42 countries with verified backlink tracking and automated follow-ups.',
   },
 ]
 
 export default function About() {
   return (
-    <div className="bg-white">
+    <div className="bg-slate-50 text-slate-900 selection:bg-indigo-500 selection:text-white">
       {/* ─── Hero Section ────────────────────────────────────────────────────── */}
-      <section className="relative py-24 bg-gradient-to-b from-indigo-50/70 via-white to-white overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-100/50 rounded-full blur-3xl opacity-60" />
-          <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-100/50 rounded-full blur-3xl opacity-60" />
+      <section className="relative pt-16 pb-20 md:pt-24 md:pb-28 overflow-hidden">
+        {/* Ambient background decoration */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[450px] bg-gradient-to-b from-indigo-200/40 via-purple-100/20 to-transparent blur-[120px] -z-10" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#64748b0d_1px,transparent_1px),linear-gradient(to_bottom,#64748b0d_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_20%,#000_70%,transparent_100%)]" />
         </div>
 
         <div className="relative container mx-auto px-6 max-w-5xl text-center">
-          <div className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-xs md:text-sm font-semibold px-4 py-1.5 rounded-full mb-6 border border-indigo-200 shadow-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 border border-slate-200 shadow-sm text-xs font-semibold text-slate-800 mb-8 backdrop-blur-md">
             <Sparkles className="w-4 h-4 text-indigo-600" />
-            Our Mission & Story
+            <span>Our Mission & Architectural Philosophy</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6 tracking-tight">
-            Built for modern growth teams who demand{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
-              smarter outreach
+          <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-950 tracking-tight leading-[1.1] mb-6">
+            We are engineering the future of{' '}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+              intelligent link acquisition.
             </span>
           </h1>
 
-          <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-10">
-            OutreachTracker was created to eliminate the chaotic mess of bloated spreadsheets, expensive point-solution tools, and lost leads. We give link builders and outreach specialists an autonomous intelligence engine that finds prospects, cleans data, and closes deals.
+          <p className="text-lg sm:text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed mb-10">
+            OutreachTracker was built to kill the chaos of bloated spreadsheets, brittle scraper scripts, and forgotten follow-ups. We empower link builders and growth teams with autonomous tools that discover verified prospects, clean data instantly, and close partnerships.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
               to="/signup"
-              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
+              className="inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white px-7 py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-slate-950/15 transition-all"
             >
               Start Free Trial <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               to="/contact"
-              className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 px-7 py-3.5 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 px-7 py-3.5 rounded-xl font-semibold text-sm transition-colors shadow-sm"
             >
-              Get in Touch
+              Contact Our Team
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ─── Stats Strip ──────────────────────────────────────────────────────── */}
-      <section className="py-12 bg-indigo-900 text-white">
+      {/* ─── Stats Banner (High Contrast Dark Card) ──────────────────────────── */}
+      <section className="py-12">
         <div className="container mx-auto px-6 max-w-6xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-indigo-800/80">
-            {stats.map((s) => (
-              <div key={s.label} className="pt-4 md:pt-0">
-                <div className="text-3xl md:text-4xl font-extrabold text-indigo-200 mb-1">{s.value}</div>
-                <div className="text-indigo-300 text-sm font-medium">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+          <div className="rounded-3xl bg-slate-950 text-white p-8 md:p-12 border border-slate-900 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* ─── Why We Built OutreachTracker ──────────────────────────────────────── */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-wider mb-4">
-                The Origin
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
-                Outreach shouldn’t feel like wrestling a spreadsheet.
-              </h2>
-              <div className="space-y-4 text-gray-600 leading-relaxed text-base">
-                <p>
-                  For years, outreach and SEO teams had to jump between 5 different subscriptions: a web scraper to find pages, a contact extractor to guess emails, an email verifier to clean lists, a CSV spreadsheet to track rows, and an email tool to send pitches.
-                </p>
-                <p>
-                  Data was constantly lost, duplicate emails were sent to the same editors, and deals slipped through the cracks. Worst of all, nobody knew the true cost per link won.
-                </p>
-                <p>
-                  We built OutreachTracker as the all-in-one ecosystem: three unified workspaces where you discover leads with our autonomous AI scraper, clean spreadsheets with natural language, and manage high-conversion email pipelines seamlessly.
-                </p>
-              </div>
-
-              <div className="mt-8 flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  <span className="font-semibold text-gray-800 text-sm">3 Unified Workspaces</span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 relative z-10 divide-y md:divide-y-0 md:divide-x divide-slate-800">
+              {stats.map((s, idx) => (
+                <div key={s.label} className={idx > 0 ? 'pt-4 md:pt-0 md:pl-8' : ''}>
+                  <div className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-1">
+                    {s.value}
+                  </div>
+                  <div className="text-xs md:text-sm text-slate-400 font-medium">{s.label}</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  <span className="font-semibold text-gray-800 text-sm">Autonomous AI Engine</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-tr from-indigo-50 to-purple-50 p-8 rounded-3xl border border-indigo-100 shadow-sm relative">
-              <div className="space-y-4">
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Globe2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 text-sm">1. Autonomous Discovery</h4>
-                    <p className="text-gray-500 text-xs mt-1">Deep crawl target sites, auto-navigate to `/team` or `/services`, and extract verified decision-maker contacts.</p>
-                  </div>
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
-                    <Cpu className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 text-sm">2. AI Spreadsheet Studio</h4>
-                    <p className="text-gray-500 text-xs mt-1">Clean and standardize columns with plain English formulas, normalize job titles, and merge duplicates instantly.</p>
-                  </div>
-                </div>
-
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                    <BarChart4 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 text-sm">3. Visual Pipeline & Won Links</h4>
-                    <p className="text-gray-500 text-xs mt-1">Track negotiations through 8 visual stages, log live backlinks, and measure exact ROI per client.</p>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── Our Core Values ──────────────────────────────────────────────────── */}
-      <section className="py-24 bg-gray-50 border-y border-gray-100">
-        <div className="container mx-auto px-6 max-w-6xl">
+      {/* ─── Core Values (Bento Cards) ────────────────────────────────────────── */}
+      <section className="py-24 bg-white border-t border-slate-200/80">
+        <div className="container mx-auto px-6 max-w-7xl">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-wider">
-              Core Principles
-            </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mt-4 mb-4">
-              The values that drive our engineering
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight mb-4">
+              The Principles That Guide Us
             </h2>
-            <p className="text-gray-600 text-base md:text-lg">
-              We build tools with respect for both our users and the open web ecosystem.
+            <p className="text-slate-600 text-base">
+              Built by practitioners who have managed multi-million dollar organic link campaigns.
             </p>
           </div>
 
@@ -243,13 +185,19 @@ export default function About() {
               return (
                 <div
                   key={v.title}
-                  className="bg-white p-8 rounded-2xl border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-slate-50/70 p-8 rounded-3xl border border-slate-200/80 hover:border-indigo-200 hover:shadow-lg transition-all"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-5">
-                    <Icon className="w-6 h-6" />
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-200/60 flex items-center justify-center">
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-200">
+                      {v.badge}
+                    </span>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{v.title}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">{v.description}</p>
+
+                  <h3 className="text-xl font-bold text-slate-950 mb-3">{v.title}</h3>
+                  <p className="text-slate-600 text-sm leading-relaxed">{v.description}</p>
                 </div>
               )
             })}
@@ -257,61 +205,59 @@ export default function About() {
         </div>
       </section>
 
-      {/* ─── Leadership & Team ────────────────────────────────────────────────── */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-wider">
-              Leadership
-            </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mt-4 mb-4">
-              Meet the minds behind OutreachTracker
+      {/* ─── Milestone Timeline ──────────────────────────────────────────────── */}
+      <section className="py-24 bg-slate-50 border-t border-slate-200/80">
+        <div className="container mx-auto px-6 max-w-4xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight mb-4">
+              Our Journey So Far
             </h2>
-            <p className="text-gray-600 text-base">
-              A distributed team of engineers, SEO specialists, and designers passionate about high-impact web software.
+            <p className="text-slate-600 text-base">
+              From an internal link tracker to an autonomous enterprise acquisition engine.
+            </p>
+          </div>
+
+          <div className="space-y-8 relative before:absolute before:inset-0 before:left-8 before:w-0.5 before:bg-indigo-200/70">
+            {milestones.map((m) => (
+              <div key={m.year} className="relative flex items-start gap-6 group">
+                <div className="w-16 h-16 rounded-2xl bg-white border-2 border-indigo-600 text-indigo-600 font-extrabold text-sm flex items-center justify-center shrink-0 shadow-md z-10 group-hover:scale-105 transition-transform">
+                  {m.year}
+                </div>
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex-1 group-hover:shadow-md transition-shadow">
+                  <h3 className="text-lg font-bold text-slate-950 mb-2">{m.title}</h3>
+                  <p className="text-slate-600 text-sm leading-relaxed">{m.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Leadership Team ─────────────────────────────────────────────────── */}
+      <section className="py-24 bg-white border-t border-slate-200/80">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight mb-4">
+              Built by Link Builders & Engineers
+            </h2>
+            <p className="text-slate-600 text-base">
+              The multidisciplinary team committed to giving you the fastest, smartest outreach software.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {teamMembers.map((m) => (
+            {teamMembers.map((member) => (
               <div
-                key={m.name}
-                className="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-center hover:bg-white hover:border-indigo-100 hover:shadow-lg transition-all"
+                key={member.name}
+                className="bg-slate-50 p-6 rounded-3xl border border-slate-200/80 text-center hover:shadow-md transition-all flex flex-col justify-between"
               >
-                <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center mx-auto mb-4 text-xl font-bold shadow-md">
-                  {m.avatar}
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">{m.name}</h3>
-                <p className="text-indigo-600 text-xs font-semibold mb-3">{m.role}</p>
-                <p className="text-gray-500 text-xs leading-relaxed">{m.bio}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Milestones / Journey ─────────────────────────────────────────────── */}
-      <section className="py-20 bg-gray-50 border-t border-gray-100">
-        <div className="container mx-auto px-6 max-w-4xl">
-          <div className="text-center mb-14">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900">Our Growth Milestones</h2>
-          </div>
-
-          <div className="space-y-8 relative before:absolute before:inset-0 before:left-5 md:before:left-1/2 before:w-0.5 before:bg-indigo-200">
-            {milestones.map((item, idx) => (
-              <div
-                key={item.year}
-                className={`relative flex flex-col md:flex-row items-start md:items-center gap-6 ${
-                  idx % 2 === 0 ? 'md:flex-row-reverse' : ''
-                }`}
-              >
-                <div className="w-10 h-10 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center z-10 shrink-0 shadow-sm ring-4 ring-white">
-                  {item.year.slice(2)}'
-                </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex-1">
-                  <span className="text-xs font-bold text-indigo-600 uppercase tracking-wide">{item.year}</span>
-                  <h4 className="text-lg font-bold text-gray-900 mt-1 mb-2">{item.title}</h4>
-                  <p className="text-gray-600 text-sm leading-relaxed">{item.description}</p>
+                <div>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white font-extrabold text-lg flex items-center justify-center shadow-md shadow-indigo-600/20">
+                    {member.initials}
+                  </div>
+                  <h3 className="font-bold text-slate-950 text-base mb-1">{member.name}</h3>
+                  <div className="text-xs font-semibold text-indigo-600 mb-3">{member.role}</div>
+                  <p className="text-xs text-slate-500 leading-relaxed">{member.bio}</p>
                 </div>
               </div>
             ))}
@@ -319,28 +265,32 @@ export default function About() {
         </div>
       </section>
 
-      {/* ─── Bottom CTA ───────────────────────────────────────────────────────── */}
-      <section className="py-20 bg-indigo-600 text-white text-center relative overflow-hidden">
-        <div className="container mx-auto px-6 max-w-4xl relative z-10">
-          <h2 className="text-3xl md:text-4xl font-extrabold mb-4">
-            Ready to upgrade your outreach workflow?
-          </h2>
-          <p className="text-indigo-100 text-lg mb-8 max-w-2xl mx-auto">
-            Start discovering verified contacts and closing links in minutes. No credit card required.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/signup"
-              className="bg-white text-indigo-700 px-8 py-3.5 rounded-xl font-bold hover:bg-indigo-50 transition-colors shadow-lg"
-            >
-              Get Started for Free →
-            </Link>
-            <Link
-              to="/contact"
-              className="bg-indigo-700/80 text-white border border-indigo-400/50 px-8 py-3.5 rounded-xl font-bold hover:bg-indigo-700 transition-colors"
-            >
-              Contact Our Team
-            </Link>
+      {/* ─── Security & Politeness Standard Card ──────────────────────────────── */}
+      <section className="py-20 bg-slate-50 border-t border-slate-200/80">
+        <div className="container mx-auto px-6 max-w-5xl">
+          <div className="bg-white rounded-3xl p-8 md:p-10 border border-slate-200/90 shadow-sm flex flex-col md:flex-row items-center gap-8">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center shrink-0">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-slate-950 mb-2">
+                Ethical Crawling, SSRF Protection & Zero Data Leakage
+              </h3>
+              <p className="text-slate-600 text-sm leading-relaxed mb-4">
+                We take crawler safety seriously. Our scraper verifies target domain hosts against private RFC 1918 addresses, restricts socket loops, obeys robots.txt directives, and stores campaign data encrypted at rest.
+              </p>
+              <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-slate-700">
+                <span className="flex items-center gap-1.5 text-emerald-700">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> SSRF Hardened
+                </span>
+                <span className="flex items-center gap-1.5 text-emerald-700">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Robots.txt Politeness
+                </span>
+                <span className="flex items-center gap-1.5 text-emerald-700">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> AES-256 Workspace Isolation
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
