@@ -24,9 +24,9 @@ const columns: FooterColumn[] = [
   {
     heading: 'Company',
     links: [
-      { label: 'About', href: '#' },
+      { label: 'About Us', href: '/about' },
+      { label: 'Contact Us', href: '/contact' },
       { label: 'Blog', href: '#' },
-      { label: 'Contact', href: 'mailto:hello@outreachtracker.io', external: true },
     ],
   },
   {

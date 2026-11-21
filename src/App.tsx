@@ -4,6 +4,8 @@ import PublicLayout from './layouts/PublicLayout'
 import Home from './pages/public/Home'
 import Features from './pages/public/Features'
 import Pricing from './pages/public/Pricing'
+import About from './pages/public/About'
+import Contact from './pages/public/Contact'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import Campaigns from './pages/Campaigns'
@@ -28,6 +30,8 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/features" element={<Features />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
           </Route>
 
           {/* Auth pages */}

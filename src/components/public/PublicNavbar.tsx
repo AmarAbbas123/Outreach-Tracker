@@ -23,9 +23,11 @@ export default function PublicNavbar() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-7">
             <NavLink to="/features" className={navLinkClass}>Features</NavLink>
             <NavLink to="/pricing" className={navLinkClass}>Pricing</NavLink>
+            <NavLink to="/about" className={navLinkClass}>About Us</NavLink>
+            <NavLink to="/contact" className={navLinkClass}>Contact Us</NavLink>
           </nav>
 
           {/* Desktop CTA */}
@@ -71,6 +73,20 @@ export default function PublicNavbar() {
             onClick={() => setMobileOpen(false)}
           >
             Pricing
+          </NavLink>
+          <NavLink
+            to="/about"
+            className={navLinkClass}
+            onClick={() => setMobileOpen(false)}
+          >
+            About Us
+          </NavLink>
+          <NavLink
+            to="/contact"
+            className={navLinkClass}
+            onClick={() => setMobileOpen(false)}
+          >
+            Contact Us
           </NavLink>
           <hr className="border-gray-100" />
           <Link
