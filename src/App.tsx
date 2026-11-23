@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import ClientDetail from './pages/ClientDetail'
 import Campaigns from './pages/Campaigns'
+import CampaignDetail from './pages/CampaignDetail'
 import Prospects from './pages/Prospects'
 import Pipeline from './pages/Pipeline'
 import Templates from './pages/Templates'
@@ -49,6 +50,7 @@ export default function App() {
                 <Route path="clients" element={<Clients />} />
                 <Route path="clients/:id" element={<ClientDetail />} />
                 <Route path="campaigns" element={<Campaigns />} />
+                <Route path="campaigns/:id" element={<CampaignDetail />} />
                 <Route path="prospects" element={<Prospects />} />
                 <Route path="pipeline" element={<Pipeline />} />
                 <Route path="templates" element={<Templates />} />

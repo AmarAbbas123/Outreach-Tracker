@@ -16,6 +16,7 @@ export const createCampaignSchema = z.object({
 });
 
 export const updateCampaignSchema = z.object({
+  client: z.string().optional(),
   name: z.string().trim().min(1).max(200).optional(),
   type: z
     .enum(['guest_post', 'broken_link', 'resource_page', 'link_insertion', 'digital_pr', 'other'])
