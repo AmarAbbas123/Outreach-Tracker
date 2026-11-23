@@ -8,6 +8,7 @@ import About from './pages/public/About'
 import Contact from './pages/public/Contact'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
+import ClientDetail from './pages/ClientDetail'
 import Campaigns from './pages/Campaigns'
 import Prospects from './pages/Prospects'
 import Pipeline from './pages/Pipeline'
@@ -18,43 +19,47 @@ import Reports from './pages/Reports'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
 import { AuthProvider } from './context/AuthContext'
+import { ClientProvider } from './context/ClientContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public marketing pages */}
-          <Route element={<PublicLayout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/features" element={<Features />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-          </Route>
-
-          {/* Auth pages */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-
-          {/* Protected App routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/app" element={<Layout />}>
-              <Route index element={<Navigate to="/app/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="clients" element={<Clients />} />
-              <Route path="campaigns" element={<Campaigns />} />
-              <Route path="prospects" element={<Prospects />} />
-              <Route path="pipeline" element={<Pipeline />} />
-              <Route path="templates" element={<Templates />} />
-              <Route path="tasks" element={<Tasks />} />
-              <Route path="links" element={<Links />} />
-              <Route path="reports" element={<Reports />} />
+      <ClientProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public marketing pages */}
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
             </Route>
-          </Route>
-        </Routes>
-      </BrowserRouter>
+
+            {/* Auth pages */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
+
+            {/* Protected App routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/app" element={<Layout />}>
+                <Route index element={<Navigate to="/app/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="clients" element={<Clients />} />
+                <Route path="clients/:id" element={<ClientDetail />} />
+                <Route path="campaigns" element={<Campaigns />} />
+                <Route path="prospects" element={<Prospects />} />
+                <Route path="pipeline" element={<Pipeline />} />
+                <Route path="templates" element={<Templates />} />
+                <Route path="tasks" element={<Tasks />} />
+                <Route path="links" element={<Links />} />
+                <Route path="reports" element={<Reports />} />
+              </Route>
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </ClientProvider>
     </AuthProvider>
   )
 }
