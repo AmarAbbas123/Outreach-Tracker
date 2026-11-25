@@ -17,6 +17,7 @@ import Templates from './pages/Templates'
 import Tasks from './pages/Tasks'
 import Links from './pages/Links'
 import Reports from './pages/Reports'
+import Settings from './pages/Settings'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
 import { AuthProvider } from './context/AuthContext'
@@ -57,6 +58,7 @@ export default function App() {
                 <Route path="tasks" element={<Tasks />} />
                 <Route path="links" element={<Links />} />
                 <Route path="reports" element={<Reports />} />
+                <Route path="settings" element={<Settings />} />
               </Route>
             </Route>
           </Routes>

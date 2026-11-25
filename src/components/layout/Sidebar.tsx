@@ -50,8 +50,11 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'Analytics',
-    items: [{ to: '/app/reports', label: 'ROI Reports', icon: BarChart3 }],
+    title: 'Analytics & Admin',
+    items: [
+      { to: '/app/reports', label: 'ROI Reports', icon: BarChart3 },
+      { to: '/app/settings', label: 'Settings', icon: Settings },
+    ],
   },
 ]
 
