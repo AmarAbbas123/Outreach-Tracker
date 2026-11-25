@@ -91,7 +91,7 @@ export default function Topbar({ onToggleMobileMenu }: TopbarProps) {
 
         {/* Current Module Title */}
         <div className="hidden xs:flex flex-col min-w-0">
-          <h1 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight shrink-0 truncate">
+          <h1 className="text-sm sm:text-base font-semibold text-gray-800 tracking-tight shrink-0 truncate">
             {title}
           </h1>
         </div>
@@ -228,7 +228,7 @@ export default function Topbar({ onToggleMobileMenu }: TopbarProps) {
         {/* Quick Add Action Button */}
         <Link
           to="/app/prospects"
-          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-2xs hover:shadow-sm transition-all"
+          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-xl shadow-2xs transition-colors"
         >
           <Plus size={13} />
           <span>Add Leads</span>
@@ -250,10 +250,10 @@ export default function Topbar({ onToggleMobileMenu }: TopbarProps) {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 pl-1.5 pr-2 py-1 rounded-xl hover:bg-slate-100 transition-colors"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white text-xs font-extrabold flex items-center justify-center shrink-0 shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white text-xs font-medium flex items-center justify-center shrink-0 shadow-2xs">
               {initial}
             </div>
-            <span className="text-xs font-bold text-slate-800 hidden sm:block max-w-[100px] truncate">
+            <span className="text-xs font-medium text-gray-700 hidden sm:block max-w-[100px] truncate">
               {user?.name || 'Account'}
             </span>
             <ChevronDown size={12} className="text-slate-400 hidden sm:block shrink-0" />
@@ -262,9 +262,9 @@ export default function Topbar({ onToggleMobileMenu }: TopbarProps) {
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95">
               <div className="px-4 py-2 border-b border-slate-100">
-                <p className="text-xs font-bold text-slate-900 truncate">{user?.name}</p>
-                <p className="text-[11px] text-slate-400 truncate">{user?.email}</p>
-                <span className="mt-1 inline-block text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <p className="text-xs font-medium text-gray-800 truncate">{user?.name}</p>
+                <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
+                <span className="mt-1 inline-block text-[9px] font-medium uppercase px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
                   Workspace Owner
                 </span>
               </div>

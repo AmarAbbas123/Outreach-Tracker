@@ -106,14 +106,14 @@ export default function Sidebar({ isMobile, onClose }: SidebarProps) {
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-slate-900 text-sm tracking-tight leading-none">
+              <span className="font-semibold text-gray-900 text-sm tracking-tight leading-none">
                 Outreach<span className="text-indigo-600">Tracker</span>
               </span>
-              <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/50">
+              <span className="text-[9px] font-medium uppercase tracking-wider px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/50">
                 2.0
               </span>
             </div>
-            <span className="text-[10px] text-slate-400 font-medium tracking-tight mt-0.5">
+            <span className="text-[10px] text-gray-400 font-normal tracking-tight mt-0.5">
               Autonomous Link Engine
             </span>
           </div>
@@ -135,7 +135,7 @@ export default function Sidebar({ isMobile, onClose }: SidebarProps) {
       <nav className="flex-1 py-4 px-3 overflow-y-auto space-y-5">
         {navSections.map((section) => (
           <div key={section.title}>
-            <div className="px-3 mb-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+            <div className="px-3 mb-1.5 text-[10px] font-medium uppercase tracking-wider text-gray-400">
               {section.title}
             </div>
             <ul className="space-y-0.5">
@@ -151,10 +151,10 @@ export default function Sidebar({ isMobile, onClose }: SidebarProps) {
                         if (isMobile && onClose) onClose()
                       }}
                       className={({ isActive }) =>
-                        `flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
+                        `flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all group ${
                           isActive
-                            ? 'bg-indigo-50/90 text-indigo-700 shadow-2xs font-bold'
-                            : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
+                            ? 'bg-indigo-50/90 text-indigo-700 shadow-2xs'
+                            : 'text-gray-600 hover:bg-gray-100/70 hover:text-gray-900'
                         }`
                       }
                     >
@@ -164,7 +164,7 @@ export default function Sidebar({ isMobile, onClose }: SidebarProps) {
                       />
                       <span className="flex-1 truncate">{label}</span>
                       {showBadge && (
-                        <span className="bg-rose-50 text-rose-700 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full min-w-[18px] text-center border border-rose-200">
+                        <span className="bg-rose-50 text-rose-700 text-[10px] font-medium px-1.5 py-0.2 rounded-full min-w-[18px] text-center border border-rose-200">
                           {urgentTasksCount}
                         </span>
                       )}
@@ -178,17 +178,17 @@ export default function Sidebar({ isMobile, onClose }: SidebarProps) {
       </nav>
 
       {/* User & Workspace Profile Card Footer */}
-      <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+      <div className="p-3 border-t border-slate-100 bg-slate-50/40">
         <div className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white font-medium text-xs flex items-center justify-center shrink-0 shadow-2xs">
               {userInitials}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-900 truncate">
+              <p className="text-xs font-medium text-gray-800 truncate">
                 {user?.name || 'My Workspace'}
               </p>
-              <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+              <p className="text-[10px] text-emerald-600 font-normal flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 <span>Active Workspace</span>
               </p>

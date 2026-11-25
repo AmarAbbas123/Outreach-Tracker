@@ -235,9 +235,9 @@ export default function Reports() {
       {/* ─── Header & Global Filter Bar ─────────────────────────────────────── */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-gray-800 tracking-tight flex items-center gap-2">
             <span>Outreach & ROI Reports</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium border border-indigo-200">
               Live Analytics
             </span>
           </h2>
@@ -354,43 +354,43 @@ export default function Reports() {
         {/* Total Prospects */}
         <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs">
           <div className="flex items-center justify-between text-gray-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Prospects</span>
+            <span className="text-[11px] font-medium text-gray-500">Prospects</span>
             <Users size={15} className="text-blue-600" />
           </div>
-          <div className="text-2xl font-black text-gray-900">{kpis.totalProspects}</div>
+          <div className="text-2xl font-semibold text-gray-800">{kpis.totalProspects}</div>
           <div className="text-[11px] text-gray-400 mt-0.5">In active scope</div>
         </div>
 
         {/* Emails Sent */}
         <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs">
           <div className="flex items-center justify-between text-gray-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Emails Sent</span>
+            <span className="text-[11px] font-medium text-gray-500">Emails Sent</span>
             <Mail size={15} className="text-indigo-600" />
           </div>
-          <div className="text-2xl font-black text-gray-900">{kpis.emailsSent}</div>
+          <div className="text-2xl font-semibold text-gray-800">{kpis.emailsSent}</div>
           <div className="text-[11px] text-gray-400 mt-0.5">Pitches delivered</div>
         </div>
 
         {/* Replies & Reply Rate */}
         <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs">
           <div className="flex items-center justify-between text-gray-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Reply Rate</span>
+            <span className="text-[11px] font-medium text-gray-500">Reply Rate</span>
             <TrendingUp size={15} className="text-violet-600" />
           </div>
-          <div className="text-2xl font-black text-violet-700">{kpis.replyRate}%</div>
+          <div className="text-2xl font-semibold text-violet-700">{kpis.replyRate}%</div>
           <div className="text-[11px] text-gray-500 mt-0.5">
-            <strong>{kpis.replies}</strong> positive replies
+            <span className="font-medium text-gray-700">{kpis.replies}</span> positive replies
           </div>
         </div>
 
         {/* Links Won */}
         <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs">
           <div className="flex items-center justify-between text-gray-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Links Won</span>
+            <span className="text-[11px] font-medium text-gray-500">Links Won</span>
             <Award size={15} className="text-emerald-600" />
           </div>
-          <div className="text-2xl font-black text-emerald-700">{kpis.linksWon}</div>
-          <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">
+          <div className="text-2xl font-semibold text-emerald-700">{kpis.linksWon}</div>
+          <div className="text-[11px] text-emerald-600 font-medium mt-0.5">
             {kpis.winRate}% of replies won
           </div>
         </div>
@@ -398,10 +398,10 @@ export default function Reports() {
         {/* Cost Per Link */}
         <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs">
           <div className="flex items-center justify-between text-gray-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Cost / Link</span>
+            <span className="text-[11px] font-medium text-gray-500">Cost / Link</span>
             <DollarSign size={15} className="text-amber-600" />
           </div>
-          <div className="text-2xl font-black text-gray-900">
+          <div className="text-2xl font-semibold text-gray-800">
             ${kpis.costPerLink.toFixed(0)}
           </div>
           <div className="text-[11px] text-gray-400 mt-0.5">
@@ -412,10 +412,10 @@ export default function Reports() {
         {/* Average DR */}
         <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-2xs">
           <div className="flex items-center justify-between text-gray-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Average DR</span>
+            <span className="text-[11px] font-medium text-gray-500">Average DR</span>
             <ShieldCheck size={15} className="text-purple-600" />
           </div>
-          <div className="text-2xl font-black text-purple-700">
+          <div className="text-2xl font-semibold text-purple-700">
             {kpis.avgDr > 0 ? kpis.avgDr : '—'}
           </div>
           <div className="text-[11px] text-gray-400 mt-0.5">Authority score</div>
@@ -509,11 +509,11 @@ export default function Reports() {
             {/* SVG Interactive Chart */}
             <div className="relative pt-2 pb-4">
               {activeTooltip && (
-                <div className="absolute top-0 right-4 bg-slate-900 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-mono shadow-md z-10 animate-in fade-in">
-                  <span className="text-slate-300 font-semibold">{activeTooltip.label}:</span>{' '}
-                  <span className="text-indigo-300 font-bold">{activeTooltip.sent} sent</span> •{' '}
-                  <span className="text-violet-300 font-bold">{activeTooltip.replies} replies</span> •{' '}
-                  <span className="text-emerald-300 font-bold">{activeTooltip.won} won</span>
+                <div className="absolute top-0 right-4 bg-white border border-gray-200 text-gray-700 px-2.5 py-1.5 rounded-lg text-[10px] font-mono shadow-md z-10 animate-in fade-in">
+                  <span className="text-gray-900 font-medium">{activeTooltip.label}:</span>{' '}
+                  <span className="text-indigo-600 font-medium">{activeTooltip.sent} sent</span> •{' '}
+                  <span className="text-violet-600 font-medium">{activeTooltip.replies} replies</span> •{' '}
+                  <span className="text-emerald-600 font-medium">{activeTooltip.won} won</span>
                 </div>
               )}
 

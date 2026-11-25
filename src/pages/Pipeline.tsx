@@ -239,9 +239,9 @@ export default function Pipeline() {
       {/* Top Header & Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-gray-800 tracking-tight flex items-center gap-2">
             <span>Pipeline Board</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium border border-indigo-200">
               {filteredProspects.length} prospects
             </span>
           </h2>
@@ -366,9 +366,9 @@ export default function Pipeline() {
                   <div className="flex items-center justify-between px-1 py-1 shrink-0">
                     <div className="flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${stage.dot}`} />
-                      <span className="text-xs font-bold text-gray-800 tracking-tight">{stage.label}</span>
+                      <span className="text-xs font-medium text-gray-700 tracking-tight">{stage.label}</span>
                     </div>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full shadow-2xs ${stage.badgeBg}`}>
+                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shadow-2xs ${stage.badgeBg}`}>
                       {stageProspects.length}
                     </span>
                   </div>
@@ -406,7 +406,7 @@ export default function Pipeline() {
                                     ;(e.target as HTMLElement).style.display = 'none'
                                   }}
                                 />
-                                <span className="font-bold text-xs text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                                <span className="font-medium text-xs text-gray-800 group-hover:text-indigo-600 transition-colors truncate">
                                   {p.domain}
                                 </span>
                                 <a
@@ -422,16 +422,16 @@ export default function Pipeline() {
                               </div>
 
                               {p.campaign?.name && (
-                                <p className="text-[10px] text-slate-500 font-medium truncate flex items-center gap-1 mt-1 pl-6">
+                                <p className="text-[10px] text-slate-500 font-normal truncate flex items-center gap-1 mt-1 pl-6">
                                   <span className="text-slate-400">•</span>
                                   <span>{p.campaign.name}</span>
                                 </p>
                               )}
                             </div>
 
-                            {/* DR Badge (Ahrefs Style) */}
+                            {/* DR Badge (Light subtle pill) */}
                             {p.metrics?.dr ? (
-                              <span className="px-1.5 py-0.5 rounded bg-slate-900 text-white font-mono text-[10px] font-bold shadow-2xs shrink-0 tracking-tight">
+                              <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono text-[10px] font-medium shadow-2xs shrink-0 tracking-tight">
                                 DR {p.metrics.dr}
                               </span>
                             ) : null}
@@ -441,7 +441,7 @@ export default function Pipeline() {
                           {(p.contactName || p.contactEmail) && (
                             <div className="text-[11px] text-slate-600 my-2.5 p-2 rounded-lg bg-slate-50 border border-slate-100 space-y-0.5">
                               {p.contactName && (
-                                <p className="font-semibold text-slate-800 truncate flex items-center gap-1">
+                                <p className="font-medium text-gray-700 truncate flex items-center gap-1">
                                   <span>{p.contactName}</span>
                                 </p>
                               )}
@@ -470,8 +470,8 @@ export default function Pipeline() {
                           {/* Follow-up date or Tags */}
                           <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-1 text-[10px]">
                             {p.nextFollowUpAt ? (
-                              <span className="inline-flex items-center gap-1 text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80 font-mono font-semibold">
-                                <Clock size={10} className="text-amber-600" />
+                              <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/70 font-mono font-medium">
+                                <Clock size={10} className="text-amber-500" />
                                 <span>{new Date(p.nextFollowUpAt).toLocaleDateString()}</span>
                               </span>
                             ) : (

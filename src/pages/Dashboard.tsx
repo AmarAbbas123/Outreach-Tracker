@@ -137,18 +137,18 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 max-w-7xl">
       {/* ─── Hero Welcome Banner ──────────────────────────────────────────────── */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl overflow-hidden border border-slate-800">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative rounded-2xl bg-gradient-to-r from-indigo-50/70 via-white to-purple-50/60 p-6 sm:p-7 shadow-xs overflow-hidden border border-indigo-100/80">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-200/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-semibold mb-3 backdrop-blur-sm">
-              <Sparkles size={13} className="text-indigo-400" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100/70 border border-indigo-200/60 text-indigo-700 text-xs font-medium mb-3">
+              <Sparkles size={13} className="text-indigo-600" />
               <span>Autonomous Outreach Engine Active</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
               Welcome back to OutreachTracker
             </h2>
-            <p className="text-slate-300 text-xs sm:text-sm mt-1.5 leading-relaxed">
+            <p className="text-gray-600 text-xs sm:text-sm mt-1.5 leading-relaxed">
               Your link acquisition operations are running. Monitor response rates, follow up with warm leads, and verify live backlink placements.
             </p>
           </div>
@@ -156,14 +156,14 @@ export default function Dashboard() {
           <div className="flex items-center gap-3 shrink-0 flex-wrap">
             <Link
               to="/app/prospects"
-              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold px-5 py-2.5 rounded-xl shadow-md shadow-indigo-600/30 transition-all hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-medium px-4 py-2.5 rounded-xl shadow-2xs transition-colors"
             >
               <Plus size={15} />
               <span>Find Prospects</span>
             </Link>
             <Link
               to="/app/reports"
-              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl border border-white/10 transition-colors"
+              className="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 text-xs sm:text-sm font-medium px-4 py-2.5 rounded-xl border border-gray-200 shadow-2xs transition-colors"
             >
               <span>View ROI Reports</span>
               <ArrowRight size={13} />
@@ -177,10 +177,10 @@ export default function Dashboard() {
         {stats.map(({ label, value, sub, icon: Icon, color, bg }) => (
           <div
             key={label}
-            className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between"
+            className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between"
           >
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">
+              <span className="text-[11px] font-medium text-gray-500 truncate">
                 {label}
               </span>
               <div className={`${bg} ${color} p-2 rounded-xl shrink-0 shadow-2xs`}>
@@ -188,8 +188,8 @@ export default function Dashboard() {
               </div>
             </div>
             <div>
-              <p className="text-2xl font-black text-slate-900 tracking-tight">{value}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5 truncate">{sub}</p>
+              <p className="text-2xl font-semibold text-gray-800 tracking-tight">{value}</p>
+              <p className="text-[11px] text-gray-400 mt-0.5 truncate">{sub}</p>
             </div>
           </div>
         ))}
@@ -198,16 +198,16 @@ export default function Dashboard() {
       {/* ─── Middle Row: Outreach Funnel + Quick Actions ───────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Outreach Funnel (7 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 tracking-tight">Outreach Conversion Funnel</h3>
-                <p className="text-xs text-slate-400">Prospect discovery to live verified link</p>
+                <h3 className="text-sm font-semibold text-gray-800 tracking-tight">Outreach Conversion Funnel</h3>
+                <p className="text-xs text-gray-400">Prospect discovery to live verified link</p>
               </div>
               <Link
                 to="/app/pipeline"
-                className="text-xs text-indigo-600 font-bold hover:text-indigo-800 inline-flex items-center gap-1"
+                className="text-xs text-indigo-600 font-medium hover:text-indigo-800 inline-flex items-center gap-1"
               >
                 <span>Pipeline Board</span>
                 <ChevronRight size={13} />
@@ -221,14 +221,14 @@ export default function Dashboard() {
 
                 return (
                   <div key={s.stage}>
-                    <div className="flex items-center justify-between text-xs mb-1.5 font-semibold text-slate-700">
+                    <div className="flex items-center justify-between text-xs mb-1.5 font-medium text-gray-700">
                       <span className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-slate-400 font-mono">0{idx + 1}</span>
+                        <span className="text-[10px] text-gray-400 font-mono">0{idx + 1}</span>
                         <span>{s.label}</span>
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-slate-900">{s.count}</span>
-                        <span className="text-[11px] font-bold text-slate-400 w-10 text-right">
+                        <span className="font-semibold text-gray-800">{s.count}</span>
+                        <span className="text-[11px] font-normal text-gray-400 w-10 text-right">
                           {s.pct}%
                         </span>
                       </div>
@@ -247,22 +247,22 @@ export default function Dashboard() {
 
           <div className="pt-4 mt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <span>Overall Conversion Rate:</span>
-            <strong className="text-emerald-700 font-bold">{kpis.overallConversion}%</strong>
+            <strong className="text-emerald-700 font-semibold">{kpis.overallConversion}%</strong>
           </div>
         </div>
 
         {/* Right Column: Quick Actions & Tasks (5 cols) */}
         <div className="lg:col-span-5 flex flex-col gap-5">
           {/* Daily Tasks Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex flex-col justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <CheckSquare size={16} className="text-indigo-600" />
-                <h3 className="text-sm font-bold text-slate-900">Today's Focus Tasks</h3>
+                <h3 className="text-sm font-semibold text-gray-800">Today's Focus Tasks</h3>
               </div>
               <Link
                 to="/app/tasks"
-                className="text-xs text-indigo-600 font-bold hover:underline"
+                className="text-xs text-indigo-600 font-medium hover:underline"
               >
                 View all ({taskCounts.today + taskCounts.overdue})
               </Link>
@@ -270,38 +270,38 @@ export default function Dashboard() {
 
             <div className="grid grid-cols-2 gap-3 my-2">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] font-bold uppercase text-slate-400">Due Today</span>
-                <p className="text-xl font-black text-slate-900 mt-0.5">{taskCounts.today}</p>
+                <span className="text-[10px] font-medium uppercase text-gray-400">Due Today</span>
+                <p className="text-xl font-semibold text-gray-800 mt-0.5">{taskCounts.today}</p>
               </div>
               <div
                 className={`p-3 rounded-xl border ${
                   taskCounts.overdue > 0
                     ? 'bg-rose-50 border-rose-200 text-rose-800'
-                    : 'bg-slate-50 border-slate-100 text-slate-900'
+                    : 'bg-slate-50 border-slate-100 text-slate-800'
                 }`}
               >
-                <span className="text-[10px] font-bold uppercase opacity-75">Overdue</span>
-                <p className="text-xl font-black mt-0.5">{taskCounts.overdue}</p>
+                <span className="text-[10px] font-medium uppercase opacity-75">Overdue</span>
+                <p className="text-xl font-semibold mt-0.5">{taskCounts.overdue}</p>
               </div>
             </div>
 
             <Link
               to="/app/tasks"
-              className="w-full text-center py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors"
+              className="w-full text-center py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-xl text-xs font-medium transition-colors"
             >
               Open Daily Task Manager →
             </Link>
           </div>
 
           {/* Quick Actions Shortcuts */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] flex-1">
-            <h3 className="text-sm font-bold text-slate-900 mb-3">Quick Actions</h3>
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex-1">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Quick Actions</h3>
             <div className="space-y-1.5">
               {quickActions.map(({ label, to, icon: Icon }) => (
                 <Link
                   key={label}
                   to={to}
-                  className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-indigo-50/80 hover:text-indigo-700 transition-colors group"
+                  className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-gray-700 hover:bg-indigo-50/80 hover:text-indigo-700 transition-colors group"
                 >
                   <div className="flex items-center gap-2.5">
                     <Icon size={14} className="text-slate-400 group-hover:text-indigo-600" />
@@ -316,15 +316,15 @@ export default function Dashboard() {
       </div>
 
       {/* ─── Active Campaigns Snapshot ────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">Active Outreach Campaigns</h3>
-            <p className="text-xs text-slate-400">Current progress toward link acquisition goals</p>
+            <h3 className="text-sm font-semibold text-gray-800">Active Outreach Campaigns</h3>
+            <p className="text-xs text-gray-400">Current progress toward link acquisition goals</p>
           </div>
           <Link
             to="/app/campaigns"
-            className="text-xs text-indigo-600 font-bold hover:underline inline-flex items-center gap-1"
+            className="text-xs text-indigo-600 font-medium hover:underline inline-flex items-center gap-1"
           >
             <span>All Campaigns</span>
             <ChevronRight size={13} />
@@ -340,7 +340,7 @@ export default function Dashboard() {
             </p>
             <Link
               to="/app/campaigns"
-              className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-2xs"
+              className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-medium hover:bg-indigo-700 shadow-2xs"
             >
               <Plus size={13} />
               <span>Create First Campaign</span>
@@ -352,14 +352,14 @@ export default function Dashboard() {
               <Link
                 key={camp._id}
                 to={`/app/campaigns/${camp._id}`}
-                className="p-4 rounded-xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-sm transition-all group bg-white flex flex-col justify-between"
+                className="p-4 rounded-xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-xs transition-all group bg-white flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <h4 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                    <h4 className="text-xs font-medium text-gray-800 group-hover:text-indigo-600 transition-colors truncate">
                       {camp.name}
                     </h4>
-                    <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded uppercase bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    <span className="text-[10px] font-medium px-1.5 py-0.2 rounded uppercase bg-indigo-50 text-indigo-700 border border-indigo-100">
                       {camp.status}
                     </span>
                   </div>
@@ -373,9 +373,9 @@ export default function Dashboard() {
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 text-xs">
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
+                  <div className="flex items-center justify-between text-[11px] font-medium text-slate-500 mb-1">
                     <span>Links Goal</span>
-                    <span className="text-slate-800 font-bold">
+                    <span className="text-slate-700 font-semibold">
                       {camp.linksWon || 0} / {camp.goalLinks || 0}
                     </span>
                   </div>
