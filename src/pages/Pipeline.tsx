@@ -268,7 +268,7 @@ export default function Pipeline() {
           </div>
 
           {/* Search Bar */}
-          <div className="relative w-44 sm:w-56">
+          <div className="relative flex-1 min-w-[140px] sm:w-56">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -601,7 +601,7 @@ export default function Pipeline() {
       {prospectToLogLink && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setProspectToLogLink(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95">
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <Award size={18} className="text-emerald-600" />
@@ -726,7 +726,7 @@ export default function Pipeline() {
       {showAddProspectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowAddProspectModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95">
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-900">Add Prospect to Pipeline</h3>
               <button onClick={() => setShowAddProspectModal(false)} className="text-gray-400 hover:text-gray-600">

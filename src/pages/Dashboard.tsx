@@ -49,7 +49,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Welcome banner */}
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-xl p-6 text-white flex items-center justify-between">
+      <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-xl p-4 sm:p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold">Welcome back 👋</h2>
           <p className="text-indigo-100 text-sm mt-1">
@@ -58,14 +58,14 @@ export default function Dashboard() {
         </div>
         <Link
           to="/app/prospects"
-          className="hidden sm:flex items-center gap-2 bg-white/20 hover:bg-white/30 transition-colors text-white text-sm font-medium px-4 py-2 rounded-lg"
+          className="inline-flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 transition-colors text-white text-xs sm:text-sm font-medium px-4 py-2 rounded-lg w-fit"
         >
           Add prospects <ArrowRight size={14} />
         </Link>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         {stats.map(({ label, value, sub, icon: Icon, color, bg }) => (
           <div
             key={label}

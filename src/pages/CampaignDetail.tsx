@@ -274,7 +274,7 @@ export default function CampaignDetail() {
           <ArrowLeft size={14} /> Back to All Campaigns
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Quick status toggle */}
           {isCompleted ? (
             <button
@@ -402,7 +402,7 @@ export default function CampaignDetail() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           <button
             onClick={() => setShowAddProspectModal(true)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors"
@@ -419,10 +419,10 @@ export default function CampaignDetail() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-gray-200">
+      <div className="flex items-center gap-2 border-b border-gray-200 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
+          className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
             activeTab === 'overview'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -433,7 +433,7 @@ export default function CampaignDetail() {
 
         <button
           onClick={() => setActiveTab('prospects')}
-          className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
+          className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
             activeTab === 'prospects'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -447,7 +447,7 @@ export default function CampaignDetail() {
 
         <button
           onClick={() => setActiveTab('links')}
-          className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 ${
+          className={`pb-3 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
             activeTab === 'links'
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -751,7 +751,7 @@ export default function CampaignDetail() {
       {showAddLinkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowAddLinkModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95">
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <Award size={18} className="text-emerald-600" />
@@ -885,7 +885,7 @@ export default function CampaignDetail() {
       {showAddProspectModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowAddProspectModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95">
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-gray-900">Add Prospect to Campaign</h3>
               <button onClick={() => setShowAddProspectModal(false)} className="text-gray-400 hover:text-gray-600">
@@ -978,7 +978,7 @@ export default function CampaignDetail() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setShowDeleteConfirm(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95">
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-gray-900 mb-2">Delete Campaign?</h3>
             <p className="text-xs text-gray-600 mb-4 leading-relaxed">
               Are you sure you want to permanently delete <strong>{campaign.name}</strong>?

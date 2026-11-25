@@ -277,12 +277,12 @@ export default function Tasks() {
       )}
 
       {/* Tabs with Live Count Badges */}
-      <div className="flex items-center gap-1.5 bg-gray-100/80 p-1 rounded-2xl w-fit border border-gray-200/60">
+      <div className="flex items-center gap-1.5 bg-gray-100/80 p-1 rounded-2xl w-full sm:w-fit overflow-x-auto no-scrollbar border border-gray-200/60 shrink-0">
         {tabs.map(({ key, label, count }) => (
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
               filter === key
                 ? 'bg-white text-gray-900 shadow-xs'
                 : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'
@@ -565,7 +565,7 @@ export default function Tasks() {
       {taskToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setTaskToDelete(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95">
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-gray-900 mb-2">Delete Task?</h3>
             <p className="text-xs text-gray-600 mb-4 leading-relaxed">
               Are you sure you want to delete task <strong>"{taskToDelete.title}"</strong>?
@@ -638,7 +638,7 @@ function TaskFormModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">

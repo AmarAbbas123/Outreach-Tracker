@@ -1,4 +1,4 @@
-import { Bell, Search, ChevronDown, LogOut, Briefcase, Check, Plus, Globe } from 'lucide-react'
+import { Bell, Search, ChevronDown, LogOut, Briefcase, Check, Plus, Menu } from 'lucide-react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
@@ -10,14 +10,18 @@ const pageTitles: Record<string, string> = {
   '/app/campaigns': 'Campaigns',
   '/app/prospects': 'Prospects',
   '/app/pipeline':  'Pipeline',
-  '/app/templates': 'Email Templates',
+  '/app/templates': 'Templates',
   '/app/tasks':     'Tasks',
   '/app/links':     'Won Links',
   '/app/reports':   'Reports',
   '/app/settings':  'Settings',
 }
 
-export default function Topbar() {
+interface TopbarProps {
+  onToggleMobileMenu?: () => void
+}
+
+export default function Topbar({ onToggleMobileMenu }: TopbarProps) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
@@ -30,7 +34,7 @@ export default function Topbar() {
   const profileRef = useRef<HTMLDivElement>(null)
   const clientRef = useRef<HTMLDivElement>(null)
 
-  const title = pageTitles[pathname] ?? (pathname.startsWith('/app/clients/') ? 'Client Details' : 'OutreachTracker')
+  const title = pageTitles[pathname] ?? (pathname.startsWith('/app/clients/') ? 'Client' : pathname.startsWith('/app/campaigns/') ? 'Campaign' : 'OutreachTracker')
 
   const handleLogout = async () => {
     await logout()
@@ -59,33 +63,45 @@ export default function Topbar() {
   )
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 gap-4 z-20">
-      <div className="flex items-center gap-4">
-        <h1 className="text-base font-semibold text-gray-800 shrink-0">{title}</h1>
+    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-3 sm:px-6 shrink-0 gap-2 sm:gap-4 z-20">
+      <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
+        {/* Mobile Hamburger Menu Toggle */}
+        <button
+          type="button"
+          onClick={onToggleMobileMenu}
+          className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors shrink-0"
+          aria-label="Open navigation menu"
+        >
+          <Menu size={20} />
+        </button>
+
+        <h1 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight shrink-0 hidden xs:block">
+          {title}
+        </h1>
 
         {/* Global Client Filter Dropdown */}
-        <div className="relative" ref={clientRef}>
+        <div className="relative shrink-0" ref={clientRef}>
           <button
             type="button"
             onClick={() => setClientDropdownOpen(!clientDropdownOpen)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
               selectedClient
-                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100/70 shadow-xs'
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100/70 shadow-2xs'
                 : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900'
             }`}
             title="Global Client Scope"
           >
-            <Briefcase size={13} className={selectedClient ? 'text-indigo-600' : 'text-gray-500'} />
-            <span className="max-w-[140px] truncate font-semibold">
+            <Briefcase size={12} className={selectedClient ? 'text-indigo-600' : 'text-gray-500'} />
+            <span className="max-w-[85px] sm:max-w-[130px] truncate">
               {selectedClient ? selectedClient.name : 'All Clients'}
             </span>
-            <ChevronDown size={12} className="text-gray-400 shrink-0" />
+            <ChevronDown size={11} className="text-gray-400 shrink-0" />
           </button>
 
           {clientDropdownOpen && (
-            <div className="absolute left-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl py-2 z-50 animate-in fade-in">
+            <div className="absolute left-0 mt-2 w-64 max-w-[90vw] bg-white border border-gray-200 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in">
               <div className="px-3 pb-2 border-b border-gray-100">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
                   Global Client Filter
                 </div>
                 <div className="relative">
@@ -178,52 +194,59 @@ export default function Topbar() {
         </div>
       </div>
 
-      {/* Global Search */}
+      {/* Global Search - Desktop */}
       <div className="flex-1 max-w-sm hidden md:block">
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             placeholder="Search prospects, campaigns…"
-            className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
+            className="w-full pl-9 pr-4 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-colors"
           />
         </div>
       </div>
 
-      {/* Right side */}
-      <div className="flex items-center gap-2">
+      {/* Right Controls */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Notifications */}
-        <button className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors relative">
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+        <button className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors relative">
+          <Bell size={17} />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full" />
         </button>
 
         {/* Profile menu */}
         <div className="relative" ref={profileRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-2 pl-1.5 pr-2 py-1 rounded-xl hover:bg-gray-100 transition-colors"
           >
-            <div className="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center">
+            <div className="w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
               {initial}
             </div>
-            <span className="text-sm font-medium text-gray-700 hidden md:block">
-              {user?.name || 'My Account'}
+            <span className="text-xs font-semibold text-gray-700 hidden sm:block max-w-[100px] truncate">
+              {user?.name || 'Account'}
             </span>
-            <ChevronDown size={14} className="text-gray-400 hidden md:block" />
+            <ChevronDown size={13} className="text-gray-400 hidden sm:block shrink-0" />
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-50">
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-xl py-1 z-50 animate-in fade-in">
               <div className="px-4 py-2 border-b border-gray-100">
-                <p className="text-xs font-semibold text-gray-900 truncate">{user?.name}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <p className="text-xs font-bold text-gray-900 truncate">{user?.name}</p>
+                <p className="text-[11px] text-gray-500 truncate">{user?.email}</p>
               </div>
+              <Link
+                to="/app/settings"
+                onClick={() => setDropdownOpen(false)}
+                className="w-full flex items-center gap-2 px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+              >
+                Profile & Settings
+              </Link>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                className="w-full flex items-center gap-2 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 transition-colors font-semibold"
               >
-                <LogOut size={14} />
+                <LogOut size={13} />
                 <span>Sign out</span>
               </button>
             </div>

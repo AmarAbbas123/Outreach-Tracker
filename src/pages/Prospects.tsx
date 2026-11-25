@@ -260,7 +260,7 @@ export default function Prospects() {
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 rounded-xl border border-gray-200">
+        <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 rounded-xl border border-gray-200 overflow-x-auto max-w-full shrink-0">
           <button
             onClick={() => setActiveTab('database')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${

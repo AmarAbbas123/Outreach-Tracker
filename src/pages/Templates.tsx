@@ -477,7 +477,7 @@ export default function Templates() {
       {templateToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setTemplateToDelete(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 animate-in zoom-in-95">
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-bold text-gray-900 mb-2">Delete Template?</h3>
             <p className="text-xs text-gray-600 mb-4 leading-relaxed">
               Are you sure you want to permanently delete <strong>{templateToDelete.name}</strong>?
@@ -576,7 +576,7 @@ function TemplateFormModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl p-4 sm:p-6 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-base font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -746,7 +746,7 @@ function TemplatePreviewModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto space-y-4">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl p-4 sm:p-6 animate-in zoom-in-95 max-h-[92vh] overflow-y-auto space-y-4">
         <div className="flex items-center justify-between border-b border-gray-100 pb-3">
           <div>
             <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
