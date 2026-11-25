@@ -13,7 +13,7 @@ export default function Layout() {
   }, [location.pathname])
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden relative">
+    <div className="flex h-screen bg-slate-50/70 overflow-hidden relative font-sans text-slate-900">
       {/* Desktop Sidebar (hidden on mobile/tablet) */}
       <div className="hidden lg:flex shrink-0">
         <Sidebar />

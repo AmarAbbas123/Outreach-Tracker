@@ -78,15 +78,15 @@ interface Stage {
 }
 
 const STAGES: Stage[] = [
-  { key: 'new',           label: 'New',            color: 'bg-slate-50/80',   border: 'border-slate-200',  dot: 'bg-slate-400',   badgeBg: 'bg-slate-100 text-slate-700' },
-  { key: 'contact_found', label: 'Contact Found',  color: 'bg-blue-50/50',    border: 'border-blue-200',   dot: 'bg-blue-500',    badgeBg: 'bg-blue-100 text-blue-700' },
-  { key: 'email_sent',    label: 'Email Sent',     color: 'bg-indigo-50/50',  border: 'border-indigo-200', dot: 'bg-indigo-500',  badgeBg: 'bg-indigo-100 text-indigo-700' },
-  { key: 'followup_sent', label: 'Follow-up Sent', color: 'bg-violet-50/50',  border: 'border-violet-200', dot: 'bg-violet-500',  badgeBg: 'bg-violet-100 text-violet-700' },
-  { key: 'replied',       label: 'Replied',        color: 'bg-amber-50/50',   border: 'border-amber-200',  dot: 'bg-amber-500',   badgeBg: 'bg-amber-100 text-amber-800' },
-  { key: 'negotiating',   label: 'Negotiating',    color: 'bg-orange-50/50',  border: 'border-orange-200', dot: 'bg-orange-500',  badgeBg: 'bg-orange-100 text-orange-700' },
-  { key: 'agreed',        label: 'Agreed',         color: 'bg-teal-50/50',    border: 'border-teal-200',   dot: 'bg-teal-500',    badgeBg: 'bg-teal-100 text-teal-700' },
-  { key: 'link_live',     label: 'Link Live',      color: 'bg-emerald-50/60', border: 'border-emerald-200',dot: 'bg-emerald-500', badgeBg: 'bg-emerald-100 text-emerald-800' },
-  { key: 'lost',          label: 'Lost / Closed',  color: 'bg-rose-50/40',    border: 'border-rose-200',   dot: 'bg-rose-400',    badgeBg: 'bg-rose-100 text-rose-700' },
+  { key: 'new',           label: 'New',            color: 'bg-slate-100/70', border: 'border-slate-200/80', dot: 'bg-slate-400',   badgeBg: 'bg-white text-slate-700 border border-slate-200/80 shadow-2xs' },
+  { key: 'contact_found', label: 'Contact Found',  color: 'bg-slate-100/70', border: 'border-slate-200/80', dot: 'bg-sky-500',     badgeBg: 'bg-white text-slate-700 border border-slate-200/80 shadow-2xs' },
+  { key: 'email_sent',    label: 'Email Sent',     color: 'bg-slate-100/70', border: 'border-slate-200/80', dot: 'bg-indigo-500',  badgeBg: 'bg-white text-slate-700 border border-slate-200/80 shadow-2xs' },
+  { key: 'followup_sent', label: 'Follow-up Sent', color: 'bg-slate-100/70', border: 'border-slate-200/80', dot: 'bg-violet-500',  badgeBg: 'bg-white text-slate-700 border border-slate-200/80 shadow-2xs' },
+  { key: 'replied',       label: 'Replied',        color: 'bg-slate-100/70', border: 'border-slate-200/80', dot: 'bg-amber-500',   badgeBg: 'bg-white text-slate-700 border border-slate-200/80 shadow-2xs' },
+  { key: 'negotiating',   label: 'Negotiating',    color: 'bg-slate-100/70', border: 'border-slate-200/80', dot: 'bg-orange-500',  badgeBg: 'bg-white text-slate-700 border border-slate-200/80 shadow-2xs' },
+  { key: 'agreed',        label: 'Agreed',         color: 'bg-slate-100/70', border: 'border-slate-200/80', dot: 'bg-teal-500',    badgeBg: 'bg-white text-slate-700 border border-slate-200/80 shadow-2xs' },
+  { key: 'link_live',     label: 'Link Live',      color: 'bg-slate-100/70', border: 'border-slate-200/80', dot: 'bg-emerald-500', badgeBg: 'bg-white text-slate-700 border border-slate-200/80 shadow-2xs' },
+  { key: 'lost',          label: 'Lost / Closed',  color: 'bg-slate-100/70', border: 'border-slate-200/80', dot: 'bg-rose-400',    badgeBg: 'bg-white text-slate-700 border border-slate-200/80 shadow-2xs' },
 ]
 
 export default function Pipeline() {
@@ -390,39 +390,48 @@ export default function Pipeline() {
                             setDraggingId(null)
                             setDropOverStage(null)
                           }}
-                          className={`bg-white rounded-xl border border-gray-200 p-3.5 shadow-xs hover:shadow-md hover:border-indigo-200 transition-all cursor-grab active:cursor-grabbing group relative ${
+                          className={`bg-white rounded-xl border border-slate-200/90 p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:border-slate-300 transition-all duration-150 cursor-grab active:cursor-grabbing group relative ${
                             isDragging ? 'opacity-40 scale-95 border-dashed border-indigo-400' : ''
                           }`}
                         >
-                          {/* Domain & Link */}
-                          <div className="flex items-start justify-between gap-2 mb-1.5">
+                          {/* Domain & Favicon & DR */}
+                          <div className="flex items-start justify-between gap-2 mb-2">
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-extrabold text-xs text-gray-900 truncate">
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={`https://www.google.com/s2/favicons?domain=${p.domain}&sz=32`}
+                                  alt=""
+                                  className="w-4 h-4 rounded-xs shrink-0 bg-slate-100"
+                                  onError={(e) => {
+                                    ;(e.target as HTMLElement).style.display = 'none'
+                                  }}
+                                />
+                                <span className="font-bold text-xs text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
                                   {p.domain}
                                 </span>
                                 <a
                                   href={`https://${p.domain}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-gray-400 hover:text-indigo-600 transition-colors"
+                                  className="text-slate-400 hover:text-indigo-600 transition-colors"
                                   onClick={(e) => e.stopPropagation()}
+                                  title="Open live site"
                                 >
-                                  <ExternalLink size={10} />
+                                  <ExternalLink size={11} />
                                 </a>
                               </div>
 
                               {p.campaign?.name && (
-                                <p className="text-[10px] text-gray-400 truncate flex items-center gap-1 mt-0.5">
-                                  <Briefcase size={10} />
+                                <p className="text-[10px] text-slate-500 font-medium truncate flex items-center gap-1 mt-1 pl-6">
+                                  <span className="text-slate-400">•</span>
                                   <span>{p.campaign.name}</span>
                                 </p>
                               )}
                             </div>
 
-                            {/* DR Badge */}
+                            {/* DR Badge (Ahrefs Style) */}
                             {p.metrics?.dr ? (
-                              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-extrabold text-[10px] shrink-0 border border-slate-200">
+                              <span className="px-1.5 py-0.5 rounded bg-slate-900 text-white font-mono text-[10px] font-bold shadow-2xs shrink-0 tracking-tight">
                                 DR {p.metrics.dr}
                               </span>
                             ) : null}
@@ -430,20 +439,28 @@ export default function Pipeline() {
 
                           {/* Contact Info */}
                           {(p.contactName || p.contactEmail) && (
-                            <div className="text-[11px] text-gray-600 mt-2 space-y-0.5">
-                              {p.contactName && <p className="font-medium text-gray-800 truncate">{p.contactName}</p>}
+                            <div className="text-[11px] text-slate-600 my-2.5 p-2 rounded-lg bg-slate-50 border border-slate-100 space-y-0.5">
+                              {p.contactName && (
+                                <p className="font-semibold text-slate-800 truncate flex items-center gap-1">
+                                  <span>{p.contactName}</span>
+                                </p>
+                              )}
                               {p.contactEmail && (
-                                <div className="flex items-center justify-between text-gray-500 font-mono text-[10px]">
+                                <div className="flex items-center justify-between text-slate-500 font-mono text-[10px]">
                                   <span className="truncate">{p.contactEmail}</span>
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleCopy(p._id, p.contactEmail!)
                                     }}
-                                    className="text-gray-400 hover:text-indigo-600 ml-1"
+                                    className="text-slate-400 hover:text-indigo-600 ml-1.5 p-0.5 rounded hover:bg-slate-200/60 transition-colors"
                                     title="Copy email"
                                   >
-                                    {copiedId === p._id ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                                    {copiedId === p._id ? (
+                                      <Check size={11} className="text-emerald-600" />
+                                    ) : (
+                                      <Copy size={11} />
+                                    )}
                                   </button>
                                 </div>
                               )}
@@ -451,21 +468,21 @@ export default function Pipeline() {
                           )}
 
                           {/* Follow-up date or Tags */}
-                          <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between gap-1 text-[10px]">
+                          <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between gap-1 text-[10px]">
                             {p.nextFollowUpAt ? (
-                              <span className="inline-flex items-center gap-1 text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 font-semibold">
-                                <Clock size={10} />
+                              <span className="inline-flex items-center gap-1 text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80 font-mono font-semibold">
+                                <Clock size={10} className="text-amber-600" />
                                 <span>{new Date(p.nextFollowUpAt).toLocaleDateString()}</span>
                               </span>
                             ) : (
-                              <span className="text-gray-400">No follow-up set</span>
+                              <span className="text-slate-400 text-[10px]">No follow-up set</span>
                             )}
 
-                            {/* Move stage quick select for accessibility/mobile */}
+                            {/* Move stage quick select */}
                             <select
                               value={p.status}
                               onChange={(e) => handleMoveStatus(p._id, e.target.value as ProspectStatus)}
-                              className="text-[10px] border border-gray-200 rounded px-1.5 py-0.5 bg-gray-50 hover:bg-white text-gray-600 cursor-pointer outline-none"
+                              className="text-[10px] font-semibold border border-slate-200 rounded-lg px-2 py-0.5 bg-slate-50 hover:bg-white text-slate-700 cursor-pointer outline-none transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {STAGES.map((s) => (
