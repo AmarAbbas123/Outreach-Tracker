@@ -8,6 +8,7 @@ import aiCleanRoutes from './aiClean.routes.js';
 import scraperRoutes from './scraper.routes.js';
 import templateRoutes from './template.routes.js';
 import taskRoutes from './task.routes.js';
+import reportRoutes from './report.routes.js';
 
 const router = Router();
 
@@ -20,6 +21,7 @@ router.use('/ai/clean', aiCleanRoutes);
 router.use('/scrape', scraperRoutes);
 router.use('/templates', templateRoutes);
 router.use('/tasks', taskRoutes);
+router.use('/reports', reportRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
