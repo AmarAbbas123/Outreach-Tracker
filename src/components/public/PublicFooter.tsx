@@ -61,10 +61,10 @@ export default function PublicFooter() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
       <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="container mx-auto px-6 max-w-7xl pt-20 pb-12 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 pb-16 border-b border-slate-900">
+      <div className="container mx-auto px-4 sm:px-6 max-w-7xl pt-16 sm:pt-20 pb-12 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 sm:gap-12 pb-16 border-b border-slate-900">
           {/* Brand & Value statement */}
-          <div className="lg:col-span-2 space-y-5">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-2 space-y-5">
             <Link to="/" className="flex items-center gap-3">
               <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/30">
                 <Link2 className="w-5 h-5" />

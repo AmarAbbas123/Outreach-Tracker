@@ -113,13 +113,13 @@ export default function About() {
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#64748b0d_1px,transparent_1px),linear-gradient(to_bottom,#64748b0d_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_20%,#000_70%,transparent_100%)]" />
         </div>
 
-        <div className="relative container mx-auto px-6 max-w-5xl text-center">
+        <div className="relative container mx-auto px-4 sm:px-6 max-w-5xl text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 border border-slate-200 shadow-sm text-xs font-semibold text-slate-800 mb-8 backdrop-blur-md">
             <Sparkles className="w-4 h-4 text-indigo-600" />
             <span>Our Mission & Architectural Philosophy</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-950 tracking-tight leading-[1.1] mb-6">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-950 tracking-tight leading-[1.1] mb-6">
             We are engineering the future of{' '}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
               intelligent link acquisition.
@@ -149,17 +149,17 @@ export default function About() {
 
       {/* ─── Stats Banner (High Contrast Dark Card) ──────────────────────────── */}
       <section className="py-12">
-        <div className="container mx-auto px-6 max-w-6xl">
-          <div className="rounded-3xl bg-slate-950 text-white p-8 md:p-12 border border-slate-900 shadow-2xl relative overflow-hidden">
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
+          <div className="rounded-3xl bg-slate-950 text-white p-6 sm:p-8 md:p-12 border border-slate-900 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 relative z-10 divide-y md:divide-y-0 md:divide-x divide-slate-800">
-              {stats.map((s, idx) => (
-                <div key={s.label} className={idx > 0 ? 'pt-4 md:pt-0 md:pl-8' : ''}>
-                  <div className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-1">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 relative z-10">
+              {stats.map((s) => (
+                <div key={s.label}>
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-1">
                     {s.value}
                   </div>
-                  <div className="text-xs md:text-sm text-slate-400 font-medium">{s.label}</div>
+                  <div className="text-xs sm:text-sm text-slate-400 font-medium">{s.label}</div>
                 </div>
               ))}
             </div>

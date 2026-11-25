@@ -100,13 +100,13 @@ export default function Contact() {
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#64748b0d_1px,transparent_1px),linear-gradient(to_bottom,#64748b0d_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_20%,#000_70%,transparent_100%)]" />
         </div>
 
-        <div className="relative container mx-auto px-6 max-w-4xl text-center">
+        <div className="relative container mx-auto px-4 sm:px-6 max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 border border-slate-200 shadow-sm text-xs font-semibold text-slate-800 mb-8 backdrop-blur-md">
             <Sparkles className="w-4 h-4 text-indigo-600" />
             <span>Connect with our specialists</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-extrabold text-slate-950 tracking-tight leading-[1.1] mb-6">
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-slate-950 tracking-tight leading-[1.1] mb-6">
             We are here to help you{' '}
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
               scale your outreach.
@@ -121,7 +121,7 @@ export default function Contact() {
 
       {/* ─── Contact Info Cards ──────────────────────────────────────────────── */}
       <section className="py-6">
-        <div className="container mx-auto px-6 max-w-7xl">
+        <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {contactMethods.map((m) => {
               const Icon = m.icon
@@ -153,10 +153,10 @@ export default function Contact() {
 
       {/* ─── Main Form & FAQ Section ─────────────────────────────────────────── */}
       <section className="py-20">
-        <div className="container mx-auto px-6 max-w-7xl">
+        <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
           <div className="grid lg:grid-cols-12 gap-12 items-start">
             {/* Left: Contact Form */}
-            <div className="lg:col-span-7 bg-white p-8 md:p-12 rounded-3xl border border-slate-200/90 shadow-sm">
+            <div className="lg:col-span-7 bg-white p-5 sm:p-8 md:p-12 rounded-3xl border border-slate-200/90 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-2xl font-bold text-slate-950">Send us a direct message</h2>
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">

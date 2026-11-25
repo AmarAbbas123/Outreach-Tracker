@@ -70,7 +70,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm w-full max-w-sm p-8">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm w-full max-w-sm p-6 sm:p-8">
         {/* Logo */}
         <Link to="/" className="inline-flex items-center gap-2 mb-8">
           <div className="bg-indigo-600 text-white p-2 rounded-lg">

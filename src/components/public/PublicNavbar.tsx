@@ -34,7 +34,7 @@ export default function PublicNavbar() {
           : 'bg-white/70 backdrop-blur-md border-b border-slate-200/40'
       }`}
     >
-      <div className="container mx-auto px-6 max-w-7xl">
+      <div className="container mx-auto px-4 sm:px-6 max-w-7xl">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo & Brand */}
           <Link to="/" className="flex items-center gap-3 group">

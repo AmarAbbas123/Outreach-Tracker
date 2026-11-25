@@ -152,7 +152,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#64748b0d_1px,transparent_1px),linear-gradient(to_bottom,#64748b0d_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_20%,#000_70%,transparent_100%)]" />
         </div>
 
-        <div className="relative container mx-auto px-6 max-w-7xl">
+        <div className="relative container mx-auto px-4 sm:px-6 max-w-7xl">
           {/* Top Announcement Pill */}
           <div className="flex justify-center mb-8">
             <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/90 border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-md hover:border-indigo-300 transition-all cursor-pointer group">
@@ -172,7 +172,7 @@ export default function Home() {
 
           {/* Headline */}
           <div className="text-center max-w-4xl mx-auto mb-8">
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-slate-950 tracking-tight leading-[1.08] mb-6">
+            <h1 className="text-3xl sm:text-5xl lg:text-7xl font-extrabold text-slate-950 tracking-tight leading-[1.08] mb-6">
               The autonomous engine for{' '}
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-800">
                 high-authority outreach
@@ -226,7 +226,7 @@ export default function Home() {
 
             <div className="relative rounded-2xl bg-white border border-slate-200/80 shadow-2xl shadow-indigo-950/10 overflow-hidden">
               {/* Browser bar top */}
-              <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+              <div className="bg-slate-900 px-3 sm:px-4 py-3 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-rose-500/80" />
                   <div className="w-3 h-3 rounded-full bg-amber-500/80" />
@@ -238,10 +238,10 @@ export default function Home() {
                 </div>
 
                 {/* Workspace preview switcher */}
-                <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl">
+                <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar shrink-0">
                   <button
                     onClick={() => setActiveTab('scraper')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                       activeTab === 'scraper'
                         ? 'bg-indigo-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-white'
@@ -251,7 +251,7 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => setActiveTab('cleaner')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                       activeTab === 'cleaner'
                         ? 'bg-indigo-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-white'
@@ -261,7 +261,7 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => setActiveTab('crm')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                       activeTab === 'crm'
                         ? 'bg-indigo-600 text-white shadow-sm'
                         : 'text-slate-400 hover:text-white'
@@ -273,7 +273,7 @@ export default function Home() {
               </div>
 
               {/* Mockup Canvas */}
-              <div className="p-6 md:p-8 bg-slate-50/60 min-h-[420px] flex flex-col justify-between">
+              <div className="p-4 sm:p-6 md:p-8 bg-slate-50/60 min-h-[420px] flex flex-col justify-between">
                 {activeTab === 'scraper' && (
                   <div className="space-y-5 animate-in fade-in duration-300">
                     {/* Live URL input bar */}
@@ -315,8 +315,8 @@ export default function Home() {
                     </div>
 
                     {/* Extracted Leads Table Mock */}
-                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                      <table className="w-full text-left text-xs">
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto shadow-sm">
+                      <table className="w-full text-left text-xs min-w-[500px]">
                         <thead className="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
                           <tr>
                             <th className="py-2.5 px-4">Contact Person</th>
@@ -381,16 +381,18 @@ export default function Home() {
                 {activeTab === 'cleaner' && (
                   <div className="space-y-5 animate-in fade-in duration-300">
                     {/* Natural language formula bar */}
-                    <div className="bg-white p-3.5 rounded-xl border border-indigo-200 shadow-sm flex items-center gap-3">
-                      <div className="px-2.5 py-1 bg-indigo-600 text-white rounded-md text-xs font-mono font-bold">
-                        fx AI
+                    <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-indigo-200 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="px-2.5 py-1 bg-indigo-600 text-white rounded-md text-xs font-mono font-bold shrink-0">
+                          fx AI
+                        </div>
+                        <input
+                          type="text"
+                          readOnly
+                          value="Capitalize first & last names, extract clean root domain, and filter out free Yahoo/Gmail addresses"
+                          className="w-full text-xs font-medium text-slate-800 bg-transparent outline-none truncate"
+                        />
                       </div>
-                      <input
-                        type="text"
-                        readOnly
-                        value="Capitalize first & last names, extract clean root domain, and filter out free Yahoo/Gmail addresses"
-                        className="w-full text-xs font-medium text-slate-800 bg-transparent outline-none"
-                      />
                       <button className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold shrink-0">
                         Apply AI Rule
                       </button>
@@ -598,7 +600,7 @@ export default function Home() {
           </div>
 
           <div className="rounded-3xl border border-slate-200 overflow-hidden shadow-lg bg-white">
-            <div className="grid grid-cols-1 md:grid-cols-12 bg-slate-900 text-white p-4 sm:p-6 font-bold text-sm tracking-wider uppercase">
+            <div className="hidden md:grid md:grid-cols-12 bg-slate-900 text-white p-4 sm:p-6 font-bold text-sm tracking-wider uppercase">
               <div className="md:col-span-3 text-slate-400">Workflow Step</div>
               <div className="md:col-span-4 text-rose-400">Traditional Messy Approach</div>
               <div className="md:col-span-5 text-emerald-400">The OutreachTracker Way</div>
@@ -606,7 +608,7 @@ export default function Home() {
 
             <div className="divide-y divide-slate-100">
               {comparisonPoints.map((item) => (
-                <div key={item.feature} className="grid grid-cols-1 md:grid-cols-12 p-6 gap-4 items-center">
+                <div key={item.feature} className="grid grid-cols-1 md:grid-cols-12 p-4 sm:p-6 gap-3 sm:gap-4 items-center">
                   <div className="md:col-span-3 font-bold text-slate-900 text-sm">
                     {item.feature}
                   </div>

@@ -4,7 +4,7 @@ import PublicFooter from '../components/public/PublicFooter'
 
 export default function PublicLayout() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
       <PublicNavbar />
       <main className="flex-1">
         <Outlet />

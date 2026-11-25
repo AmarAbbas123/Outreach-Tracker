@@ -68,7 +68,7 @@ export default function Links() {
       </div>
 
       {/* Stats strip */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {[
           { label: 'Total Links', value: mockLinks.length },
           { label: 'Live Links', value: liveCount },
@@ -82,7 +82,7 @@ export default function Links() {
       </div>
 
       {/* Filter */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-full sm:w-fit overflow-x-auto no-scrollbar">
         {(['all', 'live', 'pending', 'lost'] as const).map((s) => (
           <button
             key={s}
@@ -172,7 +172,7 @@ function LinkModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 overflow-y-auto max-h-[90vh]">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg p-4 sm:p-6 overflow-y-auto max-h-[90vh]">
         <h3 className="text-base font-semibold text-gray-900 mb-5">Log Won Link</h3>
         <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
           <div>

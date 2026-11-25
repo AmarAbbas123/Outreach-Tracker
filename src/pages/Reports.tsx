@@ -25,7 +25,7 @@ export default function Reports() {
           <p className="text-sm text-gray-500 mt-0.5">Track performance across all your campaigns.</p>
         </div>
         {/* Date range */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto no-scrollbar max-w-full">
           {ranges.map(({ key, label }) => (
             <button
               key={key}
@@ -41,7 +41,7 @@ export default function Reports() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: 'Emails Sent',     value: '0',  icon: Mail,       color: 'text-blue-600',   bg: 'bg-blue-50' },
           { label: 'Replies',         value: '0',  icon: TrendingUp, color: 'text-green-600',  bg: 'bg-green-50' },
@@ -61,7 +61,7 @@ export default function Reports() {
       </div>
 
       {/* Derived metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {[
           { label: 'Reply Rate',    value: '—', desc: 'replies / emails sent' },
           { label: 'Win Rate',      value: '—', desc: 'links won / replied' },

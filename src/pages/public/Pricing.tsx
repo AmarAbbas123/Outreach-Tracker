@@ -208,15 +208,15 @@ export default function Pricing() {
   return (
     <>
       {/* ── Page Hero ─────────────────────────────────────────────────────── */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6 max-w-6xl text-center">
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl text-center">
           <span className="inline-block text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
             Pricing
           </span>
-          <h1 className="text-5xl font-bold text-gray-900 mb-5 leading-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-5 leading-tight">
             Simple, transparent pricing
           </h1>
-          <p className="text-xl text-gray-600 max-w-xl mx-auto mb-8">
+          <p className="text-base sm:text-xl text-gray-600 max-w-xl mx-auto mb-8">
             Start free, upgrade when you need more. No hidden fees. Cancel anytime.
           </p>
 
@@ -247,7 +247,7 @@ export default function Pricing() {
 
       {/* ── Pricing tiers ─────────────────────────────────────────────────── */}
       <section className="pb-24 bg-white">
-        <div className="container mx-auto px-6 max-w-6xl">
+        <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             {tiers.map((tier) => (
               <div
@@ -323,7 +323,7 @@ export default function Pricing() {
           </div>
 
           <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-sm bg-white">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[500px]">
               <thead>
                 <tr className="border-b border-gray-100">
                   <th className="text-left px-4 py-4 font-semibold text-gray-900">Feature</th>
