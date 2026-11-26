@@ -189,7 +189,7 @@ export default function Contact() {
                         message: '',
                       })
                     }}
-                    className="inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-semibold text-xs transition-colors"
+                    className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-medium text-xs transition-colors"
                   >
                     Send another message
                   </button>
@@ -198,7 +198,7 @@ export default function Contact() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Inquiry Type Selector */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
                       How can we help you?
                     </label>
                     <div className="grid grid-cols-3 gap-2.5">
@@ -211,9 +211,9 @@ export default function Contact() {
                           key={t.id}
                           type="button"
                           onClick={() => setFormData({ ...formData, inquiryType: t.id })}
-                          className={`py-2.5 px-3 rounded-xl text-xs font-semibold border transition-all text-center ${
+                          className={`py-2.5 px-3 rounded-xl text-xs font-medium border transition-all text-center ${
                             formData.inquiryType === t.id
-                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
                               : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                           }`}
                         >
@@ -225,7 +225,7 @@ export default function Contact() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
                         Your Name <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -234,11 +234,11 @@ export default function Contact() {
                         placeholder="Sarah Jenkins"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
                         Work Email <span className="text-rose-500">*</span>
                       </label>
                       <input
@@ -247,13 +247,13 @@ export default function Contact() {
                         placeholder="sarah@agency.com"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Company / Agency Name (Optional)
                     </label>
                     <input
@@ -261,12 +261,12 @@ export default function Contact() {
                       placeholder="LinkForge Media"
                       value={formData.company}
                       onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
                       Message <span className="text-rose-500">*</span>
                     </label>
                     <textarea
@@ -275,14 +275,14 @@ export default function Contact() {
                       placeholder="Tell us about your team size, outreach goals, or specific questions about the AI Scraper..."
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-slate-950 hover:bg-slate-900 text-white py-3.5 px-6 rounded-xl font-bold text-sm shadow-md transition-all disabled:opacity-50"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-xl font-medium text-sm shadow-2xs transition-all disabled:opacity-50"
                   >
                     {submitting ? (
                       <span>Sending message...</span>

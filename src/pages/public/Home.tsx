@@ -188,15 +188,15 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
             <Link
               to="/signup"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-slate-950 hover:bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold text-base shadow-xl shadow-slate-950/15 hover:shadow-indigo-500/10 transition-all hover:-translate-y-0.5"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3.5 rounded-xl font-medium text-base shadow-md shadow-indigo-600/20 transition-all hover:-translate-y-0.5"
             >
-              <Sparkles className="w-5 h-5 text-indigo-400" />
+              <Sparkles className="w-5 h-5 text-indigo-200" />
               <span>Start Free Workspace</span>
               <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
             <Link
               to="/features"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-800 px-7 py-4 rounded-2xl font-semibold text-base border border-slate-200/90 shadow-sm transition-all hover:border-slate-300"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 px-7 py-3.5 rounded-xl font-medium text-base border border-slate-200/90 shadow-2xs transition-all hover:border-slate-300"
             >
               <span>Explore Features</span>
               <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -226,45 +226,45 @@ export default function Home() {
 
             <div className="relative rounded-2xl bg-white border border-slate-200/80 shadow-2xl shadow-indigo-950/10 overflow-hidden">
               {/* Browser bar top */}
-              <div className="bg-slate-900 px-3 sm:px-4 py-3 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="bg-slate-100/90 px-3 sm:px-4 py-2.5 border-b border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                  <div className="ml-3 hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-slate-800 text-[11px] font-mono text-slate-400">
-                    <span className="text-emerald-400">https://</span>
+                  <div className="w-3 h-3 rounded-full bg-rose-400" />
+                  <div className="w-3 h-3 rounded-full bg-amber-400" />
+                  <div className="w-3 h-3 rounded-full bg-emerald-400" />
+                  <div className="ml-3 hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-white border border-slate-200 text-[11px] font-mono text-slate-500">
+                    <span className="text-emerald-600">https://</span>
                     <span>outreachtracker.io/app/workspace</span>
                   </div>
                 </div>
 
                 {/* Workspace preview switcher */}
-                <div className="flex items-center gap-1 bg-slate-800/80 p-1 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar shrink-0">
+                <div className="flex items-center gap-1 bg-slate-200/70 p-1 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar shrink-0">
                   <button
                     onClick={() => setActiveTab('scraper')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                    className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                       activeTab === 'scraper'
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-indigo-700 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     AI Web Scraper
                   </button>
                   <button
                     onClick={() => setActiveTab('cleaner')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                    className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                       activeTab === 'cleaner'
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-indigo-700 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     AI Data Cleaner
                   </button>
                   <button
                     onClick={() => setActiveTab('crm')}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                    className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                       activeTab === 'crm'
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'bg-white text-indigo-700 shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
                     Outreach Pipeline
@@ -295,23 +295,23 @@ export default function Home() {
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           Autonomous Routing Active
                         </span>
-                        <div className="bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-1.5">
-                          <Bot className="w-3.5 h-3.5 text-indigo-400" />
+                        <div className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-medium px-4 py-2 rounded-lg flex items-center gap-1.5">
+                          <Bot className="w-3.5 h-3.5 text-indigo-600" />
                           <span>Gemini Deep Scan</span>
                         </div>
                       </div>
                     </div>
 
                     {/* AI Autonomous Navigation Log */}
-                    <div className="bg-slate-900 text-slate-300 rounded-xl p-3.5 font-mono text-xs border border-slate-800 flex items-center justify-between flex-wrap gap-2">
+                    <div className="bg-slate-50 text-slate-700 rounded-xl p-3.5 font-mono text-xs border border-slate-200 flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2">
-                        <Terminal className="w-4 h-4 text-indigo-400" />
-                        <span className="text-slate-400">Navigated subpages:</span>
-                        <span className="text-indigo-300 bg-slate-800 px-2 py-0.5 rounded">/staff</span>
-                        <span className="text-indigo-300 bg-slate-800 px-2 py-0.5 rounded">/about</span>
-                        <span className="text-indigo-300 bg-slate-800 px-2 py-0.5 rounded">/leadership</span>
+                        <Terminal className="w-4 h-4 text-indigo-600" />
+                        <span className="text-slate-500">Navigated subpages:</span>
+                        <span className="text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">/staff</span>
+                        <span className="text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">/about</span>
+                        <span className="text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">/leadership</span>
                       </div>
-                      <span className="text-emerald-400 font-semibold">14 Decision Makers Extracted</span>
+                      <span className="text-emerald-700 font-medium">14 Decision Makers Extracted</span>
                     </div>
 
                     {/* Extracted Leads Table Mock */}
@@ -393,7 +393,7 @@ export default function Home() {
                           className="w-full text-xs font-medium text-slate-800 bg-transparent outline-none truncate"
                         />
                       </div>
-                      <button className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold shrink-0">
+                      <button className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium shrink-0 transition-colors">
                         Apply AI Rule
                       </button>
                     </div>
@@ -551,10 +551,10 @@ export default function Home() {
                     <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
                       {ws.badge}
                     </span>
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-                      {ws.id === 'scraper' && <Search className="w-5 h-5 text-indigo-400" />}
-                      {ws.id === 'cleaner' && <Table className="w-5 h-5 text-purple-400" />}
-                      {ws.id === 'crm' && <KanbanSquare className="w-5 h-5 text-emerald-400" />}
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      {ws.id === 'scraper' && <Search className="w-5 h-5 text-indigo-600" />}
+                      {ws.id === 'cleaner' && <Table className="w-5 h-5 text-purple-600" />}
+                      {ws.id === 'crm' && <KanbanSquare className="w-5 h-5 text-emerald-600" />}
                     </div>
                   </div>
 
@@ -600,10 +600,10 @@ export default function Home() {
           </div>
 
           <div className="rounded-3xl border border-slate-200 overflow-hidden shadow-lg bg-white">
-            <div className="hidden md:grid md:grid-cols-12 bg-slate-900 text-white p-4 sm:p-6 font-bold text-sm tracking-wider uppercase">
-              <div className="md:col-span-3 text-slate-400">Workflow Step</div>
-              <div className="md:col-span-4 text-rose-400">Traditional Messy Approach</div>
-              <div className="md:col-span-5 text-emerald-400">The OutreachTracker Way</div>
+            <div className="hidden md:grid md:grid-cols-12 bg-slate-100/90 text-gray-700 p-4 sm:p-5 font-semibold text-xs tracking-wider uppercase border-b border-slate-200">
+              <div className="md:col-span-3 text-slate-500">Workflow Step</div>
+              <div className="md:col-span-4 text-rose-700">Traditional Messy Approach</div>
+              <div className="md:col-span-5 text-emerald-700">The OutreachTracker Way</div>
             </div>
 
             <div className="divide-y divide-slate-100">
@@ -681,35 +681,35 @@ export default function Home() {
       </section>
 
       {/* ─── Bottom CTA Banner ────────────────────────────────────────────────── */}
-      <section className="py-20 bg-slate-950 text-white relative overflow-hidden">
+      <section className="py-20 bg-gradient-to-br from-indigo-50/70 via-white to-purple-50/60 border-t border-indigo-100/80 text-gray-900 relative overflow-hidden">
         {/* Ambient glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[350px] bg-gradient-to-r from-indigo-600/30 via-purple-600/20 to-indigo-600/30 blur-[140px] pointer-events-none rounded-full" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] bg-gradient-to-r from-indigo-200/20 via-purple-200/20 to-indigo-200/20 blur-[120px] pointer-events-none rounded-full" />
 
         <div className="relative container mx-auto px-6 max-w-5xl text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-900/60 border border-indigo-700/60 text-indigo-300 text-xs font-semibold mb-6">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100/70 border border-indigo-200/70 text-indigo-700 text-xs font-medium mb-6">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
             Zero Setup Required • Instant Scraping & Outreach
           </div>
 
-          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight mb-6 leading-tight">
+          <h2 className="text-3xl sm:text-5xl font-semibold tracking-tight mb-6 leading-tight text-gray-900">
             Ready to scale your outreach and win authority links?
           </h2>
 
-          <p className="text-slate-300 text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
             Join over 1,200 SEO directors, outreach specialists, and agencies discovering verified prospects and managing pipelines with OutreachTracker.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to="/signup"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-bold text-base shadow-xl shadow-indigo-600/30 transition-all hover:-translate-y-0.5"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3.5 rounded-xl font-medium text-base shadow-md shadow-indigo-600/20 transition-all hover:-translate-y-0.5"
             >
               <span>Get Started Free Today</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               to="/contact"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-slate-200 px-7 py-4 rounded-2xl font-semibold text-base border border-slate-800 transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 px-7 py-3.5 rounded-xl font-medium text-base border border-gray-200 shadow-2xs transition-all"
             >
               <span>Talk to Enterprise Sales</span>
             </Link>

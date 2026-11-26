@@ -83,13 +83,12 @@ export default function PublicNavbar() {
             </Link>
             <Link
               to="/signup"
-              className="group relative inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md hover:shadow-indigo-500/20 transition-all duration-200 overflow-hidden"
+              className="group relative inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium text-sm shadow-2xs transition-all duration-200"
             >
               <span className="relative z-10 flex items-center gap-1.5">
                 Start Free Trial
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
               </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/30 to-violet-600/30 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
           </div>
 

@@ -133,13 +133,13 @@ export default function About() {
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link
               to="/signup"
-              className="inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white px-7 py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-slate-950/15 transition-all"
+              className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-7 py-3 rounded-xl font-medium text-sm shadow-2xs transition-all"
             >
               Start Free Trial <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               to="/contact"
-              className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 px-7 py-3.5 rounded-xl font-semibold text-sm transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-7 py-3 rounded-xl font-medium text-sm transition-colors shadow-2xs"
             >
               Contact Our Team
             </Link>
@@ -147,19 +147,19 @@ export default function About() {
         </div>
       </section>
 
-      {/* ─── Stats Banner (High Contrast Dark Card) ──────────────────────────── */}
+      {/* ─── Stats Banner (Light Gradient Card) ──────────────────────────────── */}
       <section className="py-12">
         <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
-          <div className="rounded-3xl bg-slate-950 text-white p-6 sm:p-8 md:p-12 border border-slate-900 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="rounded-3xl bg-gradient-to-r from-indigo-50/70 via-white to-purple-50/60 text-gray-900 p-6 sm:p-8 md:p-12 border border-indigo-100/80 shadow-2xs relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl pointer-events-none" />
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 relative z-10">
               {stats.map((s) => (
                 <div key={s.label}>
-                  <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-1">
+                  <div className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-800 tracking-tight mb-1">
                     {s.value}
                   </div>
-                  <div className="text-xs sm:text-sm text-slate-400 font-medium">{s.label}</div>
+                  <div className="text-xs sm:text-sm text-gray-500 font-medium">{s.label}</div>
                 </div>
               ))}
             </div>
