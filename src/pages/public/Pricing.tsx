@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ChevronDown, ChevronUp, ArrowRight, Zap } from 'lucide-react'
-
-// ─── Pricing tiers ───────────────────────────────────────────────────────────
+import { Check, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface PricingTier {
   name: string
@@ -21,15 +19,13 @@ const tiers: PricingTier[] = [
     name: 'Starter',
     price: { monthly: '$0', annual: '$0' },
     period: '/month',
-    description: 'Perfect for solo link builders getting started.',
+    description: 'Perfect for solo founders and beginners.',
     features: [
-      '1 user',
-      '1 campaign',
+      '1 active campaign',
       'Up to 50 prospects',
-      'Basic pipeline board',
-      'Email templates',
-      'Manual outreach log',
-      'Won links tracker',
+      '8-stage Kanban pipeline',
+      'Personalized email templates',
+      'Won backlink logging',
     ],
     cta: 'Get started free',
     ctaHref: '/signup',
@@ -39,205 +35,94 @@ const tiers: PricingTier[] = [
     name: 'Pro',
     price: { monthly: '$29', annual: '$23' },
     period: '/month',
-    description: 'Everything you need to run serious link-building campaigns.',
+    description: 'For growing brands and outreach specialists.',
     features: [
       'Unlimited campaigns & prospects',
-      'All Starter features',
-      'Gmail sync (coming soon)',
-      'Follow-up sequences',
-      'AI email writer',
-      'Reply sorter (AI)',
-      'Prospect scorer (AI)',
-      'Full dashboard & reports',
-      'CSV export',
-      'Email support',
+      'Autonomous lead finder crawler',
+      'AI data cleaning studio',
+      'Automated follow-up reminders',
+      'Live backlink verification checks',
+      'Full ROI & performance reports',
     ],
-    cta: 'Start free trial',
+    cta: 'Start 14-day trial',
     ctaHref: '/signup',
     highlighted: true,
-    badge: 'Most popular',
+    badge: 'Most Popular',
   },
   {
     name: 'Agency',
     price: { monthly: '$79', annual: '$63' },
     period: '/month',
-    description: 'For teams running outreach across multiple clients.',
+    description: 'For SEO agencies running client outreach.',
     features: [
-      'Everything in Pro',
-      'Up to 5 team members',
-      'Client workspaces',
-      'Chrome extension',
-      'Priority support',
-      'MCP server (coming soon)',
-      'PDF report export',
-      'Client portal (coming soon)',
+      'Everything in Pro tier',
+      'Up to 5 team member seats',
+      'Multi-client isolated workspaces',
+      'Custom webhook integrations',
+      'Priority support & CSV exports',
     ],
-    cta: 'Contact us',
-    ctaHref: 'mailto:hello@outreachtracker.io',
+    cta: 'Choose Agency',
+    ctaHref: '/signup',
     highlighted: false,
   },
 ]
 
-// ─── Feature comparison ──────────────────────────────────────────────────────
-
-interface CompareRow {
-  feature: string
-  starter: boolean | string
-  pro: boolean | string
-  agency: boolean | string
-}
-
-const compareRows: CompareRow[] = [
-  { feature: 'Users', starter: '1', pro: '1', agency: 'Up to 5' },
-  { feature: 'Campaigns', starter: '1', pro: 'Unlimited', agency: 'Unlimited' },
-  { feature: 'Prospects', starter: '50', pro: 'Unlimited', agency: 'Unlimited' },
-  { feature: 'Pipeline board', starter: true, pro: true, agency: true },
-  { feature: 'Email templates', starter: true, pro: true, agency: true },
-  { feature: 'Manual outreach log', starter: true, pro: true, agency: true },
-  { feature: 'Won links tracker', starter: true, pro: true, agency: true },
-  { feature: 'Follow-up sequences', starter: false, pro: true, agency: true },
-  { feature: 'AI email writer', starter: false, pro: true, agency: true },
-  { feature: 'AI reply sorter', starter: false, pro: true, agency: true },
-  { feature: 'Dashboard & reports', starter: false, pro: true, agency: true },
-  { feature: 'CSV export', starter: false, pro: true, agency: true },
-  { feature: 'Team members', starter: false, pro: false, agency: 'Up to 5' },
-  { feature: 'Chrome extension', starter: false, pro: false, agency: true },
-  { feature: 'Priority support', starter: false, pro: false, agency: true },
-]
-
-// ─── FAQ data ─────────────────────────────────────────────────────────────────
-
-interface FAQItem {
-  question: string
-  answer: string
-}
-
-const faqs: FAQItem[] = [
+const faqs = [
   {
-    question: 'Is there a free trial?',
-    answer:
-      'Yes. The Pro plan has a 14-day free trial — no credit card required. You get full access to all Pro features during the trial.',
+    q: 'Is there a free trial?',
+    a: 'Yes. The Pro plan includes a 14-day free trial with zero upfront credit card requirement.',
   },
   {
-    question: 'What happens when my trial ends?',
-    answer:
-      "You'll be asked to add a payment method to continue on Pro. If you don't, your account automatically downgrades to the Starter plan. Your data is never deleted.",
+    q: 'Can I cancel or change plans anytime?',
+    a: 'Yes, you can upgrade, downgrade, or cancel your subscription directly from your settings at any time.',
   },
   {
-    question: 'Can I cancel anytime?',
-    answer:
-      'Absolutely. Cancel from your account settings at any time, no questions asked. You keep access until the end of your billing period.',
+    q: 'How does the annual discount work?',
+    a: 'Choosing annual billing saves 20% across all paid plans ($23/mo for Pro, $63/mo for Agency).',
   },
   {
-    question: 'What is the annual discount?',
-    answer:
-      'Pay annually and save 20% — Pro drops from $29 to $23/month, and Agency from $79 to $63/month.',
-  },
-  {
-    question: 'Do you support team accounts?',
-    answer:
-      'Team support is available on the Agency plan with up to 5 seats. Each team member gets their own login and you can control permissions.',
-  },
-  {
-    question: 'Is my data secure?',
-    answer:
-      'Yes. Each workspace is fully isolated. Passwords are hashed with bcrypt. API keys are server-side only and never exposed to the client. We use helmet, CORS whitelisting, and rate limits throughout.',
-  },
-  {
-    question: 'What is the MCP server?',
-    answer:
-      'The MCP (Model Context Protocol) server lets AI agents connect to your outreach data directly. It is on the Agency roadmap and coming in a future release.',
-  },
-  {
-    question: 'Can I export my data?',
-    answer:
-      "Yes. Pro and Agency plans include CSV export for prospects, links, and email logs. You can also request a full JSON export of all your data at any time.",
+    q: 'Is my outreach data private?',
+    a: 'Yes. Every workspace is isolated and secured with JWT encryption, rate limiting, and strict SSRF protections.',
   },
 ]
-
-// ─── FAQ Accordion item ──────────────────────────────────────────────────────
-
-function FAQAccordion({ item }: { item: FAQItem }) {
-  const [open, setOpen] = useState(false)
-
-  return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
-      <button
-        className="w-full flex items-center justify-between px-6 py-4 text-left font-medium text-gray-900 hover:bg-gray-50 transition-colors"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-      >
-        <span>{item.question}</span>
-        {open ? (
-          <ChevronUp className="w-4 h-4 text-gray-500 flex-shrink-0" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0" />
-        )}
-      </button>
-      {open && (
-        <div className="px-6 pb-5 text-gray-600 text-sm leading-relaxed border-t border-gray-100 pt-4 bg-gray-50">
-          {item.answer}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Cell component ──────────────────────────────────────────────────────────
-
-function Cell({ value }: { value: boolean | string }) {
-  if (typeof value === 'string') {
-    return <td className="px-4 py-3 text-center text-sm text-gray-700">{value}</td>
-  }
-  return (
-    <td className="px-4 py-3 text-center">
-      {value ? (
-        <Check className="w-4 h-4 text-indigo-600 mx-auto" />
-      ) : (
-        <span className="text-gray-200 text-lg font-light">—</span>
-      )}
-    </td>
-  )
-}
-
-// ─── Main component ──────────────────────────────────────────────────────────
 
 export default function Pricing() {
   const [annual, setAnnual] = useState(false)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
 
   return (
-    <>
-      {/* ── Page Hero ─────────────────────────────────────────────────────── */}
-      <section className="py-16 sm:py-24 bg-white">
-        <div className="container mx-auto px-4 sm:px-6 max-w-6xl text-center">
-          <span className="inline-block text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full mb-4 uppercase tracking-wide">
-            Pricing
+    <div className="bg-white text-gray-800">
+      {/* ─── Hero Section ────────────────────────────────────────────────────── */}
+      <section className="pt-16 pb-10 sm:pt-20 sm:pb-14 text-center">
+        <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
+          <span className="inline-block text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-3 py-1 rounded-full mb-4">
+            Pricing Plans
           </span>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-5 leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-semibold text-gray-900 tracking-tight leading-tight mb-4">
             Simple, transparent pricing
           </h1>
-          <p className="text-base sm:text-xl text-gray-600 max-w-xl mx-auto mb-8">
-            Start free, upgrade when you need more. No hidden fees. Cancel anytime.
+          <p className="text-base sm:text-lg text-gray-600 max-w-xl mx-auto mb-8">
+            Start for free. Scale your outreach as your client campaigns grow.
           </p>
 
-          {/* Billing toggle */}
-          <div className="inline-flex items-center gap-3 bg-gray-100 rounded-xl p-1">
+          {/* Billing Interval Switcher */}
+          <div className="inline-flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
             <button
               onClick={() => setAnnual(false)}
-              className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
-                !annual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                !annual ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setAnnual(true)}
-              className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-                annual ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                annual ? 'bg-white text-gray-900 shadow-2xs' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
-              Annual
-              <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+              <span>Annual</span>
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded font-medium">
                 Save 20%
               </span>
             </button>
@@ -245,156 +130,100 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* ── Pricing tiers ─────────────────────────────────────────────────── */}
-      <section className="pb-24 bg-white">
-        <div className="container mx-auto px-4 sm:px-6 max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+      {/* ─── Pricing Tiers ───────────────────────────────────────────────────── */}
+      <section className="pb-20">
+        <div className="container mx-auto px-4 sm:px-6 max-w-5xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             {tiers.map((tier) => (
               <div
                 key={tier.name}
-                className={`relative rounded-2xl border p-8 ${
+                className={`relative rounded-2xl p-6 sm:p-7 flex flex-col justify-between border transition-all ${
                   tier.highlighted
-                    ? 'border-indigo-500 ring-2 ring-indigo-500 shadow-xl shadow-indigo-100'
-                    : 'border-gray-200'
+                    ? 'border-indigo-400 bg-gradient-to-b from-indigo-50/40 via-white to-white shadow-sm ring-1 ring-indigo-200'
+                    : 'border-gray-200/90 bg-white shadow-2xs'
                 }`}
               >
-                {/* Badge */}
                 {tier.badge && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[11px] font-medium px-3 py-0.5 rounded-full shadow-2xs">
                     {tier.badge}
                   </span>
                 )}
 
-                <h2 className="text-xl font-bold text-gray-900 mb-1">{tier.name}</h2>
-                <p className="text-sm text-gray-500 mb-5 leading-relaxed">{tier.description}</p>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{tier.name}</h3>
+                  <p className="text-xs text-gray-500 mb-5 leading-relaxed">{tier.description}</p>
 
-                <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-4xl font-bold text-gray-900">
-                    {annual ? tier.price.annual : tier.price.monthly}
-                  </span>
-                  <span className="text-gray-500 text-sm">{tier.period}</span>
+                  <div className="flex items-baseline gap-1 mb-6">
+                    <span className="text-3xl sm:text-4xl font-semibold text-gray-900">
+                      {annual ? tier.price.annual : tier.price.monthly}
+                    </span>
+                    <span className="text-xs text-gray-400">{tier.period}</span>
+                  </div>
+
+                  <ul className="space-y-2.5 mb-8 text-xs text-gray-600">
+                    {tier.features.map((f) => (
+                      <li key={f} className="flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <ul className="space-y-3 mb-8">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-gray-600">
-                      <Check className="w-4 h-4 text-indigo-600 flex-shrink-0 mt-0.5" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
+                <Link
+                  to={tier.ctaHref}
+                  className={`w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-medium transition-colors ${
+                    tier.highlighted
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs'
+                      : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <span>{tier.cta}</span>
+                  {tier.highlighted && <ArrowRight className="w-3.5 h-3.5" />}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-                {tier.ctaHref.startsWith('/') ? (
-                  <Link
-                    to={tier.ctaHref}
-                    className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-colors ${
-                      tier.highlighted
-                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                        : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {tier.cta}
-                    {tier.highlighted && <ArrowRight className="w-4 h-4" />}
-                  </Link>
-                ) : (
-                  <a
-                    href={tier.ctaHref}
-                    className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-medium transition-colors border border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    {tier.cta}
-                  </a>
+      {/* ─── Compact FAQs ────────────────────────────────────────────────────── */}
+      <section className="py-16 bg-slate-50/60 border-t border-gray-200/80">
+        <div className="container mx-auto px-4 sm:px-6 max-w-3xl">
+          <div className="text-center mb-10">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 tracking-tight">
+              Frequently Asked Questions
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            {faqs.map((faq, idx) => (
+              <div
+                key={faq.q}
+                className="rounded-xl border border-gray-200/80 bg-white overflow-hidden shadow-2xs"
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="w-full flex items-center justify-between p-4 text-left text-xs sm:text-sm font-medium text-gray-800 hover:text-indigo-600 transition-colors"
+                >
+                  <span>{faq.q}</span>
+                  {openFaq === idx ? (
+                    <ChevronUp size={16} className="text-gray-400 shrink-0" />
+                  ) : (
+                    <ChevronDown size={16} className="text-gray-400 shrink-0" />
+                  )}
+                </button>
+                {openFaq === idx && (
+                  <div className="px-4 pb-4 text-xs text-gray-500 leading-relaxed border-t border-gray-100 pt-3">
+                    {faq.a}
+                  </div>
                 )}
               </div>
             ))}
           </div>
-
-          <p className="text-center text-sm text-gray-400 mt-6">
-            All plans include SSL, daily backups, and GDPR-compliant data handling.
-          </p>
         </div>
       </section>
-
-      {/* ── Feature comparison table ──────────────────────────────────────── */}
-      <section className="py-24 bg-gray-50">
-        <div className="container mx-auto px-6 max-w-5xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">Compare plans</h2>
-            <p className="text-gray-600">See exactly what's included in each plan.</p>
-          </div>
-
-          <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-sm bg-white">
-            <table className="w-full text-sm min-w-[500px]">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left px-4 py-4 font-semibold text-gray-900">Feature</th>
-                  <th className="text-center px-4 py-4 font-semibold text-gray-700">Starter</th>
-                  <th className="text-center px-4 py-4 font-semibold text-indigo-600">Pro</th>
-                  <th className="text-center px-4 py-4 font-semibold text-gray-700">Agency</th>
-                </tr>
-              </thead>
-              <tbody>
-                {compareRows.map((row, i) => (
-                  <tr key={row.feature} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-4 py-3 text-gray-700">{row.feature}</td>
-                    <Cell value={row.starter} />
-                    <Cell value={row.pro} />
-                    <Cell value={row.agency} />
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FAQ ───────────────────────────────────────────────────────────── */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6 max-w-3xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">Frequently asked questions</h2>
-            <p className="text-gray-600">Still have questions? Email us at hello@outreachtracker.io</p>
-          </div>
-          <div className="flex flex-col gap-3">
-            {faqs.map((faq) => (
-              <FAQAccordion key={faq.question} item={faq} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Bottom CTA ────────────────────────────────────────────────────── */}
-      <section className="py-24 bg-indigo-700 relative overflow-hidden">
-        <div aria-hidden className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-24 -right-24 w-72 h-72 bg-indigo-500 rounded-full blur-3xl opacity-30" />
-          <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-violet-700 rounded-full blur-3xl opacity-30" />
-        </div>
-        <div className="relative container mx-auto px-6 max-w-6xl text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 text-white text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-            <Zap className="w-4 h-4" />
-            Start your 14-day free trial
-          </div>
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to close more links?
-          </h2>
-          <p className="text-indigo-200 text-lg mb-8 max-w-xl mx-auto">
-            No credit card required. Full Pro access for 14 days. Upgrade or downgrade anytime.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/signup"
-              className="inline-flex items-center gap-2 bg-white text-indigo-700 px-8 py-3.5 rounded-xl font-semibold hover:bg-indigo-50 transition-colors"
-            >
-              Get started free <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              to="/features"
-              className="inline-flex items-center gap-2 text-white border border-white/30 px-8 py-3.5 rounded-xl font-medium hover:bg-white/10 transition-colors"
-            >
-              See all features
-            </Link>
-          </div>
-        </div>
-      </section>
-    </>
+    </div>
   )
 }
