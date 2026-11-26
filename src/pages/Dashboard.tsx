@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Mail,
@@ -13,14 +14,23 @@ import {
   Clock,
   Plus,
   Briefcase,
+  Check,
+  CheckCircle2,
+  RotateCcw,
+  AlertCircle,
   type LucideIcon,
 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../api/client'
 import { useClient } from '../context/ClientContext'
 
 export default function Dashboard() {
+  const queryClient = useQueryClient()
   const { selectedClientId, clients } = useClient()
+
+  const [taskTab, setTaskTab] = useState<'today' | 'overdue'>('today')
+  const [quickTaskTitle, setQuickTaskTitle] = useState('')
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null)
 
   // Fetch live metrics from reports endpoint
   const { data: reportData, isLoading } = useQuery({
@@ -39,7 +49,87 @@ export default function Dashboard() {
       const res = await api.get('/tasks/counts')
       return res.data?.data
     },
+    refetchInterval: 15000,
   })
+
+  // Fetch today's focus tasks
+  const { data: todayTasksData } = useQuery({
+    queryKey: ['dashboard-tasks-today'],
+    queryFn: async () => {
+      const res = await api.get('/tasks?filter=today&limit=5')
+      return res.data?.data?.tasks || []
+    },
+    refetchInterval: 15000,
+  })
+
+  // Fetch overdue tasks
+  const { data: overdueTasksData } = useQuery({
+    queryKey: ['dashboard-tasks-overdue'],
+    queryFn: async () => {
+      const res = await api.get('/tasks?filter=overdue&limit=5')
+      return res.data?.data?.tasks || []
+    },
+    refetchInterval: 15000,
+  })
+
+  // Complete Task Mutation
+  const completeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      setCompletingTaskId(id)
+      const res = await api.patch(`/tasks/${id}/complete`)
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task-counts'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks-today'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks-overdue'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-metrics'] })
+      setCompletingTaskId(null)
+    },
+    onError: () => {
+      setCompletingTaskId(null)
+    },
+  })
+
+  // Snooze Task Mutation (+3 days)
+  const snoozeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await api.patch(`/tasks/${id}/snooze`, { days: 3 })
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['task-counts'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks-today'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks-overdue'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+  })
+
+  // Quick Create Task Mutation
+  const createQuickTaskMutation = useMutation({
+    mutationFn: async (title: string) => {
+      const res = await api.post('/tasks', {
+        title: title.trim(),
+        dueAt: new Date().toISOString(),
+        type: 'manual',
+      })
+      return res.data
+    },
+    onSuccess: () => {
+      setQuickTaskTitle('')
+      queryClient.invalidateQueries({ queryKey: ['task-counts'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks-today'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-tasks-overdue'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+  })
+
+  const handleQuickAdd = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!quickTaskTitle.trim()) return
+    createQuickTaskMutation.mutate(quickTaskTitle)
+  }
 
   // Fetch recent campaigns
   const { data: campaignsData } = useQuery({
@@ -253,35 +343,139 @@ export default function Dashboard() {
 
         {/* Right Column: Quick Actions & Tasks (5 cols) */}
         <div className="lg:col-span-5 flex flex-col gap-5">
-          {/* Daily Tasks Card */}
+          {/* Daily Tasks Interactive Center */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <CheckSquare size={16} className="text-indigo-600" />
-                <h3 className="text-sm font-semibold text-gray-800">Today's Focus Tasks</h3>
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <CheckSquare size={16} className="text-indigo-600" />
+                  <h3 className="text-sm font-semibold text-gray-800">Daily Focus Tasks</h3>
+                </div>
+                <Link
+                  to="/app/tasks"
+                  className="text-xs text-indigo-600 font-medium hover:underline inline-flex items-center gap-1"
+                >
+                  <span>All Tasks ({taskCounts.urgentTotal})</span>
+                  <ChevronRight size={12} />
+                </Link>
               </div>
-              <Link
-                to="/app/tasks"
-                className="text-xs text-indigo-600 font-medium hover:underline"
-              >
-                View all ({taskCounts.today + taskCounts.overdue})
-              </Link>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 my-2">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-[10px] font-medium uppercase text-gray-400">Due Today</span>
-                <p className="text-xl font-semibold text-gray-800 mt-0.5">{taskCounts.today}</p>
+              {/* Task Tab Switcher */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-50 border border-slate-200/70 rounded-xl mb-3">
+                <button
+                  type="button"
+                  onClick={() => setTaskTab('today')}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-all text-center flex items-center justify-center gap-1.5 ${
+                    taskTab === 'today'
+                      ? 'bg-white text-gray-800 shadow-2xs'
+                      : 'text-gray-500 hover:text-gray-800'
+                  }`}
+                >
+                  <span>Due Today</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 font-mono">
+                    {taskCounts.today}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTaskTab('overdue')}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-medium transition-all text-center flex items-center justify-center gap-1.5 ${
+                    taskTab === 'overdue'
+                      ? 'bg-white text-rose-700 shadow-2xs'
+                      : 'text-gray-500 hover:text-rose-600'
+                  }`}
+                >
+                  <span>Overdue</span>
+                  {taskCounts.overdue > 0 && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-mono">
+                      {taskCounts.overdue}
+                    </span>
+                  )}
+                </button>
               </div>
-              <div
-                className={`p-3 rounded-xl border ${
-                  taskCounts.overdue > 0
-                    ? 'bg-rose-50 border-rose-200 text-rose-800'
-                    : 'bg-slate-50 border-slate-100 text-slate-800'
-                }`}
-              >
-                <span className="text-[10px] font-medium uppercase opacity-75">Overdue</span>
-                <p className="text-xl font-semibold mt-0.5">{taskCounts.overdue}</p>
+
+              {/* Quick Add Inline Form */}
+              <form onSubmit={handleQuickAdd} className="flex items-center gap-2 mb-3">
+                <input
+                  type="text"
+                  placeholder="+ Add quick follow-up task..."
+                  value={quickTaskTitle}
+                  onChange={(e) => setQuickTaskTitle(e.target.value)}
+                  className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white font-medium"
+                />
+                <button
+                  type="submit"
+                  disabled={!quickTaskTitle.trim() || createQuickTaskMutation.isPending}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-medium disabled:opacity-50 shadow-2xs transition-colors shrink-0"
+                >
+                  {createQuickTaskMutation.isPending ? 'Adding...' : 'Add'}
+                </button>
+              </form>
+
+              {/* Active Task List */}
+              <div className="space-y-2 mb-3 min-h-[120px]">
+                {((taskTab === 'today' ? todayTasksData : overdueTasksData) || []).length === 0 ? (
+                  <div className="text-center py-6 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                    <CheckCircle2 size={22} className="text-emerald-500 mx-auto mb-1.5" />
+                    <p className="text-xs font-medium text-gray-700">
+                      {taskTab === 'today'
+                        ? 'No tasks due today'
+                        : 'No overdue follow-up tasks'}
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      You are all caught up on your outreach queue.
+                    </p>
+                  </div>
+                ) : (
+                  ((taskTab === 'today' ? todayTasksData : overdueTasksData) || []).map((t: any) => (
+                    <div
+                      key={t._id}
+                      className="p-2.5 rounded-xl border border-slate-200/80 bg-white hover:border-slate-300 transition-all flex items-start justify-between gap-2.5 group"
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        {/* One-click complete checkbox */}
+                        <button
+                          type="button"
+                          onClick={() => completeMutation.mutate(t._id)}
+                          disabled={completingTaskId === t._id}
+                          className="mt-0.5 w-4 h-4 rounded-md border border-slate-300 hover:border-indigo-600 flex items-center justify-center transition-colors text-white hover:bg-indigo-50 group/check shrink-0"
+                          title="Mark complete"
+                        >
+                          {completingTaskId === t._id ? (
+                            <span className="w-2 h-2 rounded-full bg-indigo-600 animate-ping" />
+                          ) : (
+                            <Check
+                              size={11}
+                              className="opacity-0 group-hover/check:opacity-100 text-indigo-600 transition-opacity"
+                            />
+                          )}
+                        </button>
+
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-gray-800 truncate">
+                            {t.title}
+                          </p>
+                          {t.prospect && (
+                            <p className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
+                              {t.prospect.domain}{' '}
+                              {t.prospect.contactName && `• ${t.prospect.contactName}`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Quick Snooze +3d button */}
+                      <button
+                        type="button"
+                        onClick={() => snoozeMutation.mutate(t._id)}
+                        className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors text-[10px] shrink-0 font-mono"
+                        title="Snooze 3 days"
+                      >
+                        +3d
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -289,7 +483,7 @@ export default function Dashboard() {
               to="/app/tasks"
               className="w-full text-center py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-xl text-xs font-medium transition-colors"
             >
-              Open Daily Task Manager →
+              Open Full Task Manager →
             </Link>
           </div>
 
